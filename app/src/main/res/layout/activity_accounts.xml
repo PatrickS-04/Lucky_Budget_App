@@ -57,7 +57,7 @@
                     android:id="@+id/profileIcon"
                     android:layout_width="78dp"
                     android:layout_height="65dp"
-                    android:background="@drawable/circle_bg"
+                    android:background="@drawable/circle_bg_removebg"
                     android:gravity="center"
                     android:textSize="15sp"
                     app:layout_constraintBottom_toBottomOf="parent"
