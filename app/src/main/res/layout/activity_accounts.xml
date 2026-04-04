@@ -118,7 +118,7 @@
                     app:layout_constraintTop_toTopOf="parent">
 
                     <!-- DonutChartView draws its own rings and hole -->
-                    <com.example.myapplication.DonutChartView
+                    <com.example.pulserds_prog7313.DonutChartView
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:layout_gravity="center" />

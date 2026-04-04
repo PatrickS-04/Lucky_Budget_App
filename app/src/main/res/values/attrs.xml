@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="DonutChartView">
+        <!-- Percentage of the chart that is "expenses" (0–100) -->
+        <attr name="donutExpensePercent" format="float" />
+        <!-- Colour of the expense slice -->
+        <attr name="donutExpenseColor" format="color" />
+        <!-- Colour of the saved slice -->
+        <attr name="donutSavedColor" format="color" />
+        <!-- Colour of the hole (should match card background) -->
+        <attr name="donutHoleColor" format="color" />
+        <!-- Text shown in the centre of the donut (use \n for newline) -->
+        <attr name="donutCenterText" format="string" />
+        <!-- Colour of the centre text -->
+        <attr name="donutCenterTextColor" format="color" />
+        <!-- Size of centre text in sp -->
+        <attr name="donutCenterTextSize" format="float" />
+        <!-- Ring thickness as fraction of radius (0.0–1.0) -->
+        <attr name="donutThickness" format="float" />
+        <!-- Gap between slices in degrees -->
+        <attr name="donutGap" format="float" />
+    </declare-styleable>
+</resources>

@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.pulserds_prog7313
 
 import android.content.Context
 import android.graphics.*
