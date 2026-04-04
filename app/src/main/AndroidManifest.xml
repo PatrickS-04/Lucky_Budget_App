@@ -12,6 +12,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Pulserds_PROG7313">
         <activity
+            android:name=".CreateSavingsGoalActivity"
+            android:exported="false" />
+        <activity
+            android:name=".SavingsGoalsActivity"
+            android:exported="false" />
+        <activity
             android:name=".SettingsActivity"
             android:exported="false" />
         <activity
