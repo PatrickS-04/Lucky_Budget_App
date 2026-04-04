@@ -12,6 +12,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Pulserds_PROG7313">
         <activity
+            android:name=".AddSubscriptionActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ManageSubscriptionsActivity"
+            android:exported="false" />
+        <activity
             android:name=".CreateSavingsGoalActivity"
             android:exported="false" />
         <activity
