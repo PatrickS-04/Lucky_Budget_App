@@ -16,7 +16,7 @@
     android:layout_height="match_parent"
     android:background="#CBF3F0"
     android:fillViewport="true"
-    tools:context=".AnalyticsActivity">
+    tools:context=".ui.AnalyticsActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/main"

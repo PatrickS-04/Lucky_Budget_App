@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@color/backgroundGreen"
     android:fillViewport="true"
-    tools:context=".DashBoardActivity">
+    tools:context=".ui.DashBoardActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/main"

@@ -12,43 +12,43 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Pulserds_PROG7313">
         <activity
-            android:name=".AnalyticsActivity"
+            android:name=".ui.AnalyticsActivity"
             android:exported="false" />
         <activity
-            android:name=".AddSubscriptionActivity"
+            android:name=".ui.AddSubscriptionActivity"
             android:exported="false" />
         <activity
-            android:name=".ManageSubscriptionsActivity"
+            android:name=".ui.ManageSubscriptionsActivity"
             android:exported="false" />
         <activity
-            android:name=".CreateSavingsGoalActivity"
+            android:name=".ui.CreateSavingsGoalActivity"
             android:exported="false" />
         <activity
-            android:name=".SavingsGoalsActivity"
+            android:name=".ui.SavingsGoalsActivity"
             android:exported="false" />
         <activity
-            android:name=".SettingsActivity"
+            android:name=".ui.SettingsActivity"
             android:exported="false" />
         <activity
-            android:name=".AddTransactionActivity"
+            android:name=".ui.AddTransactionActivity"
             android:exported="false" />
         <activity
-            android:name=".TransactionsActivity"
+            android:name=".ui.TransactionsActivity"
             android:exported="false" />
         <activity
-            android:name=".AddAccountActivity"
+            android:name=".ui.AddAccountActivity"
             android:exported="false" />
         <activity
-            android:name=".AccountsActivity"
+            android:name=".ui.AccountsActivity"
             android:exported="false" />
         <activity
-            android:name=".DashBoardActivity"
+            android:name=".ui.DashBoardActivity"
             android:exported="false" />
         <activity
-            android:name=".CreateAccActivity"
+            android:name=".ui.CreateAccActivity"
             android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
