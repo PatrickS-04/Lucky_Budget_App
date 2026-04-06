@@ -6,15 +6,17 @@ import com.example.pulserds_prog7313.data.User
 import com.example.pulserds_prog7313.repository.UserRepository
 import kotlinx.coroutines.launch
 
-class UserViewModel(private val repository: UserRepository) : ViewModel() {
+class UserViewModel(private val userRepository: UserRepository) : ViewModel() {
 
-    fun registerUser(user: User) {
-        viewModelScope.launch {
-            repository.registerUser(user)
-        }
+    suspend fun register(user: User) {
+        userRepository.register(user)
     }
 
-    suspend fun login(email: String, password: String): User? {
-        return repository.login(email, password)
+    suspend fun login(username: String, passwordHash: String): User? {
+        return userRepository.login(username, passwordHash)
+    }
+
+    suspend fun getUserByUsername(username: String): User? {
+        return userRepository.getUserByUsername(username)
     }
 }
