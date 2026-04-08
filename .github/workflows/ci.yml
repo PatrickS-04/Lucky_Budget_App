@@ -56,7 +56,7 @@ jobs:
       # Step 7: Verify Gradle wrapper checksum locally (no network needed)
       - name: Verify Gradle Wrapper Checksum
         run: |
-          EXPECTED="b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06"
+          EXPECTED="76805e32c009c0cf0dd5d206bddc9fb22ea42e84db904b764f3047de095493f3"
           ACTUAL=$(sha256sum gradle/wrapper/gradle-wrapper.jar | awk '{print $1}')
           if [ "$EXPECTED" != "$ACTUAL" ]; then
             echo "Gradle wrapper checksum mismatch!"
