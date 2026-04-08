@@ -648,7 +648,7 @@
                     app:boxStrokeWidth="1.5dp"
                     app:counterEnabled="true"
                     app:counterMaxLength="30"
-                    app:counterTextColor="#3D5A70"
+                    app:counterTextColor="@color/counterTextColor"
                     app:hintEnabled="false">
 
                     <com.google.android.material.textfield.TextInputEditText

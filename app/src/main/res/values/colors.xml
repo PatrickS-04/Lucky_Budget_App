@@ -8,5 +8,5 @@
     <color name="buttonOrange">#FFBF69</color>
     <color name="red">#F87171</color>
     <color name="very_darkGreen">#023E1D</color>
-
+    <color name="counterTextColor">#3D5A70</color>
 </resources>
