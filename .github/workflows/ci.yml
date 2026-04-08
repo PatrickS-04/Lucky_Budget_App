@@ -1,0 +1,104 @@
+name: PULSER DS CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Java 17 (matches your project's JavaVersion.VERSION_17)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # Step 3: Set up Android SDK with compileSdk 36
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Step 4: Cache Gradle dependencies to speed up builds
+      - name: Cache Gradle Packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/build-cache
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.kts', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Step 5: Cache KSP generated files (used by Room)
+      - name: Cache KSP Generated Files
+        uses: actions/cache@v4
+        with:
+          path: app/build/generated/ksp
+          key: ${{ runner.os }}-ksp-${{ hashFiles('**/*.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-ksp-
+
+      # Step 6: Grant execute permission for gradlew
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      # Step 7: Validate Gradle wrapper integrity
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v3
+
+      # Step 8: Check the project compiles successfully (catches syntax/import errors)
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+      # Step 9: Run Room schema validation (ensures DB migrations are not broken)
+      - name: Verify Room Schema
+        run: ./gradlew kspDebugKotlin --stacktrace
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+      # Step 10: Run JUnit unit tests (junit:4.13.2)
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+      # Step 11: Run Android Lint (catches ViewBinding issues, bad practices, etc.)
+      - name: Run Lint
+        run: ./gradlew lintDebug --stacktrace
+
+      # Step 12: Upload Lint HTML report as artifact for review
+      - name: Upload Lint Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+
+      # Step 13: Upload Unit Test results as artifact for review
+      - name: Upload Unit Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: app/build/reports/tests/testDebugUnitTest/
+
+      # Step 14: Upload the Debug APK so teammates can download and test it
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
