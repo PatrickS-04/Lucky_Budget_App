@@ -53,9 +53,16 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
-      # Step 7: Validate Gradle wrapper integrity
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v3
+      # Step 7: Verify Gradle wrapper checksum locally (no network needed)
+      - name: Verify Gradle Wrapper Checksum
+        run: |
+          EXPECTED="b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06"
+          ACTUAL=$(sha256sum gradle/wrapper/gradle-wrapper.jar | awk '{print $1}')
+          if [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "Gradle wrapper checksum mismatch!"
+            exit 1
+          fi
+          echo "Gradle wrapper checksum verified."
 
       # Step 8: Check the project compiles successfully (catches syntax/import errors)
       - name: Build Debug APK
