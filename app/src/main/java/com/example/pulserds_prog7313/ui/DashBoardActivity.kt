@@ -8,10 +8,15 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.pulserds_prog7313.R
 
 class DashBoardActivity : AppCompatActivity() {
+
+    // Logout is handled globally by App.kt via ActivityLifecycleCallbacks,
+    // which watches ALL activities — so this class stays clean.
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_dash_board)
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
