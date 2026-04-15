@@ -2,16 +2,11 @@ package com.example.pulserds_prog7313.ui
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.pulserds_prog7313.R
 
-class DashBoardActivity : AppCompatActivity() {
-
-    // Logout is handled globally by App.kt via ActivityLifecycleCallbacks,
-    // which watches ALL activities — so this class stays clean.
-
+class DashBoardActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -22,5 +17,8 @@ class DashBoardActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        // Home is the current screen
+        setupBottomNav(R.id.navHome)
     }
 }

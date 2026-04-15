@@ -7,22 +7,19 @@
     android:background="@color/backgroundGreen"
     tools:context=".ui.DashBoardActivity">
 
-    <!-- ═══════════════════════════════════════ -->
-    <!--        SCROLLABLE CONTENT AREA          -->
-    <!-- ═══════════════════════════════════════ -->
-
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:paddingBottom="70dp"
-        android:clipToPadding="false">
+        android:layout_above="@id/bottomNav"
+        android:fillViewport="true">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/main"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="20dp">
+            android:paddingBottom="16dp">
+
 
             <!-- ═══════════════════════════════════════ -->
             <!--              TOP HEADER BAR             -->
@@ -47,7 +44,7 @@
                     android:paddingEnd="20dp"
                     android:paddingBottom="16dp">
 
-                    <!-- Logo Image + App Name -->
+                    <!-- Logo Image + App Name (mirrors analytics header pattern) -->
                     <LinearLayout
                         android:id="@+id/headerLogoGroup"
                         android:layout_width="wrap_content"
@@ -167,7 +164,7 @@
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/balanceAmount" />
 
-                    <!-- Income Box -->
+                    <!-- Income / Expense summary -->
                     <androidx.cardview.widget.CardView
                         android:id="@+id/incomeBox"
                         android:layout_width="0dp"
@@ -209,7 +206,6 @@
                         </LinearLayout>
                     </androidx.cardview.widget.CardView>
 
-                    <!-- Expense Box -->
                     <androidx.cardview.widget.CardView
                         android:id="@+id/expenseBox"
                         android:layout_width="0dp"
@@ -988,23 +984,23 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.core.widget.NestedScrollView>
+            <!-- ═══════════════════════════════════════ -->
+            <!--           BOTTOM NAV BAR                -->
+            <!-- ═══════════════════════════════════════ -->
 
-    <!-- ═══════════════════════════════════════ -->
-    <!--     FIXED BOTTOM NAV BAR               -->
-    <!--  Outside NestedScrollView so it        -->
-    <!--  stays pinned while content scrolls    -->
-    <!-- ═══════════════════════════════════════ -->
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.core.widget.NestedScrollView>
 
     <androidx.cardview.widget.CardView
         android:id="@+id/bottomNav"
+        android:layout_alignParentBottom="true"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
         app:cardBackgroundColor="#0A1520"
         app:cardCornerRadius="0dp"
-        app:cardElevation="12dp">
+        app:cardElevation="12dp"
+        >
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -1013,8 +1009,8 @@
             android:paddingTop="12dp"
             android:paddingBottom="16dp">
 
-            <!-- Home -->
             <LinearLayout
+                android:id="@+id/navHome"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -1034,7 +1030,6 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
                     android:gravity="center"
                     android:text="Home"
                     android:textColor="#4ADE80"
@@ -1042,8 +1037,8 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Accounts -->
             <LinearLayout
+                android:id="@+id/navAccounts"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -1063,15 +1058,14 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
                     android:gravity="center"
                     android:text="Accounts"
                     android:textColor="#7A99B0"
                     android:textSize="10sp" />
             </LinearLayout>
 
-            <!-- Transactions -->
             <LinearLayout
+                android:id="@+id/navTransactions"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -1091,15 +1085,14 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
                     android:gravity="center"
                     android:text="Transactions"
                     android:textColor="#7A99B0"
                     android:textSize="10sp" />
             </LinearLayout>
 
-            <!-- Analytics -->
             <LinearLayout
+                android:id="@+id/navAnalytics"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -1119,15 +1112,14 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
                     android:gravity="center"
                     android:text="Analytics"
                     android:textColor="#7A99B0"
                     android:textSize="10sp" />
             </LinearLayout>
 
-            <!-- Settings -->
             <LinearLayout
+                android:id="@+id/navSettings"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -1147,7 +1139,6 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
                     android:gravity="center"
                     android:text="Settings"
                     android:textColor="#7A99B0"
@@ -1156,5 +1147,6 @@
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
+
 
 </RelativeLayout>
