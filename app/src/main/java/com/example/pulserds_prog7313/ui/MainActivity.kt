@@ -2,125 +2,157 @@ package com.example.pulserds_prog7313.ui
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
+import android.text.Editable
+import android.text.TextWatcher
+import android.widget.Button
+import android.widget.TextView
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import com.example.pulserds_prog7313.data.AppDatabase
-import com.example.pulserds_prog7313.databinding.ActivityMainBinding
-import com.example.pulserds_prog7313.repository.UserRepository
-import com.example.pulserds_prog7313.utils.SessionManager
-import com.example.pulserds_prog7313.viewmodel.UserViewModel
-import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
-import androidx.lifecycle.ViewModelProvider
-import kotlinx.coroutines.launch
-import java.security.MessageDigest
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import com.example.pulserds_prog7313.R
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
-    private lateinit var userViewModel: UserViewModel
-    private lateinit var sessionManager: SessionManager
+    // -------------------------------------------------------------------------
+    // Password validation rules
+    // -------------------------------------------------------------------------
+    private val PASSWORD_RULES = listOf(
+        PasswordRule("At least 8 characters")         { it.length >= 8 },
+        PasswordRule("One uppercase letter (A–Z)")    { it.any { c -> c.isUpperCase() } },
+        PasswordRule("One lowercase letter (a–z)")    { it.any { c -> c.isLowerCase() } },
+        PasswordRule("One number (0–9)")               { it.any { c -> c.isDigit() } },
+        PasswordRule("One special character (!@#\$…)") { it.any { c -> !c.isLetterOrDigit() } }
+    )
+
+    data class PasswordRule(val label: String, val check: (String) -> Boolean)
+
+    // -------------------------------------------------------------------------
+    // Views
+    // -------------------------------------------------------------------------
+    private lateinit var tilEmail: TextInputLayout
+    private lateinit var tilPassword: TextInputLayout
+    private lateinit var etEmail: TextInputEditText
+    private lateinit var etPassword: TextInputEditText
+    private lateinit var btnLogin: Button
+    private lateinit var tvSignUp: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_main)
 
-        // Init dependencies
-        val db = AppDatabase.getDatabase(this)
-        val repo = UserRepository(db.userDao())
-        userViewModel = ViewModelProvider(
-            this,
-            ViewModelFactory { UserViewModel(repo) }
-        )[UserViewModel::class.java]
-        sessionManager = SessionManager(this)
-
-        // If already logged in, skip straight to the dashboard
-        if (sessionManager.isLoggedIn()) {
-            navigateToDashboard()
-            return
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
         }
 
+        bindViews()
         setupListeners()
     }
 
+    // -------------------------------------------------------------------------
+    // Bind view references
+    // -------------------------------------------------------------------------
+    private fun bindViews() {
+        tilEmail    = findViewById(R.id.tilEmail)
+        tilPassword = findViewById(R.id.tilPassword)
+        etEmail     = findViewById(R.id.etEmail)
+        etPassword  = findViewById(R.id.etPassword)
+        btnLogin    = findViewById(R.id.btnLogin)
+        tvSignUp    = findViewById(R.id.tvSignUp)
+    }
+
+    // -------------------------------------------------------------------------
+    // Listeners
+    // -------------------------------------------------------------------------
     private fun setupListeners() {
 
-        // Sign In button
-        binding.loginButton.setOnClickListener {
-            val email    = binding.emailEditText.text?.toString()?.trim() ?: ""
-            val password = binding.passwordEditText.text?.toString() ?: ""
+        // Clear email error as the user types
+        etEmail.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                tilEmail.error = null
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
-            if (!validateLoginInputs(email, password)) return@setOnClickListener
+        // Clear password error once all rules pass while typing
+        etPassword.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (isPasswordValid(s?.toString() ?: "")) tilPassword.error = null
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
-            binding.loginButton.isEnabled = false
-
-            lifecycleScope.launch {
-                val hash = sha256(password)
-                val user = userViewModel.login(email, hash)
-
-                runOnUiThread {
-                    binding.loginButton.isEnabled = true
-                    if (user != null) {
-                        sessionManager.saveSession(user.id, user.username)
-                        navigateToDashboard()
-                    } else {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Invalid email or password. Please try again.",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
+        // Login — validate then navigate to Dashboard
+        btnLogin.setOnClickListener {
+            if (validateLoginForm()) {
+                startActivity(Intent(this, DashBoardActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                })
             }
         }
 
-        // Navigate to Create Account screen
-        binding.signUpText.setOnClickListener {
+        // "Don't have an account? Sign up" link
+        tvSignUp.setOnClickListener {
             startActivity(Intent(this, CreateAccActivity::class.java))
         }
-
-        // Forgot Password (placeholder – extend as needed)
-        binding.forgotPasswordText.setOnClickListener {
-            Toast.makeText(this, "Password reset coming soon.", Toast.LENGTH_SHORT).show()
-        }
-
-        // Google Sign-In (placeholder – wire up Google Auth SDK as needed)
-        binding.googleSignInButton.setOnClickListener {
-            Toast.makeText(this, "Google Sign-In coming soon.", Toast.LENGTH_SHORT).show()
-        }
     }
 
-    // ── Validation ────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Form validation
+    // -------------------------------------------------------------------------
+    private fun validateLoginForm(): Boolean {
+        var valid = true
 
-    private fun validateLoginInputs(email: String, password: String): Boolean {
-        if (email.isEmpty()) {
-            binding.emailInputLayout.error = "Email is required"
-            return false
+        val email    = etEmail.text?.toString()?.trim() ?: ""
+        val password = etPassword.text?.toString() ?: ""
+
+        // Email
+        when {
+            email.isEmpty() -> {
+                tilEmail.error = "Email is required"
+                valid = false
+            }
+            !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> {
+                tilEmail.error = "Enter a valid email address"
+                valid = false
+            }
+            else -> tilEmail.error = null
         }
-        binding.emailInputLayout.error = null
 
-        if (password.isEmpty()) {
-            binding.passwordInputLayout.error = "Password is required"
-            return false
+        // Password
+        when {
+            password.isEmpty() -> {
+                tilPassword.error = "Password is required"
+                valid = false
+            }
+            !isPasswordValid(password) -> {
+                tilPassword.error = buildPasswordError(password)
+                valid = false
+            }
+            else -> tilPassword.error = null
         }
-        binding.passwordInputLayout.error = null
 
-        return true
+        return valid
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Password helpers
+    // -------------------------------------------------------------------------
+    private fun isPasswordValid(password: String): Boolean =
+        PASSWORD_RULES.all { it.check(password) }
 
-    private fun navigateToDashboard() {
-        startActivity(Intent(this, DashBoardActivity::class.java))
-        finish()
-    }
-
-    companion object {
-        /** SHA-256 hash helper – matches the hash stored at registration. */
-        fun sha256(input: String): String {
-            val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
-            return bytes.joinToString("") { "%02x".format(it) }
-        }
+    /** Lists only the failing rules so the user knows exactly what to fix. */
+    private fun buildPasswordError(password: String): String {
+        val failing = PASSWORD_RULES
+            .filterNot { it.check(password) }
+            .joinToString("\n") { "• ${it.label}" }
+        return "Password must include:\n$failing"
     }
 }
