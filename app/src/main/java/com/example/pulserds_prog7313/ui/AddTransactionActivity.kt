@@ -18,7 +18,14 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.example.pulserds_prog7313.R
+import com.example.pulserds_prog7313.data.AppDatabase
+import com.example.pulserds_prog7313.data.ExpenseEntry
+import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
+import com.example.pulserds_prog7313.viewmodel.ExpenseEntryViewModel
+import kotlin.math.abs
 import java.io.File
 import java.util.*
 
@@ -30,6 +37,8 @@ class AddTransactionActivity : AppCompatActivity() {
     private var selectedCategoryViewId: Int? = null  // View id of the highlighted tile
     private var uriOfCameraImage: Uri? = null
     private var uriOfSelectedReceipt: Uri? = null
+    private lateinit var viewModel: ExpenseEntryViewModel
+    private var loggedInUserId: Int = -1
 
     //View references
     private lateinit var amountInput: EditText
@@ -90,6 +99,13 @@ class AddTransactionActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_add_transaction)
 
+        loggedInUserId = intent.getIntExtra("USER_ID", -1)
+
+        val db = AppDatabase.getDatabase(applicationContext)
+        val repository = ExpenseEntryRepository(db.expenseEntryDao())
+        val factory = ExpenseEntryViewModelFactory(repository)
+        viewModel = ViewModelProvider(this, factory)[ExpenseEntryViewModel::class.java]
+
         findViewById<View>(R.id.receiptEmptyState).setOnClickListener {
             openPhoneGallery()
         }
@@ -128,6 +144,7 @@ class AddTransactionActivity : AppCompatActivity() {
         setupAccountDropdown()
         setupDatePicker()
         setupNavigation()
+        SaveTransactionButton()
     }
 
     private fun initViews() {
@@ -241,6 +258,16 @@ class AddTransactionActivity : AppCompatActivity() {
 
     private fun setupNavigation() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
+    }
+
+    private fun SaveTransactionButton() {
+        findViewById<View>(R.id.saveTransactionButton).setOnClickListener {
+            saveTransaction()
+        }
+
+        findViewById<View>(R.id.cancelButton).setOnClickListener {
+            finish()
+        }
     }
 
     // Opens the Phones Gallery
@@ -390,5 +417,102 @@ class AddTransactionActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.receiptEmptyState).visibility = View.VISIBLE
         findViewById<View>(R.id.receiptAttachedState).visibility = View.GONE
+    }
+
+    private fun saveTransaction() {
+        val amount = amountInput.text.toString().trim()
+        val description = merchantInput.text.toString().trim()
+        val date = dateInput.text.toString().trim()
+        val note = noteInput.text.toString().trim()
+        val account = accountDropdown.text.toString().trim()
+
+        if (amount.isEmpty())
+        {
+            amountInput.error = "Please enter an amount"
+            amountInput.requestFocus()
+            return
+        }
+
+        val textAmount = amount.toDoubleOrNull()
+        if (textAmount == null || textAmount <= 0)
+        {
+            amountInput.error = "Please enter a valid amount"
+            amountInput.requestFocus()
+            return
+        }
+
+        if (description.isEmpty())
+        {
+            merchantInput.error = "Please enter a description"
+            merchantInput.requestFocus()
+            return
+        }
+
+        if (date.isEmpty())
+        {
+            dateInput.error = "Please select a date"
+            dateInput.requestFocus()
+            return
+        }
+
+        if (account.isEmpty())
+        {
+            accountDropdown.error = "Please select an account"
+            accountDropdown.requestFocus()
+            return
+        }
+
+        if (loggedInUserId == -1)
+        {
+            Toast.makeText(this, "User is not logged in", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val finalAmount = if (isExpense)
+        {
+            -abs(textAmount)
+        }
+        else
+        {
+            abs(textAmount)
+        }
+
+        val fullDescription = buildString {
+            append(description)
+            append("\n")
+            append("$account")
+            append("\n")
+            if (note.isNotEmpty())
+            {
+                append("$note")
+            }
+        }
+
+        val pathOfPhoto = uriOfSelectedReceipt?.toString()
+
+        val entry = ExpenseEntry(
+            userId = loggedInUserId,
+            categoryId = selectedCategoryId,
+            amount = finalAmount,
+            date = date,
+            startTime = "",
+            endTime = "",
+            description = fullDescription,
+            photoPath = pathOfPhoto
+        )
+
+        viewModel.addEntry(entry, date, date)
+        Toast.makeText(this, "Transaction saved!", Toast.LENGTH_SHORT).show()
+        finish()
+    }
+}
+
+class ExpenseEntryViewModelFactory(private val repository: ExpenseEntryRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ExpenseEntryViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return ExpenseEntryViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
