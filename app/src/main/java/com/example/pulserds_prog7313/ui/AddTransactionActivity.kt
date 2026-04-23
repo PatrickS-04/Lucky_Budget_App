@@ -67,7 +67,11 @@ class AddTransactionActivity : AppCompatActivity() {
         uri?.let { handleSelectedReceipt(it) }
     }
 
-    // file launcher here
+    private val fileLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { handleSelectedReceipt(it) }
+    }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -98,7 +102,9 @@ class AddTransactionActivity : AppCompatActivity() {
             openPhoneGallery()
         }
 
-        // find view for filebtn
+        findViewById<View>(R.id.receiptFilesBtn).setOnClickListener {
+            openPhoneFilesExplorer()
+        }
 
         findViewById<View>(R.id.receiptViewBtn).setOnClickListener {
             uriOfSelectedReceipt?.let {
@@ -272,7 +278,10 @@ class AddTransactionActivity : AppCompatActivity() {
         return File.createTempFile("RECEIPT_${imageTimeStamp}_", ".jpg", directoryOfStorage)
     }
 
-    // Open Phone File Explorer function here
+    // Opens the Phones Files Explorer
+    private fun openPhoneFilesExplorer() {
+        fileLauncher.launch("*/*")
+    }
 
     // Handles the selected receipt
     private fun handleSelectedReceipt(receiptUri: Uri) {
