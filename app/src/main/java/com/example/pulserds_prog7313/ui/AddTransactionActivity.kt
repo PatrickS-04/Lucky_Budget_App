@@ -61,7 +61,11 @@ class AddTransactionActivity : AppCompatActivity() {
         }
     }
 
-    // gallery launcher here
+    private val galleryLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { handleSelectedReceipt(it) }
+    }
 
     // file launcher here
 
@@ -83,13 +87,16 @@ class AddTransactionActivity : AppCompatActivity() {
         setContentView(R.layout.activity_add_transaction)
 
         findViewById<View>(R.id.receiptEmptyState).setOnClickListener {
+            openPhoneGallery()
         }
 
         findViewById<View>(R.id.receiptCameraBtn).setOnClickListener {
             checkCameraPermission()
         }
 
-        // find view for gallerybtn
+        findViewById<View>(R.id.receiptGalleryBtn).setOnClickListener {
+            openPhoneGallery()
+        }
 
         // find view for filebtn
 
@@ -230,8 +237,10 @@ class AddTransactionActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
     }
 
-    // Open Phone Gallery function here
-
+    // Opens the Phones Gallery
+    private fun openPhoneGallery() {
+        galleryLauncher.launch("image/*")
+    }
 
     // Checks if there is permission for the phone to use the camera
     private fun checkCameraPermission() {
