@@ -9,9 +9,21 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+/**
+ * Version bumped 3 → 4 to reflect the updated users table
+ * (username replaced by email + fullName).
+ * fallbackToDestructiveMigration() keeps dev builds working
+ * without a written Migration object.
+ */
 @Database(
-    entities = [User::class, Category::class, ExpenseEntry::class, BudgetGoal::class],
-    version = 2,
+    entities = [
+        User::class,
+        Category::class,
+        ExpenseEntry::class,
+        BudgetGoal::class,
+        BankAccount::class
+    ],
+    version = 4,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -20,6 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun expenseEntryDao(): ExpenseEntryDao
     abstract fun budgetGoalDao(): BudgetGoalDao
+    abstract fun bankAccountDao(): BankAccountDao
 
     companion object {
         @Volatile
