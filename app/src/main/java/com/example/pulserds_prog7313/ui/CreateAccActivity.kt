@@ -6,25 +6,36 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.example.pulserds_prog7313.R
+import com.example.pulserds_prog7313.data.AppDatabase
+import com.example.pulserds_prog7313.data.User
+import com.example.pulserds_prog7313.repository.UserRepository
+import com.example.pulserds_prog7313.utils.SessionManager
+import com.example.pulserds_prog7313.viewmodel.UserViewModel
+import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.launch
+import java.security.MessageDigest
 
 class CreateAccActivity : AppCompatActivity() {
 
     // -------------------------------------------------------------------------
-    // Password validation rules — same set as login
+    // Password validation rules
     // -------------------------------------------------------------------------
     private val PASSWORD_RULES = listOf(
         PasswordRule("At least 8 characters")         { it.length >= 8 },
-        PasswordRule("One uppercase letter (A–Z)")    { it.any { c -> c.isUpperCase() } },
-        PasswordRule("One lowercase letter (a–z)")    { it.any { c -> c.isLowerCase() } },
-        PasswordRule("One number (0–9)")               { it.any { c -> c.isDigit() } },
-        PasswordRule("One special character (!@#\$…)") { it.any { c -> !c.isLetterOrDigit() } }
+        PasswordRule("One uppercase letter (A-Z)")    { it.any { c -> c.isUpperCase() } },
+        PasswordRule("One lowercase letter (a-z)")    { it.any { c -> c.isLowerCase() } },
+        PasswordRule("One number (0-9)")               { it.any { c -> c.isDigit() } },
+        PasswordRule("One special character (!@#\$)") { it.any { c -> !c.isLetterOrDigit() } }
     )
 
     data class PasswordRule(val label: String, val check: (String) -> Boolean)
@@ -43,6 +54,9 @@ class CreateAccActivity : AppCompatActivity() {
     private lateinit var btnCreateAccount: Button
     private lateinit var tvLogin: TextView
 
+    private lateinit var userViewModel: UserViewModel
+    private lateinit var sessionManager: SessionManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -53,6 +67,14 @@ class CreateAccActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        // Set up ViewModel
+        val db = AppDatabase.getDatabase(applicationContext)
+        val repository = UserRepository(db.userDao())
+        userViewModel = ViewModelProvider(this, ViewModelFactory { UserViewModel(repository) })
+            .get(UserViewModel::class.java)
+
+        sessionManager = SessionManager(this)
 
         bindViews()
         setupListeners()
@@ -79,7 +101,6 @@ class CreateAccActivity : AppCompatActivity() {
     // -------------------------------------------------------------------------
     private fun setupListeners() {
 
-        // Clear errors as each field is edited
         etFullName.addTextChangedListener(clearErrorWatcher(tilFullName))
         etEmail.addTextChangedListener(clearErrorWatcher(tilEmail))
 
@@ -90,10 +111,7 @@ class CreateAccActivity : AppCompatActivity() {
                 val pw = s?.toString() ?: ""
                 tilPassword.error = if (pw.isNotEmpty() && !isPasswordValid(pw)) {
                     buildPasswordError(pw)
-                } else {
-                    null
-                }
-                // Re-check confirm field if it already has input
+                } else null
                 val confirm = etConfirmPassword.text?.toString() ?: ""
                 if (confirm.isNotEmpty()) {
                     tilConfirmPassword.error = if (pw != confirm) "Passwords do not match" else null
@@ -117,21 +135,48 @@ class CreateAccActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        // Create Account button
+        // Create Account button - validate, save to DB, then navigate
         btnCreateAccount.setOnClickListener {
             if (validateSignUpForm()) {
-                // Account creation logic goes here (e.g. Firebase auth call)
-                // On success, navigate to Dashboard
-                startActivity(Intent(this, DashBoardActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                })
-                finish()
+                val fullName = etFullName.text?.toString()?.trim() ?: ""
+                val email    = etEmail.text?.toString()?.trim() ?: ""
+                val password = etPassword.text?.toString() ?: ""
+                val hash     = sha256(password)
+
+                lifecycleScope.launch {
+                    // Check if email is already registered
+                    val existing = userViewModel.getUserByEmail(email)
+                    if (existing != null) {
+                        tilEmail.error = "An account with this email already exists"
+                        return@launch
+                    }
+
+                    val newUser = User(fullName = fullName, email = email, passwordHash = hash)
+                    userViewModel.register(newUser)
+
+                    // Fetch the newly inserted user to get its generated ID
+                    val savedUser = userViewModel.getUserByEmail(email)
+                    if (savedUser != null) {
+                        sessionManager.saveSession(savedUser.id, savedUser.fullName, savedUser.email)
+                    }
+
+                    Toast.makeText(
+                        this@CreateAccActivity,
+                        "Account created successfully!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    startActivity(Intent(this@CreateAccActivity, DashBoardActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                    })
+                    finish()
+                }
             }
         }
 
         // "Already have an account? Log in" link
         tvLogin.setOnClickListener {
-            finish() // pop back to MainActivity (login screen)
+            finish()
         }
     }
 
@@ -141,12 +186,11 @@ class CreateAccActivity : AppCompatActivity() {
     private fun validateSignUpForm(): Boolean {
         var valid = true
 
-        val fullName  = etFullName.text?.toString()?.trim() ?: ""
-        val email     = etEmail.text?.toString()?.trim() ?: ""
-        val password  = etPassword.text?.toString() ?: ""
-        val confirm   = etConfirmPassword.text?.toString() ?: ""
+        val fullName = etFullName.text?.toString()?.trim() ?: ""
+        val email    = etEmail.text?.toString()?.trim() ?: ""
+        val password = etPassword.text?.toString() ?: ""
+        val confirm  = etConfirmPassword.text?.toString() ?: ""
 
-        // Full name
         if (fullName.isEmpty()) {
             tilFullName.error = "Full name is required"
             valid = false
@@ -154,7 +198,6 @@ class CreateAccActivity : AppCompatActivity() {
             tilFullName.error = null
         }
 
-        // Email
         when {
             email.isEmpty() -> {
                 tilEmail.error = "Email is required"
@@ -167,7 +210,6 @@ class CreateAccActivity : AppCompatActivity() {
             else -> tilEmail.error = null
         }
 
-        // Password strength
         when {
             password.isEmpty() -> {
                 tilPassword.error = "Password is required"
@@ -180,7 +222,6 @@ class CreateAccActivity : AppCompatActivity() {
             else -> tilPassword.error = null
         }
 
-        // Confirm password
         when {
             confirm.isEmpty() -> {
                 tilConfirmPassword.error = "Please confirm your password"
@@ -197,7 +238,7 @@ class CreateAccActivity : AppCompatActivity() {
     }
 
     // -------------------------------------------------------------------------
-    // Password helpers
+    // Helpers
     // -------------------------------------------------------------------------
     private fun isPasswordValid(password: String): Boolean =
         PASSWORD_RULES.all { it.check(password) }
@@ -205,16 +246,21 @@ class CreateAccActivity : AppCompatActivity() {
     private fun buildPasswordError(password: String): String {
         val failing = PASSWORD_RULES
             .filterNot { it.check(password) }
-            .joinToString("\n") { "• ${it.label}" }
+            .joinToString("\n") { "- ${it.label}" }
         return "Password must include:\n$failing"
     }
 
-    /** Returns a TextWatcher that simply clears the error on a given layout. */
     private fun clearErrorWatcher(layout: TextInputLayout) = object : TextWatcher {
         override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
         override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
             layout.error = null
         }
         override fun afterTextChanged(s: Editable?) {}
+    }
+
+    /** SHA-256 hash - same algorithm used on the login screen. */
+    private fun sha256(input: String): String {
+        val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 }

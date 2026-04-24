@@ -9,56 +9,119 @@ class DonutChartView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    // Segment colors + values
-    private val accountData = listOf(
-        40000f to Color.parseColor("#4ADE80"), // Cheque - green
-        8000f  to Color.parseColor("#60A5FA"), // Crypto - blue
-        2000f  to Color.parseColor("#FBBF24")  // Invest - yellow
+    // Mutable segment list - updated from AccountsActivity via setSegments()
+    private val _segments = mutableListOf(
+        40000f to Color.parseColor("#4ADE80"), // default: Cheque - green
+        8000f  to Color.parseColor("#60A5FA"), // default: Crypto  - blue
+        2000f  to Color.parseColor("#FBBF24")  // default: Invest  - yellow
     )
+
+    // Centre label lines - set from AccountsActivity via setCenterLabel()
+    private var centerLine1: String = ""   // e.g. "R 60,600.00"
+    private var centerLine2: String = ""   // e.g. "ZAR *"
+
+    /** Replace all segments and redraw the chart. */
+    fun setSegments(segments: List<Pair<Float, Int>>) {
+        _segments.clear()
+        _segments.addAll(segments)
+        invalidate()
+    }
+
+    /**
+     * Set the two lines of text shown in the donut hole.
+     * Call this whenever the total balance changes.
+     */
+    fun setCenterLabel(line1: String, line2: String = "") {
+        centerLine1 = line1
+        centerLine2 = line2
+        invalidate()
+    }
 
     init {
         setLayerType(LAYER_TYPE_SOFTWARE, null)
     }
 
     private val segmentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
+        style     = Paint.Style.STROKE
         strokeCap = Paint.Cap.BUTT
     }
 
     private val holePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        // ⚠️ Change this to your exact @color/backgroundOrange hex
-        // This MUST match the card background behind the donut
-        color = Color.parseColor("#FFF3E0")
+        // Must match the card background - @color/backgroundOrange
+        color = Color.parseColor("#FF9F1C")
+    }
+
+    private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style     = Paint.Style.FILL
+        color     = Color.WHITE
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
+
+    private val subLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style     = Paint.Style.FILL
+        color     = Color.parseColor("#FFEEDD")
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = false
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        if (width == 0 || height == 0) return
+        if (width == 0 || height == 0 || _segments.isEmpty()) return
 
-        val size = minOf(width, height).toFloat()
-        val strokeWidth = size * 0.22f   // ring thickness — tweak between 0.18–0.28
-        val radius = (size / 2f) - (strokeWidth / 2f)
-        val cx = width / 2f
-        val cy = height / 2f
-        val oval = RectF(cx - radius, cy - radius, cx + radius, cy + radius)
+        val size        = minOf(width, height).toFloat()
+        val strokeWidth = size * 0.22f
+        val radius      = (size / 2f) - (strokeWidth / 2f)
+        val cx          = width / 2f
+        val cy          = height / 2f
+        val oval        = RectF(cx - radius, cy - radius, cx + radius, cy + radius)
 
         segmentPaint.strokeWidth = strokeWidth
 
-        val total = accountData.sumOf { it.first.toDouble() }.toFloat()
-        var startAngle = -90f
-        val gapDegrees = 2f  // gap between segments
+        val total       = _segments.sumOf { it.first.toDouble() }.toFloat()
+        var startAngle  = -90f
+        val gapDegrees  = 2f
 
-        for ((value, color) in accountData) {
+        for ((value, color) in _segments) {
             val sweep = (value / total) * 360f
             segmentPaint.color = color
             canvas.drawArc(oval, startAngle + gapDegrees / 2f, sweep - gapDegrees, false, segmentPaint)
             startAngle += sweep
         }
 
-        // Punch out the hole to make it a donut
-        val holeRadius = radius - (strokeWidth / 2f) - 4f  // 4f = inner padding
+        // Punch the hole to make it a donut
+        val holeRadius = radius - (strokeWidth / 2f) - 4f
         canvas.drawCircle(cx, cy, holeRadius, holePaint)
+
+        //  Draw centre text
+        if (centerLine1.isNotEmpty()) {
+            // Scale text size relative to the hole diameter so it always fits
+            val holeDiameter = holeRadius * 2f
+            val mainTextSize  = holeDiameter * 0.18f   // primary amount ~18% of hole
+            val subTextSize   = holeDiameter * 0.11f   // subtitle ~11% of hole
+
+            labelPaint.textSize    = mainTextSize
+            subLabelPaint.textSize = subTextSize
+
+            // Measure heights for vertical centring
+            val fm       = labelPaint.fontMetrics
+            val lineH    = fm.descent - fm.ascent          // height of one main line
+            val subLineH = subLabelPaint.fontMetrics.let { it.descent - it.ascent }
+
+            val hasSubtitle = centerLine2.isNotEmpty()
+            val totalH = if (hasSubtitle) lineH + subLineH * 1.1f else lineH
+
+            // Baseline for the main amount (centred in the hole)
+            val mainBaseline = cy - totalH / 2f - fm.ascent   // ascent is negative
+
+            canvas.drawText(centerLine1, cx, mainBaseline, labelPaint)
+
+            if (hasSubtitle) {
+                val subBaseline = mainBaseline + lineH + subLineH * 0.1f - subLabelPaint.fontMetrics.ascent
+                canvas.drawText(centerLine2, cx, subBaseline, subLabelPaint)
+            }
+        }
     }
 }

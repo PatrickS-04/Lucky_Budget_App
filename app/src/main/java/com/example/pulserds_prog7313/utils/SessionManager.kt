@@ -8,40 +8,30 @@ class SessionManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
 
-    // Called after a successful login — saves user data AND marks the session as active
-    fun saveSession(userId: Int, username: String) {
+    // Called after a successful login - saves user data AND marks the session as active
+    fun saveSession(userId: Int, fullName: String, email: String) {
         prefs.edit()
             .putInt("USER_ID", userId)
-            .putString("USERNAME", username)
-            .putBoolean("IS_LOGGED_IN", true)  // Session is now active
+            .putString("FULL_NAME", fullName)
+            .putString("EMAIL", email)
+            .putBoolean("IS_LOGGED_IN", true)
             .apply()
     }
 
-    fun getUserId(): Int {
-        return prefs.getInt("USER_ID", -1)
-    }
+    fun getUserId(): Int = prefs.getInt("USER_ID", -1)
 
-    fun getUsername(): String? {
-        return prefs.getString("USERNAME", null)
-    }
+    fun getFullName(): String? = prefs.getString("FULL_NAME", null)
 
-    // Now checks the IS_LOGGED_IN flag instead of USER_ID
-    // This means the session is considered invalid the moment clearLoginFlag() is called,
-    // even though USER_ID and USERNAME are still stored in prefs.
-    fun isLoggedIn(): Boolean {
-        return prefs.getBoolean("IS_LOGGED_IN", false)
-    }
+    fun getEmail(): String? = prefs.getString("EMAIL", null)
 
-    // Full logout — called when the user explicitly taps "Log Out" in the app.
-    // Wipes everything from SharedPreferences.
+    fun isLoggedIn(): Boolean = prefs.getBoolean("IS_LOGGED_IN", false)
+
+    // Full logout - wipes everything from SharedPreferences.
     fun logout() {
         prefs.edit().clear().apply()
     }
 
-    // Soft logout — called automatically when the app is closed.
-    // Only clears the IS_LOGGED_IN flag, leaving USER_ID and USERNAME intact.
-    // This means the next launch forces a re-login, but you could later use
-    // the stored data for a "Welcome back, [name]" hint on the login screen.
+    // Soft logout - only clears the IS_LOGGED_IN flag.
     fun clearLoginFlag() {
         prefs.edit().putBoolean("IS_LOGGED_IN", false).apply()
     }

@@ -6,13 +6,23 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.example.pulserds_prog7313.R
+import com.example.pulserds_prog7313.data.AppDatabase
+import com.example.pulserds_prog7313.repository.UserRepository
+import com.example.pulserds_prog7313.utils.SessionManager
+import com.example.pulserds_prog7313.viewmodel.UserViewModel
+import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.launch
+import java.security.MessageDigest
 
 class MainActivity : AppCompatActivity() {
 
@@ -21,10 +31,10 @@ class MainActivity : AppCompatActivity() {
     // -------------------------------------------------------------------------
     private val PASSWORD_RULES = listOf(
         PasswordRule("At least 8 characters")         { it.length >= 8 },
-        PasswordRule("One uppercase letter (A–Z)")    { it.any { c -> c.isUpperCase() } },
-        PasswordRule("One lowercase letter (a–z)")    { it.any { c -> c.isLowerCase() } },
-        PasswordRule("One number (0–9)")               { it.any { c -> c.isDigit() } },
-        PasswordRule("One special character (!@#\$…)") { it.any { c -> !c.isLetterOrDigit() } }
+        PasswordRule("One uppercase letter (A-Z)")    { it.any { c -> c.isUpperCase() } },
+        PasswordRule("One lowercase letter (a-z)")    { it.any { c -> c.isLowerCase() } },
+        PasswordRule("One number (0-9)")               { it.any { c -> c.isDigit() } },
+        PasswordRule("One special character (!@#\$)") { it.any { c -> !c.isLetterOrDigit() } }
     )
 
     data class PasswordRule(val label: String, val check: (String) -> Boolean)
@@ -39,6 +49,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnLogin: Button
     private lateinit var tvSignUp: TextView
 
+    private lateinit var userViewModel: UserViewModel
+    private lateinit var sessionManager: SessionManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -48,6 +61,20 @@ class MainActivity : AppCompatActivity() {
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
+        }
+
+        // Set up ViewModel
+        val db = AppDatabase.getDatabase(applicationContext)
+        val repository = UserRepository(db.userDao())
+        userViewModel = ViewModelProvider(this, ViewModelFactory { UserViewModel(repository) })
+            .get(UserViewModel::class.java)
+
+        sessionManager = SessionManager(this)
+
+        // If already logged in, skip straight to Dashboard
+        if (sessionManager.isLoggedIn()) {
+            goToDashboard()
+            return
         }
 
         bindViews()
@@ -71,7 +98,6 @@ class MainActivity : AppCompatActivity() {
     // -------------------------------------------------------------------------
     private fun setupListeners() {
 
-        // Clear email error as the user types
         etEmail.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -80,7 +106,6 @@ class MainActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        // Clear password error once all rules pass while typing
         etPassword.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -89,16 +114,30 @@ class MainActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        // Login — validate then navigate to Dashboard
+        // Login - validate then query the DB
         btnLogin.setOnClickListener {
             if (validateLoginForm()) {
-                startActivity(Intent(this, DashBoardActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                })
+                val email    = etEmail.text?.toString()?.trim() ?: ""
+                val password = etPassword.text?.toString() ?: ""
+                val hash     = sha256(password)
+
+                lifecycleScope.launch {
+                    val user = userViewModel.login(email, hash)
+                    if (user != null) {
+                        sessionManager.saveSession(user.id, user.fullName, user.email)
+                        goToDashboard()
+                    } else {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Invalid email or password",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        tilPassword.error = "Invalid email or password"
+                    }
+                }
             }
         }
 
-        // "Don't have an account? Sign up" link
         tvSignUp.setOnClickListener {
             startActivity(Intent(this, CreateAccActivity::class.java))
         }
@@ -113,7 +152,6 @@ class MainActivity : AppCompatActivity() {
         val email    = etEmail.text?.toString()?.trim() ?: ""
         val password = etPassword.text?.toString() ?: ""
 
-        // Email
         when {
             email.isEmpty() -> {
                 tilEmail.error = "Email is required"
@@ -126,7 +164,6 @@ class MainActivity : AppCompatActivity() {
             else -> tilEmail.error = null
         }
 
-        // Password
         when {
             password.isEmpty() -> {
                 tilPassword.error = "Password is required"
@@ -143,16 +180,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     // -------------------------------------------------------------------------
-    // Password helpers
+    // Helpers
     // -------------------------------------------------------------------------
+    private fun goToDashboard() {
+        startActivity(Intent(this, DashBoardActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        })
+        finish()
+    }
+
     private fun isPasswordValid(password: String): Boolean =
         PASSWORD_RULES.all { it.check(password) }
 
-    /** Lists only the failing rules so the user knows exactly what to fix. */
     private fun buildPasswordError(password: String): String {
         val failing = PASSWORD_RULES
             .filterNot { it.check(password) }
-            .joinToString("\n") { "• ${it.label}" }
+            .joinToString("\n") { "- ${it.label}" }
         return "Password must include:\n$failing"
+    }
+
+    /** SHA-256 hash - must match the hash used during registration. */
+    private fun sha256(input: String): String {
+        val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 }

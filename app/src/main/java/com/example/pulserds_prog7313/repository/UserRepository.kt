@@ -9,11 +9,11 @@ class UserRepository(private val userDao: UserDao) {
         userDao.insert(user)
     }
 
-    suspend fun login(username: String, passwordHash: String): User? {
-        return userDao.login(username, passwordHash)
+    suspend fun login(email: String, passwordHash: String): User? {
+        return userDao.login(email, passwordHash)
     }
 
-    suspend fun getUserByUsername(username: String): User? {
-        return userDao.getUserByUsername(username)
+    suspend fun getUserByEmail(email: String): User? {
+        return userDao.getUserByEmail(email)
     }
 }
