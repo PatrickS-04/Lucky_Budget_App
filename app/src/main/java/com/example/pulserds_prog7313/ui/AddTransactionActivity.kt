@@ -22,8 +22,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.AppDatabase
+import com.example.pulserds_prog7313.data.BankAccount
 import com.example.pulserds_prog7313.data.ExpenseEntry
+import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
+import com.example.pulserds_prog7313.utils.SessionManager
+import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.ExpenseEntryViewModel
 import kotlin.math.abs
 import java.io.File
@@ -38,7 +42,10 @@ class AddTransactionActivity : AppCompatActivity() {
     private var uriOfCameraImage: Uri? = null
     private var uriOfSelectedReceipt: Uri? = null
     private lateinit var viewModel: ExpenseEntryViewModel
+    private lateinit var bankAccountViewModel: BankAccountViewModel
     private var loggedInUserId: Int = -1
+    private var accountsList: List<BankAccount> = emptyList()
+    private var selectedAccountId: Int? = null
 
     //View references
     private lateinit var amountInput: EditText
@@ -100,11 +107,21 @@ class AddTransactionActivity : AppCompatActivity() {
         setContentView(R.layout.activity_add_transaction)
 
         loggedInUserId = intent.getIntExtra("USER_ID", -1)
+        if (loggedInUserId == -1) {
+            loggedInUserId = SessionManager(this).getUserId()
+        }
 
         val db = AppDatabase.getDatabase(applicationContext)
         val repository = ExpenseEntryRepository(db.expenseEntryDao())
         val factory = ExpenseEntryViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[ExpenseEntryViewModel::class.java]
+
+        val bankAccountRepo = BankAccountRepository(db.bankAccountDao())
+        bankAccountViewModel = ViewModelProvider(
+            this,
+            BankAccountViewModelFactory(bankAccountRepo)
+        )[BankAccountViewModel::class.java]
+        bankAccountViewModel.init(loggedInUserId)
 
         findViewById<View>(R.id.receiptEmptyState).setOnClickListener {
             openPhoneGallery()
@@ -224,12 +241,26 @@ class AddTransactionActivity : AppCompatActivity() {
         }
     }
 
-    //Account dropdown
+    //Account dropdown — populated from the database
 
     private fun setupAccountDropdown() {
-        val accounts = listOf("Cash", "Bank Account", "Credit Card", "Savings")
-        val adapter  = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, accounts)
-        accountDropdown.setAdapter(adapter)
+        bankAccountViewModel.accounts.observe(this) { accounts ->
+            accountsList = accounts
+            val labels = accounts.map { "${it.nickname} (${it.bankName})" }
+            val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, labels)
+            accountDropdown.setAdapter(adapter)
+
+            // Pre-select the primary account if one exists
+            val primaryIndex = accounts.indexOfFirst { it.isPrimary }
+            if (primaryIndex >= 0) {
+                accountDropdown.setText(labels[primaryIndex], false)
+                selectedAccountId = accounts[primaryIndex].id
+            }
+
+            accountDropdown.setOnItemClickListener { _, _, position, _ ->
+                selectedAccountId = accounts[position].id
+            }
+        }
         accountDropdown.setOnClickListener { accountDropdown.showDropDown() }
     }
 
@@ -462,6 +493,13 @@ class AddTransactionActivity : AppCompatActivity() {
             return
         }
 
+        if (selectedAccountId == null)
+        {
+            accountDropdown.error = "Please select a valid account"
+            accountDropdown.requestFocus()
+            return
+        }
+
         if (loggedInUserId == -1)
         {
             Toast.makeText(this, "User is not logged in", Toast.LENGTH_SHORT).show()
@@ -512,6 +550,16 @@ class ExpenseEntryViewModelFactory(private val repository: ExpenseEntryRepositor
         if (modelClass.isAssignableFrom(ExpenseEntryViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return ExpenseEntryViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+class BankAccountViewModelFactory(private val repository: BankAccountRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(BankAccountViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return BankAccountViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

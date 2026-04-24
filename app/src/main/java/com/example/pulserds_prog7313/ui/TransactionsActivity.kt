@@ -6,6 +6,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.pulserds_prog7313.R
+import com.example.pulserds_prog7313.utils.SessionManager
 import com.google.android.material.button.MaterialButton
 
 class TransactionsActivity : BaseActivity() {
@@ -22,7 +23,10 @@ class TransactionsActivity : BaseActivity() {
 
         // "Add Transaction" button → AddTransactionActivity
         findViewById<MaterialButton>(R.id.addTransactionButton)?.setOnClickListener {
-            startActivity(Intent(this, AddTransactionActivity::class.java))
+            val userId = SessionManager(this).getUserId()
+            val intent = Intent(this, AddTransactionActivity::class.java)
+                .putExtra("USER_ID", userId)
+            startActivity(intent)
         }
 
         // Transactions is the current screen
