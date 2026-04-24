@@ -30,6 +30,9 @@
         <activity
             android:name=".ui.AddTransactionActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.ManageCategoriesActivity"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
