@@ -4,26 +4,16 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
-/**
- * Version bumped 3 → 4 to reflect the updated users table
- * (username replaced by email + fullName).
- * fallbackToDestructiveMigration() keeps dev builds working
- * without a written Migration object.
- */
 @Database(
     entities = [
         User::class,
         Category::class,
         ExpenseEntry::class,
-        BudgetGoal::class,
-        BankAccount::class
+        BankAccount::class,
+        SavingsGoal::class
     ],
-    version = 4,
+    version = 8,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -31,8 +21,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun categoryDao(): CategoryDao
     abstract fun expenseEntryDao(): ExpenseEntryDao
-    abstract fun budgetGoalDao(): BudgetGoalDao
     abstract fun bankAccountDao(): BankAccountDao
+    abstract fun savingsGoalDao(): SavingsGoalDao
 
     companion object {
         @Volatile

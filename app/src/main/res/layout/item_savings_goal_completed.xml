@@ -1,0 +1,112 @@
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="20dp"
+    android:layout_marginTop="10dp"
+    android:layout_marginEnd="20dp"
+    app:cardBackgroundColor="#0D2A1A"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="4dp"
+    app:strokeColor="#1A4A2A"
+    app:strokeWidth="1dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/completedGoalIcon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="#0A1E10"
+            android:gravity="center"
+            android:text="🏦"
+            android:textSize="24sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/completedGoalInfo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="@id/completedGoalIcon"
+            app:layout_constraintEnd_toStartOf="@id/completedBadge"
+            app:layout_constraintStart_toEndOf="@id/completedGoalIcon"
+            app:layout_constraintTop_toTopOf="@id/completedGoalIcon">
+
+            <TextView
+                android:id="@+id/completedGoalName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Goal Name"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/completedGoalSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Completed • R 0.00"
+                android:textColor="#4ADE80"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/completedBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#1A4A2A"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
+            app:layout_constraintBottom_toBottomOf="@id/completedGoalIcon"
+            app:layout_constraintEnd_toStartOf="@id/completedGoalMenu"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="10dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="4dp"
+                android:text="✓ Done"
+                android:textColor="#4ADE80"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/completedGoalMenu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="4dp"
+            android:text="⋮"
+            android:textColor="#7A99B0"
+            android:textSize="22sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ProgressBar
+            android:id="@+id/completedGoalProgressBar"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="10dp"
+            android:layout_marginTop="16dp"
+            android:max="100"
+            android:progress="100"
+            android:progressBackgroundTint="#1A3248"
+            android:progressTint="#4ADE80"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/completedGoalIcon" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>

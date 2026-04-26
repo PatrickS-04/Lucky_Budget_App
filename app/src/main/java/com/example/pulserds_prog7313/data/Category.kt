@@ -16,5 +16,9 @@ import androidx.room.PrimaryKey
 data class Category(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val userId: Int,
-    val name: String
+    val name: String,
+    /** "EXPENSE", "INCOME", or "BOTH" */
+    val type: String = "BOTH",
+    /** true = built-in default; false = user-created */
+    val isDefault: Boolean = false
 )

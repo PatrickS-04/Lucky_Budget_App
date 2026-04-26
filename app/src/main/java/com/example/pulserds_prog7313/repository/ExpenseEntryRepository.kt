@@ -1,5 +1,6 @@
 package com.example.pulserds_prog7313.repository
 
+import androidx.lifecycle.LiveData
 import com.example.pulserds_prog7313.data.ExpenseEntry
 import com.example.pulserds_prog7313.data.ExpenseEntryDao
 
@@ -20,4 +21,23 @@ class ExpenseEntryRepository(private val expenseEntryDao: ExpenseEntryDao) {
     suspend fun getTotalForCategory(userId: Int, categoryId: Int, startDate: String, endDate: String): Double {
         return expenseEntryDao.getTotalForCategory(userId, categoryId, startDate, endDate)
     }
+
+    fun getAllEntriesLive(userId: Int): LiveData<List<ExpenseEntry>> =
+        expenseEntryDao.getAllEntriesLive(userId)
+
+    suspend fun getAllEntriesOnce(userId: Int): List<ExpenseEntry> =
+        expenseEntryDao.getAllEntriesOnce(userId)
+
+    fun getEntriesForPeriodLive(userId: Int, startDate: String, endDate: String): LiveData<List<ExpenseEntry>> =
+        expenseEntryDao.getEntriesForPeriodLive(userId, startDate, endDate)
+
+    fun getIncomeLive(userId: Int, startDate: String, endDate: String): LiveData<Double> =
+        expenseEntryDao.getIncomeLive(userId, startDate, endDate)
+
+    fun getExpensesLive(userId: Int, startDate: String, endDate: String): LiveData<Double> =
+        expenseEntryDao.getExpensesLive(userId, startDate, endDate)
+
+    suspend fun getTotalIncome(userId: Int): Double = expenseEntryDao.getTotalIncome(userId)
+
+    suspend fun getTotalExpenses(userId: Int): Double = expenseEntryDao.getTotalExpenses(userId)
 }

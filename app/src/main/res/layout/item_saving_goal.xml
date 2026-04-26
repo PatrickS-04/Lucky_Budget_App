@@ -1,0 +1,157 @@
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="20dp"
+    android:layout_marginTop="14dp"
+    android:layout_marginEnd="20dp"
+    app:cardBackgroundColor="@color/backgroundOrange"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="6dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="20dp">
+        <!--  Icon  -->
+        <TextView
+            android:id="@+id/goalCardIcon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="#0D2A1A"
+            android:gravity="center"
+            android:text="🏦"
+            android:textSize="24sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+        <!--  Name + Date  -->
+        <LinearLayout
+            android:id="@+id/goalCardInfoBlock"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="@id/goalCardIcon"
+            app:layout_constraintEnd_toStartOf="@id/goalCardMenu"
+            app:layout_constraintStart_toEndOf="@id/goalCardIcon"
+            app:layout_constraintTop_toTopOf="@id/goalCardIcon">
+
+            <TextView
+                android:id="@+id/goalCardName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Goal Name"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/goalCardDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Target: —"
+                android:textColor="@color/very_darkGreen"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <!--  Menu ⋮  -->
+        <TextView
+            android:id="@+id/goalCardMenu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="4dp"
+            android:text="⋮"
+            android:textColor="#7A99B0"
+            android:textSize="22sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+        <!--  Almost-there badge  -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/almostThereBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="#2A1E00"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/goalCardIcon">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="10dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="4dp"
+                android:text="🔥 Almost there!"
+                android:textColor="#FBBF24"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </androidx.cardview.widget.CardView>
+        <!--  Amount row  -->
+        <LinearLayout
+            android:id="@+id/goalCardAmountRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/almostThereBadge">
+
+            <TextView
+                android:id="@+id/goalCardSaved"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="R 0.00 saved"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/goalCardProgress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0% • R 0.00 to go"
+                android:textColor="#4ADE80"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+        <!--  Progress bar  -->
+        <ProgressBar
+            android:id="@+id/goalCardProgressBar"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="10dp"
+            android:layout_marginTop="10dp"
+            android:max="100"
+            android:progress="0"
+            android:progressBackgroundTint="#1A3248"
+            android:progressTint="#4ADE80"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/goalCardAmountRow" />
+        <!--  Add Funds button  -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/goalCardAddFunds"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="14dp"
+            android:text="+ Add Funds"
+            android:textColor="#0D1B2A"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:backgroundTint="#4ADE80"
+            app:cornerRadius="12dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/goalCardProgressBar"
+            app:rippleColor="#22C55E" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>

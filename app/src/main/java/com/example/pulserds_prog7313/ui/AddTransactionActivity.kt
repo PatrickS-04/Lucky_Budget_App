@@ -22,487 +22,363 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.AppDatabase
+import com.example.pulserds_prog7313.data.BankAccount
+import com.example.pulserds_prog7313.data.Category
 import com.example.pulserds_prog7313.data.ExpenseEntry
+import com.example.pulserds_prog7313.repository.BankAccountRepository
+import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
+import com.example.pulserds_prog7313.utils.SessionManager
+import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
+import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
 import com.example.pulserds_prog7313.viewmodel.ExpenseEntryViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import java.io.File
 import java.util.*
 
 class AddTransactionActivity : AppCompatActivity() {
 
-    //State
+    // State
     private var isExpense = true
-    private var selectedCategoryId = 1          // DB id of the chosen category
-    private var selectedCategoryViewId: Int? = null  // View id of the highlighted tile
+    private var selectedCategoryId: Int? = null
     private var uriOfCameraImage: Uri? = null
     private var uriOfSelectedReceipt: Uri? = null
     private lateinit var viewModel: ExpenseEntryViewModel
+    private lateinit var bankAccountViewModel: BankAccountViewModel
+    private lateinit var categoryViewModel: CategoryViewModel
     private var loggedInUserId: Int = -1
+    private var accountsList: List<BankAccount> = emptyList()
+    private var selectedAccountId: Int? = null
+    private var categoriesList: List<Category> = emptyList()
 
-    //View references
+    // View references
     private lateinit var amountInput: EditText
     private lateinit var merchantInput: EditText
     private lateinit var accountDropdown: AutoCompleteTextView
+    private lateinit var categoryDropdown: AutoCompleteTextView
     private lateinit var dateInput: EditText
     private lateinit var noteInput: EditText
     private lateinit var expenseToggle: TextView
     private lateinit var incomeToggle: TextView
 
-    //Category tile ids in order matches DB seed / category list
-    private val categoryViewIds = listOf(
-        R.id.catGroceries,
-        R.id.catDining,
-        R.id.catTransport,
-        R.id.catEntertainment,
-        R.id.catSubscriptions,
-        R.id.catUtilities,
-        R.id.catIncome,
-        R.id.catInvest
-    )
-
-    private val cameraLauncher = registerForActivityResult(
-        ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success && uriOfCameraImage != null)
-        {
-            handleSelectedReceipt(uriOfCameraImage!!)
-        }
+    // Activity result launchers
+    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && uriOfCameraImage != null) handleSelectedReceipt(uriOfCameraImage!!)
     }
-
-    private val galleryLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri ->
+    private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { handleSelectedReceipt(it) }
     }
-
-    private val fileLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri ->
+    private val fileLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { handleSelectedReceipt(it) }
     }
-
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            openPhoneCamera()
-        }
-        else {
-            Toast.makeText(this, "Permission for camera denied", Toast.LENGTH_SHORT).show()
-        }
+    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) openPhoneCamera()
+        else Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show()
     }
 
-
+    //  Lifecycle
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_add_transaction)
 
         loggedInUserId = intent.getIntExtra("USER_ID", -1)
+        if (loggedInUserId == -1) loggedInUserId = SessionManager(this).getUserId()
 
         val db = AppDatabase.getDatabase(applicationContext)
-        val repository = ExpenseEntryRepository(db.expenseEntryDao())
-        val factory = ExpenseEntryViewModelFactory(repository)
-        viewModel = ViewModelProvider(this, factory)[ExpenseEntryViewModel::class.java]
 
-        findViewById<View>(R.id.receiptEmptyState).setOnClickListener {
-            openPhoneGallery()
-        }
+        // ExpenseEntry ViewModel
+        val expenseRepo = ExpenseEntryRepository(db.expenseEntryDao())
+        viewModel = ViewModelProvider(this, ExpenseEntryViewModelFactory(expenseRepo))[ExpenseEntryViewModel::class.java]
 
-        findViewById<View>(R.id.receiptCameraBtn).setOnClickListener {
-            checkCameraPermission()
-        }
+        // BankAccount ViewModel
+        val bankRepo = BankAccountRepository(db.bankAccountDao())
+        bankAccountViewModel = ViewModelProvider(this, BankAccountViewModelFactory(bankRepo))[BankAccountViewModel::class.java]
+        bankAccountViewModel.init(loggedInUserId)
 
-        findViewById<View>(R.id.receiptGalleryBtn).setOnClickListener {
-            openPhoneGallery()
-        }
-
-        findViewById<View>(R.id.receiptFilesBtn).setOnClickListener {
-            openPhoneFilesExplorer()
-        }
-
-        findViewById<View>(R.id.receiptViewBtn).setOnClickListener {
-            uriOfSelectedReceipt?.let {
-                viewReceipt(it)
+        // Category ViewModel
+        val catRepo = CategoryRepository(db.categoryDao())
+        val catFactory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return CategoryViewModel(catRepo) as T
             }
         }
+        categoryViewModel = ViewModelProvider(this, catFactory)[CategoryViewModel::class.java]
+        categoryViewModel.seedDefaultCategories(loggedInUserId)
 
-        findViewById<View>(R.id.receiptRemoveBtn).setOnClickListener {
-            removeReceipt()
-        }
+        // Receipt buttons
+        findViewById<View>(R.id.receiptEmptyState).setOnClickListener { openPhoneGallery() }
+        findViewById<View>(R.id.receiptCameraBtn).setOnClickListener { checkCameraPermission() }
+        findViewById<View>(R.id.receiptGalleryBtn).setOnClickListener { openPhoneGallery() }
+        findViewById<View>(R.id.receiptFilesBtn).setOnClickListener { openPhoneFilesExplorer() }
+        findViewById<View>(R.id.receiptViewBtn).setOnClickListener { uriOfSelectedReceipt?.let { viewReceipt(it) } }
+        findViewById<View>(R.id.receiptRemoveBtn).setOnClickListener { removeReceipt() }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
 
         initViews()
         setupToggle()
-        setupCategorySelection()
+        setupCategoryDropdown()
         setupAccountDropdown()
         setupDatePicker()
         setupNavigation()
-        SaveTransactionButton()
+        setupSaveButton()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        categoryViewModel.seedDefaultCategories(loggedInUserId)
     }
 
     private fun initViews() {
-        amountInput     = findViewById(R.id.amountInput)
-        merchantInput   = findViewById(R.id.merchantEditText)
-        accountDropdown = findViewById(R.id.accountDropdown)
-        dateInput       = findViewById(R.id.dateEditText)
-        noteInput       = findViewById(R.id.noteEditText)
-        expenseToggle   = findViewById(R.id.expenseToggle)
-        incomeToggle    = findViewById(R.id.incomeToggle)
+        amountInput      = findViewById(R.id.amountInput)
+        merchantInput    = findViewById(R.id.merchantEditText)
+        accountDropdown  = findViewById(R.id.accountDropdown)
+        categoryDropdown = findViewById(R.id.categoryDropdown)
+        dateInput        = findViewById(R.id.dateEditText)
+        noteInput        = findViewById(R.id.noteEditText)
+        expenseToggle    = findViewById(R.id.expenseToggle)
+        incomeToggle     = findViewById(R.id.incomeToggle)
     }
 
-    //Toggle Expense/Income
-
+    //  Toggle Expense / Income
     private fun setupToggle() {
-        updateToggleUI()   // reflect default state
-
-        expenseToggle.setOnClickListener {
-            isExpense = true
-            updateToggleUI()
-        }
-
-        incomeToggle.setOnClickListener {
-            isExpense = false
-            updateToggleUI()
-        }
+        updateToggleUI()
+        expenseToggle.setOnClickListener { isExpense = true; updateToggleUI(); refreshCategoryDropdown() }
+        incomeToggle.setOnClickListener  { isExpense = false; updateToggleUI(); refreshCategoryDropdown() }
     }
 
-    /**
-     * Visually highlight the active toggle.
-     * The active pill gets an opaque background; the inactive one is translucent.
-     */
     private fun updateToggleUI() {
-        if (isExpense) {
-            expenseToggle.alpha = 1f
-            incomeToggle.alpha  = 0.45f
-        } else {
-            incomeToggle.alpha  = 1f
-            expenseToggle.alpha = 0.45f
+        expenseToggle.alpha = if (isExpense) 1f else 0.45f
+        incomeToggle.alpha  = if (isExpense) 0.45f else 1f
+    }
+
+    //  Category dropdown
+    private fun setupCategoryDropdown() {
+        categoryViewModel.getCategoriesLive(loggedInUserId).observe(this) { all ->
+            categoriesList = all
+            refreshCategoryDropdown()
+        }
+        categoryDropdown.setOnClickListener { categoryDropdown.showDropDown() }
+        categoryDropdown.setOnItemClickListener { _, _, position, _ ->
+            val filtered = filteredCategories()
+            selectedCategoryId = filtered[position].id
         }
     }
 
-    //Category selection
-
-    private fun setupCategorySelection() {
-        categoryViewIds.forEachIndexed { index, viewId ->
-            val tile = findViewById<View>(viewId) ?: return@forEachIndexed
-            tile.setOnClickListener {
-                selectedCategoryId     = index + 1
-                selectedCategoryViewId = viewId
-                highlightSelectedCategory()
-            }
-        }
-        // Pre-select the first tile so the form always has a valid category.
-        selectedCategoryViewId = categoryViewIds.firstOrNull()
-        highlightSelectedCategory()
+    private fun filteredCategories(): List<Category> {
+        val typeNeeded = if (isExpense) "EXPENSE" else "INCOME"
+        return categoriesList.filter { it.type == typeNeeded || it.type == "BOTH" }
     }
 
-    /**
-     * Adds a coloured border / raised elevation to the chosen category tile
-     * and resets all others to their default appearance.
-     */
-    private fun highlightSelectedCategory() {
-        categoryViewIds.forEach { viewId ->
-            val tile = findViewById<View>(viewId) ?: return@forEach
-            if (viewId == selectedCategoryViewId) {
-                tile.alpha     = 1f
-                tile.scaleX    = 1.08f
-                tile.scaleY    = 1.08f
-                tile.elevation = 8f
-            } else {
-                tile.alpha     = 0.55f
-                tile.scaleX    = 1f
-                tile.scaleY    = 1f
-                tile.elevation = 0f
-            }
-        }
+    private fun refreshCategoryDropdown() {
+        val filtered = filteredCategories()
+        val labels = filtered.map { it.name }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, labels)
+        categoryDropdown.setAdapter(adapter)
+        categoryDropdown.setText("", false)
+        selectedCategoryId = null
     }
 
-    //Account dropdown
-
+    //  Account dropdown
     private fun setupAccountDropdown() {
-        val accounts = listOf("Cash", "Bank Account", "Credit Card", "Savings")
-        val adapter  = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, accounts)
-        accountDropdown.setAdapter(adapter)
+        bankAccountViewModel.accounts.observe(this) { accounts ->
+            accountsList = accounts
+            val labels = accounts.map { "${it.nickname} (${it.bankName})" }
+            val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, labels)
+            accountDropdown.setAdapter(adapter)
+
+            val primaryIndex = accounts.indexOfFirst { it.isPrimary }
+            if (primaryIndex >= 0) {
+                accountDropdown.setText(labels[primaryIndex], false)
+                selectedAccountId = accounts[primaryIndex].id
+            }
+
+            accountDropdown.setOnItemClickListener { _, _, position, _ ->
+                selectedAccountId = accounts[position].id
+            }
+        }
         accountDropdown.setOnClickListener { accountDropdown.showDropDown() }
     }
 
-    //Date picker
-
+    //  Date picker
     private fun setupDatePicker() {
         val openPicker = View.OnClickListener {
             val cal = Calendar.getInstance()
             DatePickerDialog(
                 this,
                 { _, year, month, day ->
-                    dateInput.setText(
-                        String.format("%02d/%02d/%04d", day, month + 1, year)
-                    )
+                    dateInput.setText(String.format("%02d/%02d/%04d", day, month + 1, year))
                 },
                 cal.get(Calendar.YEAR),
                 cal.get(Calendar.MONTH),
                 cal.get(Calendar.DAY_OF_MONTH)
             ).show()
         }
-
         dateInput.setOnClickListener(openPicker)
     }
 
-    //Navigation
-
+    //  Navigation
     private fun setupNavigation() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
-    }
-
-    private fun SaveTransactionButton() {
-        findViewById<View>(R.id.saveTransactionButton).setOnClickListener {
-            saveTransaction()
-        }
-
-        findViewById<View>(R.id.cancelButton).setOnClickListener {
-            finish()
+        findViewById<TextView>(R.id.manageCategoriesLink)?.setOnClickListener {
+            val intent = Intent(this, ManageCategoriesActivity::class.java)
+            intent.putExtra("USER_ID", loggedInUserId)
+            startActivity(intent)
         }
     }
 
-    // Opens the Phones Gallery
-    private fun openPhoneGallery() {
-        galleryLauncher.launch("image/*")
+    private fun setupSaveButton() {
+        findViewById<View>(R.id.saveTransactionButton).setOnClickListener { saveTransaction() }
+        findViewById<View>(R.id.cancelButton).setOnClickListener { finish() }
     }
 
-    // Checks if there is permission for the phone to use the camera
+    //  Receipt helpers
+    private fun openPhoneGallery()       { galleryLauncher.launch("image/*") }
+    private fun openPhoneFilesExplorer() { fileLauncher.launch("*/*") }
+
     private fun checkCameraPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
-        {
             openPhoneCamera()
-        }
         else
-        {
             permissionLauncher.launch(Manifest.permission.CAMERA)
-        }
     }
 
-    // Opens Phone Camera
     private fun openPhoneCamera() {
         val photo = createImageFile()
-        uriOfCameraImage = FileProvider.getUriForFile(
-            this,
-            "${packageName}.fileprovider",
-            photo
-        )
+        uriOfCameraImage = FileProvider.getUriForFile(this, "${packageName}.fileprovider", photo)
         uriOfCameraImage?.let { cameraLauncher.launch(it) }
     }
 
-    // Creates a file for the camera to use
     private fun createImageFile(): File {
-        val imageTimeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val directoryOfStorage = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        return File.createTempFile("RECEIPT_${imageTimeStamp}_", ".jpg", directoryOfStorage)
+        val ts  = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val dir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        return File.createTempFile("RECEIPT_${ts}_", ".jpg", dir)
     }
 
-    // Opens the Phones Files Explorer
-    private fun openPhoneFilesExplorer() {
-        fileLauncher.launch("*/*")
-    }
-
-    // Handles the selected receipt
-    private fun handleSelectedReceipt(receiptUri: Uri) {
-        val uriType = contentResolver.getType(receiptUri)
-
-        val allowedReceipts = listOf("image/jpeg", "image/png", "application/pdf")
-
-        if (uriType !in allowedReceipts) {
-            Toast.makeText(this, "Only JPG, PNG or PDFs are allowed", Toast.LENGTH_SHORT).show()
+    private fun handleSelectedReceipt(uri: Uri) {
+        val mimeType = contentResolver.getType(uri)
+        if (mimeType !in listOf("image/jpeg", "image/png", "application/pdf")) {
+            Toast.makeText(this, "Only JPG, PNG or PDF files allowed", Toast.LENGTH_SHORT).show()
             return
         }
-
-        val maximumBytes = 1024 * 1024L * 10
-        val sizeOfFile = getSizeOfFile(receiptUri)
-
-        if (maximumBytes < sizeOfFile)
-        {
-            Toast.makeText(this, "File exceeds the 10MB limit", Toast.LENGTH_SHORT).show()
+        val size = getSizeOfFile(uri)
+        if (size > 10 * 1024 * 1024L) {
+            Toast.makeText(this, "File exceeds the 10 MB limit", Toast.LENGTH_SHORT).show()
             return
         }
-
-        uriOfSelectedReceipt = receiptUri
-        showAttachedReceiptState(receiptUri, uriType, sizeOfFile)
+        uriOfSelectedReceipt = uri
+        showAttachedReceiptState(uri, mimeType, size)
     }
 
-    // Gets the size of the file
-    private fun getSizeOfFile(receiptUri: Uri): Long {
-        return contentResolver.openFileDescriptor(receiptUri, "r")?.use {
-            it.statSize
-        } ?: 0L
-    }
+    private fun getSizeOfFile(uri: Uri) =
+        contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L
 
-    // Shows the attached receipt
-    private fun showAttachedReceiptState(receiptUri: Uri, uriType: String?, sizeOfFile: Long) {
-        findViewById<View>(R.id.receiptEmptyState).visibility = View.GONE
-        findViewById<View>(R.id.receiptAttachedState).visibility = View.VISIBLE
-        findViewById<TextView>(R.id.receiptFileName).text = getFileName(receiptUri)
+    private fun showAttachedReceiptState(uri: Uri, mimeType: String?, size: Long) {
+        findViewById<View>(R.id.receiptEmptyState).visibility     = View.GONE
+        findViewById<View>(R.id.receiptAttachedState).visibility  = View.VISIBLE
+        findViewById<TextView>(R.id.receiptFileName).text         = getFileName(uri)
+        val sizeStr = formatSizeOfFile(size)
+        val typeStr = if (mimeType == "application/pdf") "PDF" else "JPG"
+        findViewById<TextView>(R.id.receiptFileSize).text = "$sizeStr $typeStr"
 
-        val size = formatSizeOfFile(sizeOfFile)
-        val type = if (uriType == "application/pdf")
-        {
-            "PDF"
-        }
-        else
-        {
-            "JPG"
-        }
-
-        findViewById<TextView>(R.id.receiptFileSize).text = "$size $type"
-
-        val thumbnail = findViewById<ImageView>(R.id.receiptThumbnail)
-        val iconOfPdf = findViewById<TextView>(R.id.receiptPdfIcon)
-
-        if (uriType == "application/pdf")
-        {
+        val thumbnail   = findViewById<ImageView>(R.id.receiptThumbnail)
+        val pdfIcon     = findViewById<TextView>(R.id.receiptPdfIcon)
+        if (mimeType == "application/pdf") {
             thumbnail.visibility = View.GONE
-            iconOfPdf.visibility = View.VISIBLE
-        }
-        else
-        {
+            pdfIcon.visibility   = View.VISIBLE
+        } else {
             thumbnail.visibility = View.VISIBLE
-            iconOfPdf.visibility = View.GONE
-            thumbnail.setImageURI(receiptUri)
+            pdfIcon.visibility   = View.GONE
+            thumbnail.setImageURI(uri)
         }
     }
 
-    // Gets the name of the file
-    private fun getFileName(receiptUri: Uri): String {
-        var fileName = "receipt_file"
-        contentResolver.query(receiptUri, null, null, null, null)?.use { cursor ->
-            val IndexOfName = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (cursor.moveToFirst() && IndexOfName >= 0)
-            {
-                fileName = cursor.getString(IndexOfName)
-            }
+    private fun getFileName(uri: Uri): String {
+        var name = "receipt_file"
+        contentResolver.query(uri, null, null, null, null)?.use { c ->
+            val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (c.moveToFirst() && idx >= 0) name = c.getString(idx)
         }
-        return fileName
+        return name
     }
 
-    // Formats the size of the file
-    private fun formatSizeOfFile(sizeOfFile: Long): String {
-        return if (sizeOfFile >= 1024 * 1024)
-        {
-            String.format("%.1f MB", sizeOfFile / (1024.0 * 1024.0))
-        }
-        else
-        {
-            String.format("%.0f KB", sizeOfFile / 1024.0)
-        }
-    }
+    private fun formatSizeOfFile(bytes: Long) =
+        if (bytes >= 1024 * 1024) String.format("%.1f MB", bytes / (1024.0 * 1024.0))
+        else String.format("%.0f KB", bytes / 1024.0)
 
-    // Allows the receipt to be seen by the user
-    private fun viewReceipt(receiptUri: Uri) {
+    private fun viewReceipt(uri: Uri) {
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(receiptUri, contentResolver.getType(receiptUri))
+            setDataAndType(uri, contentResolver.getType(uri))
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-
         startActivity(Intent.createChooser(intent, "Open receipt with"))
     }
 
-    // allows the user to remove their receipt
     private fun removeReceipt() {
         uriOfSelectedReceipt = null
-        uriOfCameraImage = null
-
-        findViewById<View>(R.id.receiptEmptyState).visibility = View.VISIBLE
+        uriOfCameraImage     = null
+        findViewById<View>(R.id.receiptEmptyState).visibility    = View.VISIBLE
         findViewById<View>(R.id.receiptAttachedState).visibility = View.GONE
     }
 
+    // - Save transaction - updates account balance atomically
     private fun saveTransaction() {
-        val amount = amountInput.text.toString().trim()
+        val amountStr   = amountInput.text.toString().trim()
         val description = merchantInput.text.toString().trim()
-        val date = dateInput.text.toString().trim()
-        val note = noteInput.text.toString().trim()
-        val account = accountDropdown.text.toString().trim()
+        val date        = dateInput.text.toString().trim()
+        val note        = noteInput.text.toString().trim()
+        val accountText = accountDropdown.text.toString().trim()
 
-        if (amount.isEmpty())
-        {
-            amountInput.error = "Please enter an amount"
-            amountInput.requestFocus()
-            return
-        }
+        if (amountStr.isEmpty())   { amountInput.error = "Please enter an amount"; amountInput.requestFocus(); return }
+        val rawAmount = amountStr.toDoubleOrNull()
+        if (rawAmount == null || rawAmount <= 0) { amountInput.error = "Please enter a valid amount"; amountInput.requestFocus(); return }
+        if (description.isEmpty()) { merchantInput.error = "Please enter a description"; merchantInput.requestFocus(); return }
+        if (date.isEmpty())        { dateInput.error = "Please select a date"; dateInput.requestFocus(); return }
+        if (accountText.isEmpty()) { accountDropdown.error = "Please select an account"; accountDropdown.requestFocus(); return }
+        if (selectedAccountId == null) { accountDropdown.error = "Please select a valid account"; accountDropdown.requestFocus(); return }
+        if (selectedCategoryId == null) { categoryDropdown.error = "Please select a category"; categoryDropdown.requestFocus(); return }
+        if (loggedInUserId == -1) { Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show(); return }
 
-        val textAmount = amount.toDoubleOrNull()
-        if (textAmount == null || textAmount <= 0)
-        {
-            amountInput.error = "Please enter a valid amount"
-            amountInput.requestFocus()
-            return
-        }
-
-        if (description.isEmpty())
-        {
-            merchantInput.error = "Please enter a description"
-            merchantInput.requestFocus()
-            return
-        }
-
-        if (date.isEmpty())
-        {
-            dateInput.error = "Please select a date"
-            dateInput.requestFocus()
-            return
-        }
-
-        if (account.isEmpty())
-        {
-            accountDropdown.error = "Please select an account"
-            accountDropdown.requestFocus()
-            return
-        }
-
-        if (loggedInUserId == -1)
-        {
-            Toast.makeText(this, "User is not logged in", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val finalAmount = if (isExpense)
-        {
-            -abs(textAmount)
-        }
-        else
-        {
-            abs(textAmount)
-        }
+        // Positive for income, negative for expense
+        val finalAmount = if (isExpense) -abs(rawAmount) else abs(rawAmount)
 
         val fullDescription = buildString {
             append(description)
-            append("\n")
-            append("$account")
-            append("\n")
-            if (note.isNotEmpty())
-            {
-                append("$note")
-            }
+            if (note.isNotEmpty()) { append("\n"); append(note) }
         }
 
-        val pathOfPhoto = uriOfSelectedReceipt?.toString()
+        val accountId = selectedAccountId!!
 
         val entry = ExpenseEntry(
-            userId = loggedInUserId,
-            categoryId = selectedCategoryId,
-            amount = finalAmount,
-            date = date,
-            startTime = "",
-            endTime = "",
-            description = fullDescription,
-            photoPath = pathOfPhoto
+            userId        = loggedInUserId,
+            categoryId    = selectedCategoryId!!,
+            bankAccountId = accountId,
+            amount        = finalAmount,
+            date          = date,
+            startTime     = "",
+            endTime       = "",
+            description   = fullDescription,
+            photoPath     = uriOfSelectedReceipt?.toString()
         )
 
-        viewModel.addEntry(entry, date, date)
-        Toast.makeText(this, "Transaction saved!", Toast.LENGTH_SHORT).show()
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = AppDatabase.getDatabase(applicationContext)
+            // 1. Insert transaction entry
+            db.expenseEntryDao().insert(entry)
+            // 2. Atomically adjust the selected account's balance
+            db.bankAccountDao().adjustBalance(accountId, finalAmount)
+        }
+
+        Toast.makeText(this, if (isExpense) "Expense saved!" else "Income saved!", Toast.LENGTH_SHORT).show()
         finish()
     }
 }
@@ -512,6 +388,16 @@ class ExpenseEntryViewModelFactory(private val repository: ExpenseEntryRepositor
         if (modelClass.isAssignableFrom(ExpenseEntryViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return ExpenseEntryViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+class BankAccountViewModelFactory(private val repository: BankAccountRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(BankAccountViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return BankAccountViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
