@@ -5,20 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-/**
- * Version bumped 4 → 5 to reflect updated Category entity
- * (added `type` and `isDefault` columns).
- * fallbackToDestructiveMigration() keeps dev builds working.
- */
 @Database(
     entities = [
         User::class,
         Category::class,
         ExpenseEntry::class,
-        BudgetGoal::class,
-        BankAccount::class
+        BankAccount::class,
+        SavingsGoal::class
     ],
-    version = 5,
+    version = 8,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -26,8 +21,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun categoryDao(): CategoryDao
     abstract fun expenseEntryDao(): ExpenseEntryDao
-    abstract fun budgetGoalDao(): BudgetGoalDao
     abstract fun bankAccountDao(): BankAccountDao
+    abstract fun savingsGoalDao(): SavingsGoalDao
 
     companion object {
         @Volatile

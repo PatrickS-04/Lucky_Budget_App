@@ -41,7 +41,7 @@ import java.util.*
 
 class AddTransactionActivity : AppCompatActivity() {
 
-    // ── State ─────────────────────────────────────────────────────────────────
+    // State
     private var isExpense = true
     private var selectedCategoryId: Int? = null
     private var uriOfCameraImage: Uri? = null
@@ -54,7 +54,7 @@ class AddTransactionActivity : AppCompatActivity() {
     private var selectedAccountId: Int? = null
     private var categoriesList: List<Category> = emptyList()
 
-    // ── View references ────────────────────────────────────────────────────────
+    // View references
     private lateinit var amountInput: EditText
     private lateinit var merchantInput: EditText
     private lateinit var accountDropdown: AutoCompleteTextView
@@ -64,7 +64,7 @@ class AddTransactionActivity : AppCompatActivity() {
     private lateinit var expenseToggle: TextView
     private lateinit var incomeToggle: TextView
 
-    // ── Activity result launchers ─────────────────────────────────────────────
+    // Activity result launchers
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success && uriOfCameraImage != null) handleSelectedReceipt(uriOfCameraImage!!)
     }
@@ -79,7 +79,7 @@ class AddTransactionActivity : AppCompatActivity() {
         else Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show()
     }
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    //  Lifecycle
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -135,7 +135,6 @@ class AddTransactionActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Re-seed and reload categories in case the user just added one
         categoryViewModel.seedDefaultCategories(loggedInUserId)
     }
 
@@ -150,7 +149,7 @@ class AddTransactionActivity : AppCompatActivity() {
         incomeToggle     = findViewById(R.id.incomeToggle)
     }
 
-    // ── Toggle Expense / Income ───────────────────────────────────────────────
+    //  Toggle Expense / Income
     private fun setupToggle() {
         updateToggleUI()
         expenseToggle.setOnClickListener { isExpense = true; updateToggleUI(); refreshCategoryDropdown() }
@@ -162,7 +161,7 @@ class AddTransactionActivity : AppCompatActivity() {
         incomeToggle.alpha  = if (isExpense) 0.45f else 1f
     }
 
-    // ── Category dropdown — loaded from the database ──────────────────────────
+    //  Category dropdown
     private fun setupCategoryDropdown() {
         categoryViewModel.getCategoriesLive(loggedInUserId).observe(this) { all ->
             categoriesList = all
@@ -189,7 +188,7 @@ class AddTransactionActivity : AppCompatActivity() {
         selectedCategoryId = null
     }
 
-    // ── Account dropdown — loaded from the database ───────────────────────────
+    //  Account dropdown
     private fun setupAccountDropdown() {
         bankAccountViewModel.accounts.observe(this) { accounts ->
             accountsList = accounts
@@ -210,7 +209,7 @@ class AddTransactionActivity : AppCompatActivity() {
         accountDropdown.setOnClickListener { accountDropdown.showDropDown() }
     }
 
-    // ── Date picker ───────────────────────────────────────────────────────────
+    //  Date picker
     private fun setupDatePicker() {
         val openPicker = View.OnClickListener {
             val cal = Calendar.getInstance()
@@ -227,10 +226,9 @@ class AddTransactionActivity : AppCompatActivity() {
         dateInput.setOnClickListener(openPicker)
     }
 
-    // ── Navigation ────────────────────────────────────────────────────────────
+    //  Navigation
     private fun setupNavigation() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
-        // "Manage" link next to the category label → opens ManageCategoriesActivity
         findViewById<TextView>(R.id.manageCategoriesLink)?.setOnClickListener {
             val intent = Intent(this, ManageCategoriesActivity::class.java)
             intent.putExtra("USER_ID", loggedInUserId)
@@ -243,7 +241,7 @@ class AddTransactionActivity : AppCompatActivity() {
         findViewById<View>(R.id.cancelButton).setOnClickListener { finish() }
     }
 
-    // ── Receipt helpers ───────────────────────────────────────────────────────
+    //  Receipt helpers
     private fun openPhoneGallery()       { galleryLauncher.launch("image/*") }
     private fun openPhoneFilesExplorer() { fileLauncher.launch("*/*") }
 
@@ -332,7 +330,7 @@ class AddTransactionActivity : AppCompatActivity() {
         findViewById<View>(R.id.receiptAttachedState).visibility = View.GONE
     }
 
-    // ── Save transaction — also updates account balance ───────────────────────
+    // - Save transaction - updates account balance atomically
     private fun saveTransaction() {
         val amountStr   = amountInput.text.toString().trim()
         val description = merchantInput.text.toString().trim()
@@ -355,38 +353,32 @@ class AddTransactionActivity : AppCompatActivity() {
 
         val fullDescription = buildString {
             append(description)
-            append("\n")
-            append(accountText)
             if (note.isNotEmpty()) { append("\n"); append(note) }
         }
 
+        val accountId = selectedAccountId!!
+
         val entry = ExpenseEntry(
-            userId      = loggedInUserId,
-            categoryId  = selectedCategoryId!!,
-            amount      = finalAmount,
-            date        = date,
-            startTime   = "",
-            endTime     = "",
-            description = fullDescription,
-            photoPath   = uriOfSelectedReceipt?.toString()
+            userId        = loggedInUserId,
+            categoryId    = selectedCategoryId!!,
+            bankAccountId = accountId,
+            amount        = finalAmount,
+            date          = date,
+            startTime     = "",
+            endTime       = "",
+            description   = fullDescription,
+            photoPath     = uriOfSelectedReceipt?.toString()
         )
 
-        // 1. Save the entry
-        viewModel.addEntry(entry, date, date)
-
-        // 2. Update the selected account's balance
-        val accountId = selectedAccountId!!
         CoroutineScope(Dispatchers.IO).launch {
-            val db      = AppDatabase.getDatabase(applicationContext)
-            val dao     = db.bankAccountDao()
-            val account = dao.getById(accountId)
-            if (account != null) {
-                val updated = account.copy(balance = account.balance + finalAmount)
-                dao.update(updated)
-            }
+            val db = AppDatabase.getDatabase(applicationContext)
+            // 1. Insert transaction entry
+            db.expenseEntryDao().insert(entry)
+            // 2. Atomically adjust the selected account's balance
+            db.bankAccountDao().adjustBalance(accountId, finalAmount)
         }
 
-        Toast.makeText(this, "Transaction saved!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, if (isExpense) "Expense saved!" else "Income saved!", Toast.LENGTH_SHORT).show()
         finish()
     }
 }

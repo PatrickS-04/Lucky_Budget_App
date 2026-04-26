@@ -24,13 +24,13 @@ interface BankAccountDao {
     suspend fun delete(account: BankAccount)
 
     /**
-     * LiveData stream of all accounts for a user — the UI observes this
-     * so the list refreshes automatically after every insert/delete.
+     * LiveData stream of all accounts for a user - the UI observes this
+     * so the list refreshes automatically after every insert/delete/update.
      */
     @Query("SELECT * FROM bank_accounts WHERE userId = :userId ORDER BY isPrimary DESC, id DESC")
     fun getAccountsForUser(userId: Int): LiveData<List<BankAccount>>
 
-    /** One-shot fetch — use inside suspend functions / coroutines. */
+    /** One-shot fetch - use inside suspend functions / coroutines. */
     @Query("SELECT * FROM bank_accounts WHERE userId = :userId ORDER BY isPrimary DESC, id DESC")
     suspend fun getAccountsOnce(userId: Int): List<BankAccount>
 
@@ -51,4 +51,11 @@ interface BankAccountDao {
      */
     @Query("UPDATE bank_accounts SET isPrimary = 0 WHERE userId = :userId")
     suspend fun clearPrimaryFlag(userId: Int)
+
+    /**
+     * Atomically adjust the balance of a single account by [delta].
+     * Positive delta = credit (income), negative delta = debit (expense).
+     */
+    @Query("UPDATE bank_accounts SET balance = balance + :delta WHERE id = :accountId")
+    suspend fun adjustBalance(accountId: Int, delta: Double)
 }
