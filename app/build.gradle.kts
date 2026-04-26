@@ -56,8 +56,8 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
     implementation(libs.androidx.activity)
 
-    // Room
-    val room = "2.7.0-alpha11"
+    // Room — version must match the androidx.room plugin version in root build.gradle.kts
+    val room = "2.7.2"
     implementation("androidx.room:room-ktx:$room")
     ksp("androidx.room:room-compiler:$room")
 

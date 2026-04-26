@@ -42,23 +42,24 @@ class CategoryViewModel(private val categoryRepository: CategoryRepository) : Vi
      * Safe to call multiple times — INSERT OR IGNORE prevents duplicates.
      */
     fun seedDefaultCategories(userId: Int) {
+        if (userId == -1) return  // ← guard: never seed with an invalid userId
         viewModelScope.launch {
             val existingDefaults = categoryRepository.countDefaultsForUser(userId)
-            if (existingDefaults > 0) return@launch   // already seeded
+            if (existingDefaults > 0) return@launch
 
             val defaults = listOf(
-                Category(userId = userId, name = "Groceries",      type = "EXPENSE", isDefault = true),
-                Category(userId = userId, name = "Dining Out",     type = "EXPENSE", isDefault = true),
-                Category(userId = userId, name = "Transport",      type = "EXPENSE", isDefault = true),
-                Category(userId = userId, name = "Entertainment",  type = "EXPENSE", isDefault = true),
-                Category(userId = userId, name = "Subscriptions",  type = "EXPENSE", isDefault = true),
-                Category(userId = userId, name = "Utilities",      type = "EXPENSE", isDefault = true),
-                Category(userId = userId, name = "Healthcare",     type = "EXPENSE", isDefault = true),
-                Category(userId = userId, name = "Shopping",       type = "EXPENSE", isDefault = true),
-                Category(userId = userId, name = "Salary",         type = "INCOME",  isDefault = true),
-                Category(userId = userId, name = "Investment",     type = "INCOME",  isDefault = true),
-                Category(userId = userId, name = "Freelance",      type = "INCOME",  isDefault = true),
-                Category(userId = userId, name = "Gift",           type = "BOTH",    isDefault = true)
+                Category(userId = userId, name = "Groceries",     type = "EXPENSE", isDefault = true),
+                Category(userId = userId, name = "Dining Out",    type = "EXPENSE", isDefault = true),
+                Category(userId = userId, name = "Transport",     type = "EXPENSE", isDefault = true),
+                Category(userId = userId, name = "Entertainment", type = "EXPENSE", isDefault = true),
+                Category(userId = userId, name = "Subscriptions", type = "EXPENSE", isDefault = true),
+                Category(userId = userId, name = "Utilities",     type = "EXPENSE", isDefault = true),
+                Category(userId = userId, name = "Healthcare",    type = "EXPENSE", isDefault = true),
+                Category(userId = userId, name = "Shopping",      type = "EXPENSE", isDefault = true),
+                Category(userId = userId, name = "Salary",        type = "INCOME",  isDefault = true),
+                Category(userId = userId, name = "Investment",    type = "INCOME",  isDefault = true),
+                Category(userId = userId, name = "Freelance",     type = "INCOME",  isDefault = true),
+                Category(userId = userId, name = "Gift",          type = "BOTH",    isDefault = true)
             )
             defaults.forEach { categoryRepository.addCategory(it) }
         }

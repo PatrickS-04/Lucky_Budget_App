@@ -21,8 +21,19 @@ import com.example.pulserds_prog7313.data.Category
  * into [submitCategories] and the tile amount will update automatically.
  */
 class CategoryTileAdapter(
-    private val totals: Map<Int, Double> = emptyMap()
+    initialTotals: Map<Int, Double> = emptyMap()
 ) : ListAdapter<Category, CategoryTileAdapter.TileViewHolder>(DIFF_CALLBACK) {
+
+    private var totals: Map<Int, Double> = initialTotals
+
+    /**
+     * Submit both new categories and updated spending totals at once.
+     * Triggers a single DiffUtil pass.
+     */
+    fun submitCategories(categories: List<Category>, newTotals: Map<Int, Double>) {
+        totals = newTotals
+        submitList(categories)
+    }
 
     // Palette matches the original XML tile colours (dark-green, dark-maroon, dark-navy, dark-brown)
     private val tileColors = listOf("#1A3A2A", "#2A1A1A", "#1A1A3A", "#2A1E10")

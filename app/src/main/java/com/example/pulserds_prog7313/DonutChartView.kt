@@ -30,6 +30,8 @@ class DonutChartView @JvmOverloads constructor(
     }
 
     init {
+        // Software layer is required so PorterDuff.Mode.CLEAR actually punches
+        // transparent pixels (hardware layer ignores CLEAR on most devices).
         setLayerType(LAYER_TYPE_SOFTWARE, null)
     }
 
@@ -38,9 +40,11 @@ class DonutChartView @JvmOverloads constructor(
         strokeCap = Paint.Cap.BUTT
     }
 
+    // CLEAR mode erases pixels back to transparent so the card background shows through
     private val holePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = Color.parseColor("#FF9F1C")
+        style     = Paint.Style.FILL
+        color     = Color.TRANSPARENT
+        xfermode  = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR)
     }
 
     private val emptyRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -58,7 +62,7 @@ class DonutChartView @JvmOverloads constructor(
 
     private val subLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style          = Paint.Style.FILL
-        color          = Color.parseColor("#FFEEDD")
+        color          = Color.parseColor("#CC8844")
         textAlign      = Paint.Align.CENTER
         isFakeBoldText = false
     }
@@ -78,7 +82,7 @@ class DonutChartView @JvmOverloads constructor(
         emptyRingPaint.strokeWidth = strokeWidth
 
         if (_segments.isEmpty()) {
-            // Draw a single grey placeholder ring when there's no data
+            // Draw a single dark-blue placeholder ring when there's no data
             canvas.drawArc(oval, -90f, 360f, false, emptyRingPaint)
         } else {
             val total      = _segments.sumOf { it.first.toDouble() }.toFloat()
@@ -93,31 +97,36 @@ class DonutChartView @JvmOverloads constructor(
             }
         }
 
-        // Punch the donut hole
-        val holeRadius = radius - (strokeWidth / 2f) - 4f
+        // Punch a transparent hole in the centre — CLEAR mode erases the ring pixels,
+        // letting the card's orange background show through naturally.
+        // Hole inner edge = centre of stroke - half stroke width = radius - strokeWidth/2
+        val holeRadius = radius - strokeWidth / 2f - 2f
         canvas.drawCircle(cx, cy, holeRadius, holePaint)
 
-        // Centre text
+        // Centre text — drawn AFTER the hole so text sits on top of transparency
         if (centerLine1.isNotEmpty()) {
-            val holeDiameter  = holeRadius * 2f
-            val mainTextSize  = holeDiameter * 0.18f
-            val subTextSize   = holeDiameter * 0.11f
+            val holeDiameter = holeRadius * 2f
+            val mainTextSize = holeDiameter * 0.20f
+            val subTextSize  = holeDiameter * 0.13f
 
             labelPaint.textSize    = mainTextSize
             subLabelPaint.textSize = subTextSize
 
-            val fm       = labelPaint.fontMetrics
-            val lineH    = fm.descent - fm.ascent
-            val subLineH = subLabelPaint.fontMetrics.let { it.descent - it.ascent }
+            val hasSubtitle  = centerLine2.isNotEmpty()
+            val mainFm       = labelPaint.fontMetrics
+            val mainLineH    = mainFm.descent - mainFm.ascent
+            val subFm        = subLabelPaint.fontMetrics
+            val subLineH     = subFm.descent - subFm.ascent
+            val gap          = subTextSize * 0.15f
 
-            val hasSubtitle = centerLine2.isNotEmpty()
-            val totalH      = if (hasSubtitle) lineH + subLineH * 1.1f else lineH
+            val totalH = if (hasSubtitle) mainLineH + gap + subLineH else mainLineH
 
-            val mainBaseline = cy - totalH / 2f - fm.ascent
+            // Baseline of main text: centre minus half total height, adjusted for ascent
+            val mainBaseline = cy - totalH / 2f - mainFm.ascent
             canvas.drawText(centerLine1, cx, mainBaseline, labelPaint)
 
             if (hasSubtitle) {
-                val subBaseline = mainBaseline + lineH + subLineH * 0.1f - subLabelPaint.fontMetrics.ascent
+                val subBaseline = mainBaseline + mainFm.descent + gap - subFm.ascent
                 canvas.drawText(centerLine2, cx, subBaseline, subLabelPaint)
             }
         }

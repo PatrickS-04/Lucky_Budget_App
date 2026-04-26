@@ -47,7 +47,9 @@ class ManageCategoriesActivity : AppCompatActivity() {
         categoryViewModel = ViewModelProvider(this, factory)[CategoryViewModel::class.java]
 
         // Seed default categories for this user if not yet done
-        categoryViewModel.seedDefaultCategories(loggedInUserId)
+        if (loggedInUserId != -1) {
+            categoryViewModel.seedDefaultCategories(loggedInUserId)
+        }
 
         setupRecyclerViews()
         observeCategories()
