@@ -27,18 +27,15 @@ import java.util.*
 
 class CreateSavingsGoalActivity : AppCompatActivity() {
 
-    // ViewModels
     private lateinit var savingsVm : SavingsGoalViewModel
     private lateinit var bankVm    : BankAccountViewModel
 
-    // State
-    private var userId           = -1
-    private var selectedIcon     = "🏦"
-    private var selectedAccountId= 0
-    private var selectedFrequency= "MONTHLY"
-    private var accountsList     : List<BankAccount> = emptyList()
+    private var userId            = -1
+    private var selectedIcon      = "🏦"
+    private var selectedAccountId = 0
+    private var selectedFrequency = "MONTHLY"
+    private var accountsList      : List<BankAccount> = emptyList()
 
-    //  Icon map (id -> emoji)
     private val iconMap = mapOf(
         R.id.iconBank   to "🏦",
         R.id.iconPlane  to "✈️",
@@ -52,25 +49,23 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         R.id.iconGift   to "🎁"
     )
 
-    // Views
-    private lateinit var goalNameEdit     : TextInputEditText
-    private lateinit var targetAmountEdit : TextInputEditText
-    private lateinit var initialDepositEdit: TextInputEditText
-    private lateinit var targetDateEdit   : TextInputEditText
-    private lateinit var accountDropdown  : AutoCompleteTextView
-    private lateinit var autoSaveSwitch   : Switch
-    private lateinit var autoSaveOptions  : View
-    private lateinit var autoSaveAmountEdit: TextInputEditText
-    private lateinit var freqWeekly       : TextView
-    private lateinit var freqMonthly      : TextView
-    private lateinit var freqYearly       : TextView
-    private lateinit var previewIcon      : TextView
-    private lateinit var previewName      : TextView
-    private lateinit var previewDetails   : TextView
-    private lateinit var previewProgressBar: ProgressBar
+    private lateinit var goalNameEdit       : TextInputEditText
+    private lateinit var targetAmountEdit   : TextInputEditText
+    private lateinit var initialDepositEdit : TextInputEditText
+    private lateinit var targetDateEdit     : TextInputEditText
+    private lateinit var accountDropdown    : AutoCompleteTextView
+    private lateinit var autoSaveSwitch     : Switch
+    private lateinit var autoSaveOptions    : View
+    private lateinit var autoSaveAmountEdit : TextInputEditText
+    private lateinit var freqWeekly         : TextView
+    private lateinit var freqMonthly        : TextView
+    private lateinit var freqYearly         : TextView
+    private lateinit var previewIcon        : TextView
+    private lateinit var previewName        : TextView
+    private lateinit var previewDetails     : TextView
+    private lateinit var previewProgressBar : ProgressBar
     private lateinit var previewProgressText: TextView
 
-    // Lifecycle
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -105,31 +100,29 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         observeResults()
     }
 
-    // Bind
+    // ── Bind ──────────────────────────────────────────────────────────────────
     private fun bindViews() {
-        goalNameEdit      = findViewById(R.id.goalNameEditText)
-        targetAmountEdit  = findViewById(R.id.targetAmountEditText)
-        initialDepositEdit= findViewById(R.id.initialDepositEditText)
-        targetDateEdit    = findViewById(R.id.targetDateEditText)
-        accountDropdown   = findViewById(R.id.linkedAccountDropdown)
-        autoSaveSwitch    = findViewById(R.id.autoSaveSwitch)
-        autoSaveOptions   = findViewById(R.id.autoSaveOptions)
-        autoSaveAmountEdit= findViewById(R.id.autoSaveAmountEditText)
-        freqWeekly        = findViewById(R.id.freqWeekly)
-        freqMonthly       = findViewById(R.id.freqMonthly)
-        freqYearly        = findViewById(R.id.freqYearly)
-        previewIcon       = findViewById(R.id.previewIcon)
-        previewName       = findViewById(R.id.previewName)
-        previewDetails    = findViewById(R.id.previewDetails)
-        previewProgressBar= findViewById(R.id.previewProgressBar)
-        previewProgressText= findViewById(R.id.previewProgressText)
+        goalNameEdit        = findViewById(R.id.goalNameEditText)
+        targetAmountEdit    = findViewById(R.id.targetAmountEditText)
+        initialDepositEdit  = findViewById(R.id.initialDepositEditText)
+        targetDateEdit      = findViewById(R.id.targetDateEditText)
+        accountDropdown     = findViewById(R.id.linkedAccountDropdown)
+        autoSaveSwitch      = findViewById(R.id.autoSaveSwitch)
+        autoSaveOptions     = findViewById(R.id.autoSaveOptions)
+        autoSaveAmountEdit  = findViewById(R.id.autoSaveAmountEditText)
+        freqWeekly          = findViewById(R.id.freqWeekly)
+        freqMonthly         = findViewById(R.id.freqMonthly)
+        freqYearly          = findViewById(R.id.freqYearly)
+        previewIcon         = findViewById(R.id.previewIcon)
+        previewName         = findViewById(R.id.previewName)
+        previewDetails      = findViewById(R.id.previewDetails)
+        previewProgressBar  = findViewById(R.id.previewProgressBar)
+        previewProgressText = findViewById(R.id.previewProgressText)
     }
 
-    // Icon picker
+    // ── Icon picker ───────────────────────────────────────────────────────────
     private fun setupIconPicker() {
-        // Highlight the default selection
         highlightIcon(R.id.iconBank)
-
         for ((viewId, emoji) in iconMap) {
             val view = findViewById<LinearLayout>(viewId) ?: continue
             view.setOnClickListener {
@@ -144,14 +137,13 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         for (viewId in iconMap.keys) {
             val bg = if (viewId == selectedId) "#0D2A1A" else "#1A2A38"
             try {
-                android.graphics.Color.parseColor(bg)
                 val v = findViewById<LinearLayout>(viewId) ?: continue
                 v.setBackgroundColor(android.graphics.Color.parseColor(bg))
             } catch (_: Exception) {}
         }
     }
 
-    // Account dropdown
+    // ── Account dropdown ──────────────────────────────────────────────────────
     private fun setupAccountDropdown() {
         bankVm.accounts.observe(this) { accounts ->
             accountsList = accounts
@@ -160,7 +152,6 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
             accountDropdown.setAdapter(adapter)
             accountDropdown.setText("No linked account", false)
             selectedAccountId = 0
-
             accountDropdown.setOnItemClickListener { _, _, position, _ ->
                 selectedAccountId = if (position == 0) 0 else accounts[position - 1].id
             }
@@ -168,10 +159,10 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         accountDropdown.setOnClickListener { accountDropdown.showDropDown() }
     }
 
-    // Date picker
+    // ── Date picker ───────────────────────────────────────────────────────────
     private fun setupDatePicker() {
         val fmt = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-        val listener = View.OnClickListener {
+        val openPicker = View.OnClickListener {
             val cal = Calendar.getInstance()
             DatePickerDialog(
                 this,
@@ -183,47 +174,46 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
                 cal.get(Calendar.YEAR),
                 cal.get(Calendar.MONTH),
                 cal.get(Calendar.DAY_OF_MONTH)
-            ).also { dlg -> dlg.datePicker.minDate = System.currentTimeMillis() }
-                .show()
+            ).also { it.datePicker.minDate = System.currentTimeMillis() }.show()
         }
-        targetDateEdit.setOnClickListener(listener)
-        findViewById<View>(R.id.targetDateLayout)?.setOnClickListener(listener)
+        // Prevent keyboard; only the picker should open
+        targetDateEdit.isFocusable = false
+        targetDateEdit.isFocusableInTouchMode = false
+        targetDateEdit.setOnClickListener(openPicker)
+        findViewById<View>(R.id.targetDateLayout)?.setOnClickListener(openPicker)
     }
 
-    // Auto-save toggle
+    // ── Auto-save toggle ──────────────────────────────────────────────────────
     private fun setupAutoSaveToggle() {
         autoSaveSwitch.setOnCheckedChangeListener { _, checked ->
             autoSaveOptions.visibility = if (checked) View.VISIBLE else View.GONE
         }
     }
 
-    // Frequency chips
+    // ── Frequency chips ───────────────────────────────────────────────────────
     private fun setupFrequencyChips() {
-        // Default = Monthly
         selectFreq(freqMonthly, "MONTHLY")
-        freqWeekly.setOnClickListener  { selectFreq(freqWeekly,  "WEEKLY") }
+        freqWeekly.setOnClickListener  { selectFreq(freqWeekly,  "WEEKLY")  }
         freqMonthly.setOnClickListener { selectFreq(freqMonthly, "MONTHLY") }
-        freqYearly.setOnClickListener  { selectFreq(freqYearly,  "YEARLY") }
+        freqYearly.setOnClickListener  { selectFreq(freqYearly,  "YEARLY")  }
     }
 
     private fun selectFreq(chip: TextView, freq: String) {
         selectedFrequency = freq
-        val active   = "#4ADE80"
-        val inactive = "#0D1B2A"
         listOf(freqWeekly, freqMonthly, freqYearly).forEach { c ->
             if (c == chip) {
-                c.setBackgroundColor(android.graphics.Color.parseColor(active))
+                c.setBackgroundColor(android.graphics.Color.parseColor("#4ADE80"))
                 c.setTextColor(android.graphics.Color.parseColor("#0D1B2A"))
                 c.typeface = android.graphics.Typeface.DEFAULT_BOLD
             } else {
-                c.setBackgroundColor(android.graphics.Color.parseColor(inactive))
+                c.setBackgroundColor(android.graphics.Color.parseColor("#0D1B2A"))
                 c.setTextColor(android.graphics.Color.parseColor("#7A99B0"))
                 c.typeface = android.graphics.Typeface.DEFAULT
             }
         }
     }
 
-    // Live preview
+    // ── Live preview ──────────────────────────────────────────────────────────
     private fun setupLivePreview() {
         val watcher = object : TextWatcher {
             override fun afterTextChanged(s: Editable?) { updatePreview() }
@@ -247,10 +237,10 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
 
         val pct = if (target > 0) ((deposit / target) * 100).toInt().coerceIn(0, 100) else 0
         previewProgressBar.progress = pct
-        previewProgressText.text = "$pct% saved  •  R %,.2f initial deposit".format(deposit)
+        previewProgressText.text    = "$pct% saved  •  R %,.2f initial deposit".format(deposit)
     }
 
-    // Buttons
+    // ── Buttons ───────────────────────────────────────────────────────────────
     private fun setupButtons() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
         findViewById<TextView>(R.id.cancelButton)?.setOnClickListener { finish() }
@@ -279,9 +269,14 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         )
     }
 
-    // Observe results
+    // ── Observe results ───────────────────────────────────────────────────────
     private fun observeResults() {
         savingsVm.saveResult.observe(this) { result ->
+            // null = no event pending; ignore (covers startup and post-consume state)
+            result ?: return@observe
+
+            savingsVm.consumeResult() // always clear first so it can never re-fire
+
             when (result) {
                 is SavingsGoalViewModel.GoalResult.Success -> {
                     Toast.makeText(this, "Goal created! 🎯", Toast.LENGTH_SHORT).show()
@@ -290,7 +285,7 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
                 is SavingsGoalViewModel.GoalResult.Error -> {
                     Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()
                 }
-                else -> {}
+                else -> { /* FundsAdded not relevant here */ }
             }
         }
     }

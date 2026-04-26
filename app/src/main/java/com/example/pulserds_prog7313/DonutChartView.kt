@@ -9,28 +9,20 @@ class DonutChartView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    // Mutable segment list - updated from AccountsActivity via setSegments()
-    private val _segments = mutableListOf(
-        40000f to Color.parseColor("#4ADE80"), // default: Cheque - green
-        8000f  to Color.parseColor("#60A5FA"), // default: Crypto  - blue
-        2000f  to Color.parseColor("#FBBF24")  // default: Invest  - yellow
-    )
+    // No hardcoded defaults — starts empty until real data is pushed in
+    private val _segments = mutableListOf<Pair<Float, Int>>()
 
-    // Centre label lines - set from AccountsActivity via setCenterLabel()
-    private var centerLine1: String = ""   // e.g. "R 60,600.00"
-    private var centerLine2: String = ""   // e.g. "ZAR *"
+    private var centerLine1: String = ""
+    private var centerLine2: String = ""
 
-    /** Replace all segments and redraw the chart. */
+    /** Replace all segments and redraw. */
     fun setSegments(segments: List<Pair<Float, Int>>) {
         _segments.clear()
         _segments.addAll(segments)
         invalidate()
     }
 
-    /**
-     * Set the two lines of text shown in the donut hole.
-     * Call this whenever the total balance changes.
-     */
+    /** Set the two lines of text shown in the donut hole. */
     fun setCenterLabel(line1: String, line2: String = "") {
         centerLine1 = line1
         centerLine2 = line2
@@ -48,28 +40,32 @@ class DonutChartView @JvmOverloads constructor(
 
     private val holePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        // Must match the card background - @color/backgroundOrange
         color = Color.parseColor("#FF9F1C")
     }
 
+    private val emptyRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style       = Paint.Style.STROKE
+        strokeCap   = Paint.Cap.BUTT
+        color       = Color.parseColor("#1A3248")
+    }
+
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style     = Paint.Style.FILL
-        color     = Color.WHITE
-        textAlign = Paint.Align.CENTER
+        style          = Paint.Style.FILL
+        color          = Color.WHITE
+        textAlign      = Paint.Align.CENTER
         isFakeBoldText = true
     }
 
     private val subLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style     = Paint.Style.FILL
-        color     = Color.parseColor("#FFEEDD")
-        textAlign = Paint.Align.CENTER
+        style          = Paint.Style.FILL
+        color          = Color.parseColor("#FFEEDD")
+        textAlign      = Paint.Align.CENTER
         isFakeBoldText = false
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
-        if (width == 0 || height == 0 || _segments.isEmpty()) return
+        if (width == 0 || height == 0) return
 
         val size        = minOf(width, height).toFloat()
         val strokeWidth = size * 0.22f
@@ -78,44 +74,46 @@ class DonutChartView @JvmOverloads constructor(
         val cy          = height / 2f
         val oval        = RectF(cx - radius, cy - radius, cx + radius, cy + radius)
 
-        segmentPaint.strokeWidth = strokeWidth
+        segmentPaint.strokeWidth   = strokeWidth
+        emptyRingPaint.strokeWidth = strokeWidth
 
-        val total       = _segments.sumOf { it.first.toDouble() }.toFloat()
-        var startAngle  = -90f
-        val gapDegrees  = 2f
+        if (_segments.isEmpty()) {
+            // Draw a single grey placeholder ring when there's no data
+            canvas.drawArc(oval, -90f, 360f, false, emptyRingPaint)
+        } else {
+            val total      = _segments.sumOf { it.first.toDouble() }.toFloat()
+            var startAngle = -90f
+            val gapDegrees = if (_segments.size == 1) 0f else 2f
 
-        for ((value, color) in _segments) {
-            val sweep = (value / total) * 360f
-            segmentPaint.color = color
-            canvas.drawArc(oval, startAngle + gapDegrees / 2f, sweep - gapDegrees, false, segmentPaint)
-            startAngle += sweep
+            for ((value, color) in _segments) {
+                val sweep = (value / total) * 360f
+                segmentPaint.color = color
+                canvas.drawArc(oval, startAngle + gapDegrees / 2f, sweep - gapDegrees, false, segmentPaint)
+                startAngle += sweep
+            }
         }
 
-        // Punch the hole to make it a donut
+        // Punch the donut hole
         val holeRadius = radius - (strokeWidth / 2f) - 4f
         canvas.drawCircle(cx, cy, holeRadius, holePaint)
 
-        //  Draw centre text
+        // Centre text
         if (centerLine1.isNotEmpty()) {
-            // Scale text size relative to the hole diameter so it always fits
-            val holeDiameter = holeRadius * 2f
-            val mainTextSize  = holeDiameter * 0.18f   // primary amount ~18% of hole
-            val subTextSize   = holeDiameter * 0.11f   // subtitle ~11% of hole
+            val holeDiameter  = holeRadius * 2f
+            val mainTextSize  = holeDiameter * 0.18f
+            val subTextSize   = holeDiameter * 0.11f
 
             labelPaint.textSize    = mainTextSize
             subLabelPaint.textSize = subTextSize
 
-            // Measure heights for vertical centring
             val fm       = labelPaint.fontMetrics
-            val lineH    = fm.descent - fm.ascent          // height of one main line
+            val lineH    = fm.descent - fm.ascent
             val subLineH = subLabelPaint.fontMetrics.let { it.descent - it.ascent }
 
             val hasSubtitle = centerLine2.isNotEmpty()
-            val totalH = if (hasSubtitle) lineH + subLineH * 1.1f else lineH
+            val totalH      = if (hasSubtitle) lineH + subLineH * 1.1f else lineH
 
-            // Baseline for the main amount (centred in the hole)
-            val mainBaseline = cy - totalH / 2f - fm.ascent   // ascent is negative
-
+            val mainBaseline = cy - totalH / 2f - fm.ascent
             canvas.drawText(centerLine1, cx, mainBaseline, labelPaint)
 
             if (hasSubtitle) {

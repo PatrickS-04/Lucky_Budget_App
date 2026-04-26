@@ -24,8 +24,14 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
     private val _totalTarget = MutableLiveData(0.0)
     val totalTarget: LiveData<Double> get() = _totalTarget
 
-    private val _saveResult = MutableLiveData<GoalResult>()
-    val saveResult: LiveData<GoalResult> get() = _saveResult
+    // null = no pending result; observers must guard against null
+    private val _saveResult = MutableLiveData<GoalResult?>(null)
+    val saveResult: LiveData<GoalResult?> get() = _saveResult
+
+    /** Reset after the UI has consumed the result so it never re-fires. */
+    fun consumeResult() {
+        _saveResult.value = null
+    }
 
     fun getAllGoalsLive(userId: Int): LiveData<List<SavingsGoal>> =
         repo.getAllGoalsLive(userId)
@@ -50,9 +56,9 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
         autoSaveFreq   : String
     ) {
         when {
-            name.isBlank()      -> { _saveResult.value = GoalResult.Error("Please enter a goal name."); return }
-            targetAmount <= 0   -> { _saveResult.value = GoalResult.Error("Target amount must be greater than R 0."); return }
-            initialDeposit < 0  -> { _saveResult.value = GoalResult.Error("Initial deposit cannot be negative."); return }
+            name.isBlank()        -> { _saveResult.value = GoalResult.Error("Please enter a goal name."); return }
+            targetAmount <= 0     -> { _saveResult.value = GoalResult.Error("Target amount must be greater than R 0."); return }
+            initialDeposit < 0    -> { _saveResult.value = GoalResult.Error("Initial deposit cannot be negative."); return }
             initialDeposit > targetAmount -> { _saveResult.value = GoalResult.Error("Initial deposit cannot exceed the target amount."); return }
             autoSaveEnabled && autoSaveAmount <= 0 -> { _saveResult.value = GoalResult.Error("Please enter an auto-save amount."); return }
         }

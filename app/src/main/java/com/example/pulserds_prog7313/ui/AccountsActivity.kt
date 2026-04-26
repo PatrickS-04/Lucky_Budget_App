@@ -27,7 +27,6 @@ class AccountsActivity : BaseActivity() {
     private lateinit var viewModel: BankAccountViewModel
     private var userId = -1
 
-    // Views
     private lateinit var accountsContainer: LinearLayout
     private lateinit var emptyAccountsText: TextView
     private lateinit var legendRow: LinearLayout
@@ -48,7 +47,6 @@ class AccountsActivity : BaseActivity() {
         setupViewModel()
         observeData()
 
-        // "Add Account" button -> AddAccountActivity
         findViewById<MaterialButton>(R.id.addAccountButton)?.setOnClickListener {
             startActivity(Intent(this, AddAccountActivity::class.java))
         }
@@ -56,16 +54,12 @@ class AccountsActivity : BaseActivity() {
         setupBottomNav(R.id.navAccounts)
     }
 
-    //  View binding
-
     private fun bindViews() {
         accountsContainer = findViewById(R.id.accountsContainer)
         emptyAccountsText = findViewById(R.id.emptyAccountsText)
         legendRow         = findViewById(R.id.legendRow)
         donutChart        = findViewById(R.id.donutChart)
     }
-
-    //  ViewModel setup
 
     private fun setupViewModel() {
         userId = SessionManager(this).getUserId()
@@ -76,23 +70,21 @@ class AccountsActivity : BaseActivity() {
         viewModel.init(userId)
     }
 
-    //  Observers
-
     private fun observeData() {
-        // Accounts list drives the card rows, legend, and donut chart
+        // Single source of truth: accounts list drives cards, legend, AND donut
         viewModel.accounts.observe(this) { accounts ->
             renderAccountsList(accounts)
             updateLegend(accounts)
             updateDonut(accounts)
         }
 
-        // Total balance (only accounts with includeInTotal = true)
+        // Centre label only — total is already computed by the DAO with the same filter
         viewModel.totalBalance.observe(this) { total ->
             donutChart.setCenterLabel(formatRand(total), "ZAR *")
         }
     }
 
-    //  Accounts list
+    // ── Account card rows ─────────────────────────────────────────────────────
 
     private fun renderAccountsList(accounts: List<BankAccount>) {
         accountsContainer.removeAllViews()
@@ -108,46 +100,43 @@ class AccountsActivity : BaseActivity() {
         accounts.forEachIndexed { index, account ->
             val row = inflater.inflate(R.layout.item_bank_account, accountsContainer, false)
 
-            // Colour dot - use the account's stored hex colour
             val dotColour = safeParseColour(account.colour, "#4ADE80")
             row.findViewById<View>(R.id.accountDot).setBackgroundColor(dotColour)
-
-            // Primary label: bank name
             row.findViewById<TextView>(R.id.accountBankName).text = account.bankName
 
-            // Type tag coloured to match the dot
             val typeTag = row.findViewById<TextView>(R.id.accountTypeTag)
             typeTag.text = account.accountType
             typeTag.setTextColor(dotColour)
 
-            // Balance
             row.findViewById<TextView>(R.id.accountBalance).text = formatRand(account.balance)
 
-            // Masked account number - show last 4 digits
-            val last4 = if (account.accountNumber.length >= 4)
-                account.accountNumber.takeLast(4)
-            else
-                account.accountNumber
+            val last4 = account.accountNumber.takeLast(4).padStart(4, '*')
             row.findViewById<TextView>(R.id.accountMasked).text = "**** $last4"
 
             accountsContainer.addView(row)
 
-            // Hairline divider between rows (not after the last one)
             if (index < accounts.lastIndex) {
                 accountsContainer.addView(buildDivider())
             }
         }
     }
 
-    //  Legend
+    // ── Legend ────────────────────────────────────────────────────────────────
 
     private fun updateLegend(accounts: List<BankAccount>) {
         legendRow.removeAllViews()
-        // One legend entry per distinct account type, in the order they appear
-        val seen = mutableSetOf<String>()
-        accounts.forEach { account ->
-            if (seen.add(account.accountType)) {
-                legendRow.addView(buildLegendItem(account.accountType, account.colour))
+
+        // One legend entry per account — mirrors what the donut shows
+        accounts
+            .filter { it.includeInTotal && it.balance > 0 }
+            .forEach { account ->
+                legendRow.addView(buildLegendItem(account.nickname.ifBlank { account.bankName }, account.colour))
+            }
+
+        // If nothing is included, fall back to showing all accounts in legend
+        if (legendRow.childCount == 0) {
+            accounts.forEach { account ->
+                legendRow.addView(buildLegendItem(account.nickname.ifBlank { account.bankName }, account.colour))
             }
         }
     }
@@ -184,21 +173,23 @@ class AccountsActivity : BaseActivity() {
         return item
     }
 
-    //  Donut chart
+    // ── Donut chart ───────────────────────────────────────────────────────────
 
     private fun updateDonut(accounts: List<BankAccount>) {
+        // Use EXACTLY the same filter as BankAccountDao.getTotalBalance():
+        //   includeInTotal = true  AND  balance > 0
+        // One segment per account so each account's colour and exact balance is shown.
         val segments = accounts
             .filter { it.includeInTotal && it.balance > 0 }
-            .groupBy { it.accountType }
-            .map { (_, group) ->
-                val typeTotal = group.sumOf { it.balance }.toFloat()
-                val colour    = safeParseColour(group.first().colour, "#4ADE80")
-                typeTotal to colour
+            .map { account ->
+                account.balance.toFloat() to safeParseColour(account.colour, "#4ADE80")
             }
-        if (segments.isNotEmpty()) donutChart.setSegments(segments)
+
+        // Always push to the chart (empty list = grey placeholder ring)
+        donutChart.setSegments(segments)
     }
 
-    //  Helpers
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun formatRand(amount: Double): String = "R %,.2f".format(amount)
 
