@@ -222,20 +222,22 @@ class AddTransactionActivity : AppCompatActivity() {
     }
 
     // Date picker
+    private var datePickerDialog: DatePickerDialog? = null
+
     private fun setupDatePicker() {
         val openPicker = View.OnClickListener {
             val cal = Calendar.getInstance()
-            DatePickerDialog(
-                this,
-                { _, year, month, day ->
-                    dateInput.setText(String.format("%02d/%02d/%04d", day, month + 1, year))
-                },
-                cal.get(Calendar.YEAR),
-                cal.get(Calendar.MONTH),
-                cal.get(Calendar.DAY_OF_MONTH)
-            ).show()
+            datePickerDialog = DatePickerDialog(this, { _, year, month, day ->
+                dateInput.setText(String.format("%02d/%02d/%04d", day, month + 1, year))
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
+            datePickerDialog?.show()
         }
         dateInput.setOnClickListener(openPicker)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        datePickerDialog?.dismiss()
     }
 
     // Navigation

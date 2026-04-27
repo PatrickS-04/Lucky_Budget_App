@@ -8,6 +8,8 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -63,11 +65,29 @@ class AnalyticsActivity : BaseActivity() {
     private lateinit var legendSavedValue: TextView
 
     private val dbDateFmt = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    private var cachedCategories: List<Category> = emptyList()
 
     // Track last-seen income/expense so balance can be recomputed from either observer
     private var lastIncome: Double = 0.0
     private var lastExpenses: Double = 0.0
+
+    // Cached data — both must be present before adapters are updated
+    private var cachedCategories: List<Category> = emptyList()
+    private var cachedTotals: Map<Int, Double> = emptyMap()
+
+    // Swappable LiveData observers — removed and re-added on every period change
+    // so we never accumulate duplicate observers
+    private var incomeLiveData: LiveData<Double>? = null
+    private var expensesLiveData: LiveData<Double>? = null
+    private val incomeObserver = Observer<Double> { income ->
+        lastIncome = income ?: 0.0
+        totalIncomeView.text = "R ${ "%,.2f".format(lastIncome) }"
+        updateHeroBalance()
+    }
+    private val expensesObserver = Observer<Double> { expenses ->
+        lastExpenses = kotlin.math.abs(expenses ?: 0.0)
+        totalExpensesView.text = "R ${ "%,.2f".format(lastExpenses) }"
+        updateHeroBalance()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -279,7 +299,12 @@ class AnalyticsActivity : BaseActivity() {
 
     // -- Data loading & observation
 
-    /** Central method: re-triggers all data loads whenever the period changes. */
+    /**
+     * Central method: re-triggers all data loads whenever the period changes.
+     *
+     * FIX: Income/Expense LiveData observers are removed before being re-added so
+     * changing the period never stacks up duplicate observers that fire stale data.
+     */
     private fun reloadData() {
         val userId = SessionManager(this).getUserId()
         if (userId == -1) return
@@ -287,45 +312,48 @@ class AnalyticsActivity : BaseActivity() {
         val startStr = dbDateFmt.format(periodStart)
         val endStr   = dbDateFmt.format(periodEnd)
 
-        // Reload categories (which triggers observeCategories -> adapter update)
+        // Reload categories
         categoryViewModel.loadCategoriesForUser(userId)
 
-        // Reload entries for the period (which triggers observeEntries -> totals map)
+        // Reload entries for the period (triggers observeEntries -> totals map)
         expenseViewModel.loadEntriesForPeriod(userId, startStr, endStr)
 
         // Reload per-account spending totals
         expenseViewModel.loadExpensesByAccount(userId, startStr, endStr)
 
-        // Hero income / expense totals via LiveData
-        expenseViewModel.getIncomeLive(userId, startStr, endStr).observe(this) { income ->
-            lastIncome = income ?: 0.0
-            totalIncomeView.text = "R ${ "%,.2f".format(lastIncome) }"
-            updateHeroBalance()
-        }
+        // Remove stale income/expense observers before attaching new period-scoped ones
+        incomeLiveData?.removeObserver(incomeObserver)
+        expensesLiveData?.removeObserver(expensesObserver)
 
-        expenseViewModel.getExpensesLive(userId, startStr, endStr).observe(this) { expenses ->
-            lastExpenses = kotlin.math.abs(expenses ?: 0.0)
-            totalExpensesView.text = "R ${ "%,.2f".format(lastExpenses) }"
-            updateHeroBalance()
+        incomeLiveData = expenseViewModel.getIncomeLive(userId, startStr, endStr).also {
+            it.observe(this, incomeObserver)
         }
-    }
-
-    /** Observes the category list. When it changes, refresh the tile adapter. */
-    private fun observeCategories() {
-        categoryViewModel.categories.observe(this) { categories ->
-            cachedCategories = categories ?: emptyList()
-            // Pass empty totals initially; observeEntries() will supply real totals
-            tileAdapter.submitCategories(cachedCategories, emptyMap())
+        expensesLiveData = expenseViewModel.getExpensesLive(userId, startStr, endStr).also {
+            it.observe(this, expensesObserver)
         }
     }
 
     /**
-     * Observes entries loaded by [reloadData]. Computes per-category totals
-     * (expenses only, as positive values) and pushes them to both adapters.
+     * Permanent observer on the category list.
+     * Caches the list and delegates to [pushAdapterUpdates] so both adapters always
+     * receive the latest categories + latest totals together.
+     */
+    private fun observeCategories() {
+        categoryViewModel.categories.observe(this) { categories ->
+            cachedCategories = categories ?: emptyList()
+            pushAdapterUpdates()
+        }
+    }
+
+    /**
+     * Permanent observer on the entries MutableLiveData.
+     * Computes per-category expense totals, caches them, then delegates to
+     * [pushAdapterUpdates] — eliminating the race condition where cachedCategories
+     * was still empty when entries arrived first.
      */
     private fun observeEntries() {
         expenseViewModel.entries.observe(this) { entries ->
-            val totals: Map<Int, Double> = if (entries.isNullOrEmpty()) {
+            cachedTotals = if (entries.isNullOrEmpty()) {
                 emptyMap()
             } else {
                 entries
@@ -333,9 +361,31 @@ class AnalyticsActivity : BaseActivity() {
                     .groupBy { it.categoryId }
                     .mapValues { (_, list) -> list.sumOf { kotlin.math.abs(it.amount) } }
             }
-            tileAdapter.submitCategories(cachedCategories, totals)
-            spendingAdapter.submitData(cachedCategories, totals)
+            pushAdapterUpdates()
         }
+    }
+
+    /**
+     * Single point of truth for updating both category adapters.
+     *
+     * Always uses [cachedCategories] + [cachedTotals] so adapter updates are
+     * correct regardless of which observer fires first.
+     *
+     * Budget Category tiles  — all categories (EXPENSE + INCOME + BOTH).
+     * Spending Breakdown rows — EXPENSE/BOTH categories only; if none have
+     *   recorded spending yet, show all expense categories with zero amounts
+     *   so the list is never empty.
+     */
+    private fun pushAdapterUpdates() {
+        // Budget Categories grid — show every category the user has
+        tileAdapter.submitCategories(cachedCategories, cachedTotals)
+
+        // Spending Breakdown — filter out pure income categories (e.g. Salary)
+        val expenseCategories = cachedCategories.filter { it.type != "INCOME" }
+        val withSpend = expenseCategories.filter { (cachedTotals[it.id] ?: 0.0) > 0.0 }
+        // Show categories with actual spend; fall back to all expense categories if none
+        val breakdownList = withSpend.ifEmpty { expenseCategories }
+        spendingAdapter.submitData(breakdownList, cachedTotals)
     }
 
     /**
@@ -358,7 +408,6 @@ class AnalyticsActivity : BaseActivity() {
         val saved = (lastIncome - lastExpenses).coerceAtLeast(0.0)
         heroBalance.text = "R ${ "%,.2f".format(saved) }"
 
-        // Update legend values next to donut chart
         legendIncomeValue.text   = "R ${ "%,.2f".format(lastIncome) }"
         legendExpensesValue.text = "R ${ "%,.2f".format(lastExpenses) }"
         legendSavedValue.text    = "R ${ "%,.2f".format(saved) }"
@@ -368,9 +417,8 @@ class AnalyticsActivity : BaseActivity() {
             val expPct   = (lastExpenses / lastIncome * 100).coerceIn(0.0, 100.0)
             heroChangeBadge.text = "Saved ${"%.1f".format(savedPct)}% of income"
 
-            // Update donut chart with real data using DonutChartView's actual API
-            val savedColor  = Color.parseColor("#2EC4B6")
-            val expColor    = Color.parseColor("#2A1A1A")
+            val savedColor = Color.parseColor("#2EC4B6")
+            val expColor   = Color.parseColor("#2A1A1A")
             summaryPieChart.setSegments(listOf(
                 Pair(savedPct.toFloat(), savedColor),
                 Pair(expPct.toFloat(), expColor)
