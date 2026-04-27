@@ -51,7 +51,7 @@ class DashSavingsAdapter :
             val (barHex, labelHex, labelText) = when {
                 pct >= 90 -> Triple("#22C55E", "#22C55E", "$pct% — almost there! 🔥")
                 pct >= 50 -> Triple("#4ADE80", "#4ADE80", "$pct% reached")
-                else      -> Triple("#60A5FA", "#60A5FA", "$pct% • R %,.0f to go".format(toGo))
+                else -> Triple("#60A5FA", "#60A5FA", "$pct% • R ${"%.0f".format(toGo)} to go")
             }
             progressBar.progressTintList = ColorStateList.valueOf(Color.parseColor(barHex))
             percent.text = labelText

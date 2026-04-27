@@ -7,6 +7,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pulserds_prog7313.R
@@ -19,6 +20,7 @@ import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.launch
 
 class ManageCategoriesActivity : AppCompatActivity() {
 
@@ -46,9 +48,11 @@ class ManageCategoriesActivity : AppCompatActivity() {
         }
         categoryViewModel = ViewModelProvider(this, factory)[CategoryViewModel::class.java]
 
-        // Seed default categories for this user if not yet done
+        // FIX: seedDefaultCategories is now suspend — must be called inside a coroutine.
         if (loggedInUserId != -1) {
-            categoryViewModel.seedDefaultCategories(loggedInUserId)
+            lifecycleScope.launch {
+                categoryViewModel.seedDefaultCategories(loggedInUserId)
+            }
         }
 
         setupRecyclerViews()
@@ -92,9 +96,9 @@ class ManageCategoriesActivity : AppCompatActivity() {
     }
 
     private fun setupAddButton() {
-        val nameInput   = findViewById<TextInputEditText>(R.id.categoryNameInput)
-        val typeGroup   = findViewById<RadioGroup>(R.id.categoryTypeGroup)
-        val addBtn      = findViewById<MaterialButton>(R.id.addCategoryBtn)
+        val nameInput = findViewById<TextInputEditText>(R.id.categoryNameInput)
+        val typeGroup = findViewById<RadioGroup>(R.id.categoryTypeGroup)
+        val addBtn    = findViewById<MaterialButton>(R.id.addCategoryBtn)
 
         addBtn.setOnClickListener {
             val name = nameInput.text.toString().trim()
@@ -110,9 +114,9 @@ class ManageCategoriesActivity : AppCompatActivity() {
             }
 
             val type = when (typeGroup.checkedRadioButtonId) {
-                R.id.radioIncome  -> "INCOME"
-                R.id.radioBoth    -> "BOTH"
-                else              -> "EXPENSE"
+                R.id.radioIncome -> "INCOME"
+                R.id.radioBoth   -> "BOTH"
+                else             -> "EXPENSE"
             }
 
             val newCategory = Category(

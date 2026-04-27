@@ -198,9 +198,9 @@ class SavingsGoalsActivity : BaseActivity() {
         card.findViewById<TextView>(R.id.goalCardIcon).text     = goal.icon
         card.findViewById<TextView>(R.id.goalCardName).text     = goal.name
         card.findViewById<TextView>(R.id.goalCardDate).text     = if (goal.targetDate.isNotBlank()) "Target: ${goal.targetDate}" else "No target date"
-        card.findViewById<TextView>(R.id.goalCardSaved).text    = "R %,.2f saved".format(goal.savedAmount)
+        card.findViewById<TextView>(R.id.goalCardSaved).text = "R ${"%.2f".format(goal.savedAmount)} saved"
         card.findViewById<TextView>(R.id.goalCardProgress).also {
-            it.text = "$pct%  •  R %,.2f to go".format(abs(left))
+            it.text = "$pct%  •  R ${"%.2f".format(abs(left))} to go"
             it.setTextColor(tintColor)
         }
 
