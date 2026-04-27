@@ -20,6 +20,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.AppDatabase
 import com.example.pulserds_prog7313.data.BankAccount
@@ -79,7 +80,7 @@ class AddTransactionActivity : AppCompatActivity() {
         else Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show()
     }
 
-    //  Lifecycle
+    // Lifecycle
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -108,7 +109,13 @@ class AddTransactionActivity : AppCompatActivity() {
             }
         }
         categoryViewModel = ViewModelProvider(this, catFactory)[CategoryViewModel::class.java]
-        categoryViewModel.seedDefaultCategories(loggedInUserId)
+
+        // FIX: seedDefaultCategories is suspend — must be called inside a coroutine
+        if (loggedInUserId != -1) {
+            lifecycleScope.launch {
+                categoryViewModel.seedDefaultCategories(loggedInUserId)
+            }
+        }
 
         // Receipt buttons
         findViewById<View>(R.id.receiptEmptyState).setOnClickListener { openPhoneGallery() }
@@ -135,7 +142,12 @@ class AddTransactionActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        categoryViewModel.seedDefaultCategories(loggedInUserId)
+        // FIX: seedDefaultCategories is suspend — must be called inside a coroutine
+        if (loggedInUserId != -1) {
+            lifecycleScope.launch {
+                categoryViewModel.seedDefaultCategories(loggedInUserId)
+            }
+        }
     }
 
     private fun initViews() {
@@ -149,7 +161,7 @@ class AddTransactionActivity : AppCompatActivity() {
         incomeToggle     = findViewById(R.id.incomeToggle)
     }
 
-    //  Toggle Expense / Income
+    // Toggle Expense / Income
     private fun setupToggle() {
         updateToggleUI()
         expenseToggle.setOnClickListener { isExpense = true; updateToggleUI(); refreshCategoryDropdown() }
@@ -161,7 +173,7 @@ class AddTransactionActivity : AppCompatActivity() {
         incomeToggle.alpha  = if (isExpense) 0.45f else 1f
     }
 
-    //  Category dropdown
+    // Category dropdown
     private fun setupCategoryDropdown() {
         categoryViewModel.getCategoriesLive(loggedInUserId).observe(this) { all ->
             categoriesList = all
@@ -188,7 +200,7 @@ class AddTransactionActivity : AppCompatActivity() {
         selectedCategoryId = null
     }
 
-    //  Account dropdown
+    // Account dropdown
     private fun setupAccountDropdown() {
         bankAccountViewModel.accounts.observe(this) { accounts ->
             accountsList = accounts
@@ -209,7 +221,7 @@ class AddTransactionActivity : AppCompatActivity() {
         accountDropdown.setOnClickListener { accountDropdown.showDropDown() }
     }
 
-    //  Date picker
+    // Date picker
     private fun setupDatePicker() {
         val openPicker = View.OnClickListener {
             val cal = Calendar.getInstance()
@@ -226,7 +238,7 @@ class AddTransactionActivity : AppCompatActivity() {
         dateInput.setOnClickListener(openPicker)
     }
 
-    //  Navigation
+    // Navigation
     private fun setupNavigation() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
         findViewById<TextView>(R.id.manageCategoriesLink)?.setOnClickListener {
@@ -241,7 +253,7 @@ class AddTransactionActivity : AppCompatActivity() {
         findViewById<View>(R.id.cancelButton).setOnClickListener { finish() }
     }
 
-    //  Receipt helpers
+    // Receipt helpers
     private fun openPhoneGallery()       { galleryLauncher.launch("image/*") }
     private fun openPhoneFilesExplorer() { fileLauncher.launch("*/*") }
 
@@ -283,15 +295,15 @@ class AddTransactionActivity : AppCompatActivity() {
         contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L
 
     private fun showAttachedReceiptState(uri: Uri, mimeType: String?, size: Long) {
-        findViewById<View>(R.id.receiptEmptyState).visibility     = View.GONE
-        findViewById<View>(R.id.receiptAttachedState).visibility  = View.VISIBLE
-        findViewById<TextView>(R.id.receiptFileName).text         = getFileName(uri)
+        findViewById<View>(R.id.receiptEmptyState).visibility    = View.GONE
+        findViewById<View>(R.id.receiptAttachedState).visibility = View.VISIBLE
+        findViewById<TextView>(R.id.receiptFileName).text        = getFileName(uri)
         val sizeStr = formatSizeOfFile(size)
         val typeStr = if (mimeType == "application/pdf") "PDF" else "JPG"
         findViewById<TextView>(R.id.receiptFileSize).text = "$sizeStr $typeStr"
 
-        val thumbnail   = findViewById<ImageView>(R.id.receiptThumbnail)
-        val pdfIcon     = findViewById<TextView>(R.id.receiptPdfIcon)
+        val thumbnail = findViewById<ImageView>(R.id.receiptThumbnail)
+        val pdfIcon   = findViewById<TextView>(R.id.receiptPdfIcon)
         if (mimeType == "application/pdf") {
             thumbnail.visibility = View.GONE
             pdfIcon.visibility   = View.VISIBLE
@@ -330,7 +342,7 @@ class AddTransactionActivity : AppCompatActivity() {
         findViewById<View>(R.id.receiptAttachedState).visibility = View.GONE
     }
 
-    // - Save transaction - updates account balance atomically
+    // Save transaction
     private fun saveTransaction() {
         val amountStr   = amountInput.text.toString().trim()
         val description = merchantInput.text.toString().trim()
@@ -348,7 +360,6 @@ class AddTransactionActivity : AppCompatActivity() {
         if (selectedCategoryId == null) { categoryDropdown.error = "Please select a category"; categoryDropdown.requestFocus(); return }
         if (loggedInUserId == -1) { Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show(); return }
 
-        // Positive for income, negative for expense
         val finalAmount = if (isExpense) -abs(rawAmount) else abs(rawAmount)
 
         val fullDescription = buildString {
@@ -372,9 +383,7 @@ class AddTransactionActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             val db = AppDatabase.getDatabase(applicationContext)
-            // 1. Insert transaction entry
             db.expenseEntryDao().insert(entry)
-            // 2. Atomically adjust the selected account's balance
             db.bankAccountDao().adjustBalance(accountId, finalAmount)
         }
 

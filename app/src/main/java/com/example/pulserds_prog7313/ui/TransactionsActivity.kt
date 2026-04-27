@@ -34,6 +34,8 @@ import com.google.android.material.textfield.TextInputEditText
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 /**
  * Fully functional Transactions screen:
@@ -148,7 +150,12 @@ class TransactionsActivity : BaseActivity() {
             this,
             ViewModelFactory { CategoryViewModel(CategoryRepository(db.categoryDao())) }
         )[CategoryViewModel::class.java]
-        categoryViewModel.seedDefaultCategories(userId)
+
+        if (userId != -1) {
+            lifecycleScope.launch {
+                categoryViewModel.seedDefaultCategories(userId)
+            }
+        }
 
         // Observe accounts
         bankViewModel.accounts.observe(this) { accounts ->

@@ -37,12 +37,12 @@ class SavingsGoalsActivity : BaseActivity() {
     private lateinit var statThisMonth      : TextView
 
     // Goal containers
-    private lateinit var activeGoalsLabel   : TextView
+    private lateinit var activeGoalsLabel    : TextView
     private lateinit var activeGoalsContainer: LinearLayout
-    private lateinit var emptyActiveText    : TextView
-    private lateinit var completedLabel     : TextView
-    private lateinit var completedContainer : LinearLayout
-    private lateinit var emptyCompletedText : TextView
+    private lateinit var emptyActiveText     : TextView
+    private lateinit var completedLabel      : TextView
+    private lateinit var completedContainer  : LinearLayout
+    private lateinit var emptyCompletedText  : TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +64,9 @@ class SavingsGoalsActivity : BaseActivity() {
         bindViews()
         setupButtons()
         observeData()
-        setupBottomNav(R.id.navSettings) // no dedicated nav for savings; keep Settings highlighted
+        // FIX: observe saveResult ONCE here at activity level, not inside showAddFundsDialog
+        observeSaveResult()
+        setupBottomNav(R.id.navSettings)
     }
 
     override fun onResume() {
@@ -72,24 +74,26 @@ class SavingsGoalsActivity : BaseActivity() {
         vm.refreshTotals(userId)
     }
 
-    // Bind
+    // ── Bind ──────────────────────────────────────────────────────────────────
+
     private fun bindViews() {
-        overallAmount      = findViewById(R.id.overallAmount)
-        overallTarget      = findViewById(R.id.overallTarget)
-        overallProgressBar = findViewById(R.id.overallProgressBar)
-        overallPercent     = findViewById(R.id.overallPercent)
-        statActive         = findViewById(R.id.statActive)
-        statCompleted      = findViewById(R.id.statCompleted)
-        statThisMonth      = findViewById(R.id.statThisMonth)
-        activeGoalsLabel   = findViewById(R.id.activeGoalsLabel)
-        activeGoalsContainer= findViewById(R.id.activeGoalsContainer)
-        emptyActiveText    = findViewById(R.id.emptyActiveText)
-        completedLabel     = findViewById(R.id.completedLabel)
-        completedContainer = findViewById(R.id.completedContainer)
-        emptyCompletedText = findViewById(R.id.emptyCompletedText)
+        overallAmount       = findViewById(R.id.overallAmount)
+        overallTarget       = findViewById(R.id.overallTarget)
+        overallProgressBar  = findViewById(R.id.overallProgressBar)
+        overallPercent      = findViewById(R.id.overallPercent)
+        statActive          = findViewById(R.id.statActive)
+        statCompleted       = findViewById(R.id.statCompleted)
+        statThisMonth       = findViewById(R.id.statThisMonth)
+        activeGoalsLabel    = findViewById(R.id.activeGoalsLabel)
+        activeGoalsContainer = findViewById(R.id.activeGoalsContainer)
+        emptyActiveText     = findViewById(R.id.emptyActiveText)
+        completedLabel      = findViewById(R.id.completedLabel)
+        completedContainer  = findViewById(R.id.completedContainer)
+        emptyCompletedText  = findViewById(R.id.emptyCompletedText)
     }
 
-    // Buttons
+    // ── Buttons ───────────────────────────────────────────────────────────────
+
     private fun setupButtons() {
         val toCreate = View.OnClickListener {
             startActivity(Intent(this, CreateSavingsGoalActivity::class.java))
@@ -99,7 +103,8 @@ class SavingsGoalsActivity : BaseActivity() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
     }
 
-    // Observe
+    // ── Observe ───────────────────────────────────────────────────────────────
+
     private fun observeData() {
         vm.getAllGoalsLive(userId).observe(this) { goals ->
             renderGoals(goals ?: emptyList())
@@ -120,7 +125,26 @@ class SavingsGoalsActivity : BaseActivity() {
         vm.refreshTotals(userId)
     }
 
-    // Render goals
+    /**
+     * FIX: saveResult is observed exactly ONCE at activity level.
+     * Previously it was re-observed inside showAddFundsDialog(), which stacked
+     * a new observer on every tap — causing multiple toasts, ANR-level event
+     * flooding, and unpredictable navigation side-effects.
+     */
+    private fun observeSaveResult() {
+        vm.saveResult.observe(this) { result ->
+            when (result) {
+                is SavingsGoalViewModel.GoalResult.FundsAdded ->
+                    Toast.makeText(this, "Funds added! 💰", Toast.LENGTH_SHORT).show()
+                is SavingsGoalViewModel.GoalResult.Error ->
+                    Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()
+                else -> { /* Success belongs to CreateSavingsGoalActivity — SingleLiveEvent ensures it won't reach here */ }
+            }
+        }
+    }
+
+    // ── Render goals ──────────────────────────────────────────────────────────
+
     private fun renderGoals(goals: List<SavingsGoal>) {
         val active    = goals.filter { !it.isCompleted }
         val completed = goals.filter { it.isCompleted }
@@ -129,9 +153,14 @@ class SavingsGoalsActivity : BaseActivity() {
         statActive.text    = active.size.toString()
         statCompleted.text = completed.size.toString()
 
-        // This-month total added (approximation: sum of savedAmount for goals created this month)
+        // This-month total: sum of savedAmount for goals created this calendar month
         val cal = java.util.Calendar.getInstance()
-        val thisMonthMs = cal.apply { set(java.util.Calendar.DAY_OF_MONTH, 1) }.timeInMillis
+        cal.set(java.util.Calendar.DAY_OF_MONTH, 1)
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        cal.set(java.util.Calendar.MINUTE, 0)
+        cal.set(java.util.Calendar.SECOND, 0)
+        cal.set(java.util.Calendar.MILLISECOND, 0)
+        val thisMonthMs = cal.timeInMillis
         val thisMonthSaved = active.filter { it.createdAt >= thisMonthMs }.sumOf { it.savedAmount }
         statThisMonth.text = "R %,.0f".format(thisMonthSaved)
 
@@ -151,42 +180,43 @@ class SavingsGoalsActivity : BaseActivity() {
         completed.forEach { goal -> completedContainer.addView(buildCompletedCard(goal)) }
     }
 
-    // Active goal card
+    // ── Active goal card ──────────────────────────────────────────────────────
+
     private fun buildGoalCard(goal: SavingsGoal): View {
         val card = LayoutInflater.from(this).inflate(R.layout.item_savings_goal, null, false)
 
         val pct  = if (goal.targetAmount > 0) ((goal.savedAmount / goal.targetAmount) * 100).roundToInt().coerceIn(0, 100) else 0
         val left = goal.targetAmount - goal.savedAmount
 
-        // Determine tint colour by percentage
         val tintHex = when {
-            pct >= 75 -> "#FBBF24"   // golden — almost there
-            pct >= 40 -> "#60A5FA"   // blue — progressing
-            else       -> "#4ADE80"  // green — just starting
+            pct >= 75 -> "#FBBF24"
+            pct >= 40 -> "#60A5FA"
+            else       -> "#4ADE80"
         }
         val tintColor = Color.parseColor(tintHex)
 
-        card.findViewById<TextView>(R.id.goalCardIcon).text       = goal.icon
-        card.findViewById<TextView>(R.id.goalCardName).text       = goal.name
-        card.findViewById<TextView>(R.id.goalCardDate).text       = if (goal.targetDate.isNotBlank()) "Target: ${goal.targetDate}" else "No target date"
-        card.findViewById<TextView>(R.id.goalCardSaved).text      = "R %,.2f saved".format(goal.savedAmount)
-        card.findViewById<TextView>(R.id.goalCardProgress).text   = "$pct%  •  R %,.2f to go".format(abs(left))
-        card.findViewById<TextView>(R.id.goalCardProgress).setTextColor(tintColor)
+        card.findViewById<TextView>(R.id.goalCardIcon).text     = goal.icon
+        card.findViewById<TextView>(R.id.goalCardName).text     = goal.name
+        card.findViewById<TextView>(R.id.goalCardDate).text     = if (goal.targetDate.isNotBlank()) "Target: ${goal.targetDate}" else "No target date"
+        card.findViewById<TextView>(R.id.goalCardSaved).text = "R ${"%.2f".format(goal.savedAmount)} saved"
+        card.findViewById<TextView>(R.id.goalCardProgress).also {
+            it.text = "$pct%  •  R ${"%.2f".format(abs(left))} to go"
+            it.setTextColor(tintColor)
+        }
 
-        // Almost-there badge
-        val badge = card.findViewById<View>(R.id.almostThereBadge)
-        badge.visibility = if (pct >= 80 && !goal.isCompleted) View.VISIBLE else View.GONE
+        card.findViewById<View>(R.id.almostThereBadge).visibility =
+            if (pct >= 80 && !goal.isCompleted) View.VISIBLE else View.GONE
 
-        val progressBar = card.findViewById<ProgressBar>(R.id.goalCardProgressBar)
-        progressBar.progress = pct
-        progressBar.progressTintList = android.content.res.ColorStateList.valueOf(tintColor)
+        card.findViewById<ProgressBar>(R.id.goalCardProgressBar).also {
+            it.progress = pct
+            it.progressTintList = android.content.res.ColorStateList.valueOf(tintColor)
+        }
 
-        // Add Funds button
-        val addFundsBtn = card.findViewById<MaterialButton>(R.id.goalCardAddFunds)
-        addFundsBtn.backgroundTintList = android.content.res.ColorStateList.valueOf(tintColor)
-        addFundsBtn.setOnClickListener { showAddFundsDialog(goal) }
+        card.findViewById<MaterialButton>(R.id.goalCardAddFunds).also {
+            it.backgroundTintList = android.content.res.ColorStateList.valueOf(tintColor)
+            it.setOnClickListener { showAddFundsDialog(goal) }
+        }
 
-        // Menu button (delete)
         card.findViewById<TextView>(R.id.goalCardMenu).setOnClickListener {
             showGoalMenu(goal, card)
         }
@@ -194,12 +224,13 @@ class SavingsGoalsActivity : BaseActivity() {
         return card
     }
 
-    // Completed goal card
+    // ── Completed goal card ───────────────────────────────────────────────────
+
     private fun buildCompletedCard(goal: SavingsGoal): View {
         val card = LayoutInflater.from(this).inflate(R.layout.item_savings_goal_completed, null, false)
 
-        card.findViewById<TextView>(R.id.completedGoalIcon).text  = goal.icon
-        card.findViewById<TextView>(R.id.completedGoalName).text  = goal.name
+        card.findViewById<TextView>(R.id.completedGoalIcon).text = goal.icon
+        card.findViewById<TextView>(R.id.completedGoalName).text = goal.name
         val subtitle = buildString {
             append("Completed")
             if (goal.completedDate.isNotBlank()) append(" ${goal.completedDate}")
@@ -214,7 +245,13 @@ class SavingsGoalsActivity : BaseActivity() {
         return card
     }
 
-    // Add funds dialog
+    // ── Add funds dialog ──────────────────────────────────────────────────────
+
+    /**
+     * FIX: removed vm.saveResult.observe() from inside this method.
+     * The observer now lives in observeSaveResult() which is called once in onCreate().
+     * This prevents observer accumulation on every dialog open.
+     */
     private fun showAddFundsDialog(goal: SavingsGoal) {
         val remaining = goal.targetAmount - goal.savedAmount
         val editText = EditText(this).apply {
@@ -230,23 +267,18 @@ class SavingsGoalsActivity : BaseActivity() {
             .setView(editText)
             .setPositiveButton("Add") { _, _ ->
                 val amount = editText.text.toString().toDoubleOrNull() ?: 0.0
+                if (amount <= 0) {
+                    Toast.makeText(this, "Please enter a valid amount.", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
                 vm.addFunds(goal.id, amount.coerceAtMost(remaining), userId)
             }
             .setNegativeButton("Cancel", null)
             .show()
-
-        vm.saveResult.observe(this) { result ->
-            when (result) {
-                is SavingsGoalViewModel.GoalResult.FundsAdded ->
-                    Toast.makeText(this, "Funds added! 💰", Toast.LENGTH_SHORT).show()
-                is SavingsGoalViewModel.GoalResult.Error ->
-                    Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()
-                else -> {}
-            }
-        }
     }
 
-    // Goal menu
+    // ── Goal menu ─────────────────────────────────────────────────────────────
+
     private fun showGoalMenu(goal: SavingsGoal, anchor: View) {
         val popup = PopupMenu(this, anchor)
         popup.menu.add(0, 1, 0, "Delete Goal")

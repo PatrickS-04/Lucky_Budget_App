@@ -370,7 +370,7 @@
                         android:id="@+id/goalNameEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
+
                         android:hint="e.g. Emergency Fund, Vacation..."
                         android:inputType="textCapSentences"
                         android:maxLength="40"
@@ -414,7 +414,7 @@
                         android:id="@+id/targetAmountEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
+
                         android:hint="0.00"
                         android:inputType="numberDecimal"
                         android:paddingTop="14dp"
@@ -457,7 +457,7 @@
                         android:id="@+id/initialDepositEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
+
                         android:hint="0.00"
                         android:inputType="numberDecimal"
                         android:paddingTop="14dp"
@@ -501,7 +501,7 @@
                         android:id="@+id/targetDateEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
+
                         android:clickable="true"
                         android:focusable="false"
                         android:hint="DD / MM / YYYY"
@@ -544,7 +544,7 @@
                         android:id="@+id/linkedAccountDropdown"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
+
                         android:hint="Select account..."
                         android:inputType="none"
                         android:paddingTop="14dp"

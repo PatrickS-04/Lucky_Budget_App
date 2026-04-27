@@ -68,7 +68,6 @@ class CreateAccActivity : AppCompatActivity() {
             insets
         }
 
-        // Set up ViewModel
         val db = AppDatabase.getDatabase(applicationContext)
         val repository = UserRepository(db.userDao())
         userViewModel = ViewModelProvider(this, ViewModelFactory { UserViewModel(repository) })
@@ -151,14 +150,28 @@ class CreateAccActivity : AppCompatActivity() {
                         return@launch
                     }
 
+                    // Insert the new user and wait for it to complete
                     val newUser = User(fullName = fullName, email = email, passwordHash = hash)
                     userViewModel.register(newUser)
 
-                    // Fetch the newly inserted user to get its generated ID
+                    // FIX: fetch the saved user AFTER register() has fully completed.
+                    // Because register() is a suspend function, the DB insert is
+                    // guaranteed to be done before this line runs, so getUserByEmail
+                    // will always find the row and return a valid userId — preventing
+                    // the FOREIGN KEY crash when DashBoardActivity seeds categories.
                     val savedUser = userViewModel.getUserByEmail(email)
-                    if (savedUser != null) {
-                        sessionManager.saveSession(savedUser.id, savedUser.fullName, savedUser.email)
+                    if (savedUser == null) {
+                        Toast.makeText(
+                            this@CreateAccActivity,
+                            "Registration failed. Please try again.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@launch
                     }
+
+                    // Session is fully saved before we navigate, so DashBoardActivity
+                    // reads a valid userId the moment it calls seedDefaultCategories()
+                    sessionManager.saveSession(savedUser.id, savedUser.fullName, savedUser.email)
 
                     Toast.makeText(
                         this@CreateAccActivity,

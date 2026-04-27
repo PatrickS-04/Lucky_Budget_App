@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pulserds_prog7313.data.SavingsGoal
 import com.example.pulserds_prog7313.repository.SavingsGoalRepository
+import com.example.pulserds_prog7313.utils.SingleLiveEvent
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -24,16 +25,20 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
     private val _totalTarget = MutableLiveData(0.0)
     val totalTarget: LiveData<Double> get() = _totalTarget
 
-    private val _saveResult = MutableLiveData<GoalResult>()
+    // SingleLiveEvent: each posted value is delivered exactly once to one observer.
+    // Eliminates stale-result replays that caused instant finish() on screen open.
+    private val _saveResult = SingleLiveEvent<GoalResult>()
     val saveResult: LiveData<GoalResult> get() = _saveResult
+
+    fun consumeResult() { /* no-op — SingleLiveEvent self-consumes */ }
 
     fun getAllGoalsLive(userId: Int): LiveData<List<SavingsGoal>> =
         repo.getAllGoalsLive(userId)
 
     fun refreshTotals(userId: Int) {
         viewModelScope.launch {
-            _totalSaved.value  = repo.getTotalSaved(userId)
-            _totalTarget.value = repo.getTotalTarget(userId)
+            _totalSaved.postValue(repo.getTotalSaved(userId))
+            _totalTarget.postValue(repo.getTotalTarget(userId))
         }
     }
 
@@ -49,12 +54,28 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
         autoSaveAmount : Double,
         autoSaveFreq   : String
     ) {
+        // Validation runs on main thread — use setValue() directly as a method call
         when {
-            name.isBlank()      -> { _saveResult.value = GoalResult.Error("Please enter a goal name."); return }
-            targetAmount <= 0   -> { _saveResult.value = GoalResult.Error("Target amount must be greater than R 0."); return }
-            initialDeposit < 0  -> { _saveResult.value = GoalResult.Error("Initial deposit cannot be negative."); return }
-            initialDeposit > targetAmount -> { _saveResult.value = GoalResult.Error("Initial deposit cannot exceed the target amount."); return }
-            autoSaveEnabled && autoSaveAmount <= 0 -> { _saveResult.value = GoalResult.Error("Please enter an auto-save amount."); return }
+            name.isBlank() -> {
+                _saveResult.setValue(GoalResult.Error("Please enter a goal name."))
+                return
+            }
+            targetAmount <= 0 -> {
+                _saveResult.setValue(GoalResult.Error("Target amount must be greater than R 0."))
+                return
+            }
+            initialDeposit < 0 -> {
+                _saveResult.setValue(GoalResult.Error("Initial deposit cannot be negative."))
+                return
+            }
+            initialDeposit > targetAmount -> {
+                _saveResult.setValue(GoalResult.Error("Initial deposit cannot exceed the target amount."))
+                return
+            }
+            autoSaveEnabled && autoSaveAmount <= 0 -> {
+                _saveResult.setValue(GoalResult.Error("Please enter an auto-save amount."))
+                return
+            }
         }
 
         val now       = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date())
@@ -75,24 +96,28 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
             completedDate     = if (completed) now else ""
         )
 
+        // DB insert runs on a background thread — use postValue()
         viewModelScope.launch {
             val id = repo.insert(goal)
             if (id > 0) {
                 refreshTotals(userId)
-                _saveResult.value = GoalResult.Success
+                _saveResult.postValue(GoalResult.Success)
             } else {
-                _saveResult.value = GoalResult.Error("Could not save goal. Please try again.")
+                _saveResult.postValue(GoalResult.Error("Could not save goal. Please try again."))
             }
         }
     }
 
     fun addFunds(goalId: Int, amount: Double, userId: Int) {
-        if (amount <= 0) { _saveResult.value = GoalResult.Error("Please enter a valid amount."); return }
+        if (amount <= 0) {
+            _saveResult.setValue(GoalResult.Error("Please enter a valid amount."))
+            return
+        }
         val completedDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date())
         viewModelScope.launch {
             repo.addFunds(goalId, amount, completedDate)
             refreshTotals(userId)
-            _saveResult.value = GoalResult.FundsAdded
+            _saveResult.postValue(GoalResult.FundsAdded)
         }
     }
 
