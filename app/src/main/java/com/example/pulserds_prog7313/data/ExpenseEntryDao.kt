@@ -44,4 +44,11 @@ interface ExpenseEntryDao {
     /** LiveData entries filtered by date range */
     @Query("SELECT * FROM expense_entries WHERE userId = :userId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC, id DESC")
     fun getEntriesForPeriodLive(userId: Int, startDate: String, endDate: String): LiveData<List<ExpenseEntry>>
+
+    /** Sum of expenses (negative amounts) grouped by bankAccountId for a period */
+    @Query("SELECT bankAccountId, COALESCE(SUM(amount), 0.0) as total FROM expense_entries WHERE userId = :userId AND amount < 0 AND date BETWEEN :startDate AND :endDate GROUP BY bankAccountId")
+    suspend fun getExpensesByAccount(userId: Int, startDate: String, endDate: String): List<AccountSpending>
 }
+
+/** Lightweight projection for per-account spending totals */
+data class AccountSpending(val bankAccountId: Int, val total: Double)

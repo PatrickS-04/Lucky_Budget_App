@@ -18,9 +18,11 @@ import com.example.pulserds_prog7313.data.AppDatabase
 import com.example.pulserds_prog7313.data.Category
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
+import com.example.pulserds_prog7313.ui.adapters.AccountSpendingAdapter
 import com.example.pulserds_prog7313.ui.adapters.CategoryTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.SpendingRowAdapter
 import com.example.pulserds_prog7313.utils.SessionManager
+import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
 import com.example.pulserds_prog7313.viewmodel.ExpenseEntryViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
@@ -32,8 +34,10 @@ class AnalyticsActivity : BaseActivity() {
 
     private lateinit var categoryViewModel: CategoryViewModel
     private lateinit var expenseViewModel: ExpenseEntryViewModel
+    private lateinit var bankAccountViewModel: BankAccountViewModel
     private lateinit var tileAdapter: CategoryTileAdapter
     private lateinit var spendingAdapter: SpendingRowAdapter
+    private lateinit var accountSpendingAdapter: AccountSpendingAdapter
 
     enum class Period { WEEK, MONTH, QUARTER, YEAR, CUSTOM }
     private var activePeriod = Period.MONTH
@@ -54,6 +58,9 @@ class AnalyticsActivity : BaseActivity() {
     private lateinit var totalIncomeView: TextView
     private lateinit var totalExpensesView: TextView
     private lateinit var summaryPieChart: DonutChartView
+    private lateinit var legendIncomeValue: TextView
+    private lateinit var legendExpensesValue: TextView
+    private lateinit var legendSavedValue: TextView
 
     private val dbDateFmt = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     private var cachedCategories: List<Category> = emptyList()
@@ -77,8 +84,10 @@ class AnalyticsActivity : BaseActivity() {
         setupViewModels()
         setupCategoryTilesRecycler()
         setupSpendingBreakdownRecycler()
+        setupAccountSpendingRecycler()
         observeCategories()
         observeEntries()
+        observeAccountSpending()
         setupPeriodChips()
         selectPeriod(Period.MONTH)
 
@@ -89,7 +98,7 @@ class AnalyticsActivity : BaseActivity() {
         setupBottomNav(R.id.navAnalytics)
     }
 
-    // ── View binding ──────────────────────────────────────────────────────────
+    // -- View binding
 
     private fun bindViews() {
         chipWeek     = findViewById(R.id.chipWeek)
@@ -104,9 +113,12 @@ class AnalyticsActivity : BaseActivity() {
         totalIncomeView   = findViewById(R.id.totalIncome)
         totalExpensesView = findViewById(R.id.totalExpenses)
         summaryPieChart   = findViewById(R.id.summaryPieChart)
+        legendIncomeValue   = findViewById(R.id.legendIncomeValue)
+        legendExpensesValue = findViewById(R.id.legendExpensesValue)
+        legendSavedValue    = findViewById(R.id.legendSavedValue)
     }
 
-    // ── Period chips ──────────────────────────────────────────────────────────
+    // -- Period chips
 
     private fun setupPeriodChips() {
         chipWeek.setOnClickListener    { selectPeriod(Period.WEEK) }
@@ -158,7 +170,7 @@ class AnalyticsActivity : BaseActivity() {
                 cal.add(Calendar.DAY_OF_WEEK, 6)
                 periodEnd = cal.time
                 val start = Calendar.getInstance().apply { set(Calendar.DAY_OF_WEEK, Calendar.MONDAY) }
-                periodLabel = "${shortFmt.format(start.time)} – ${shortFmt.format(periodEnd)}"
+                periodLabel = "${shortFmt.format(start.time)} - ${shortFmt.format(periodEnd)}"
             }
             Period.MONTH -> {
                 cal.set(Calendar.DAY_OF_MONTH, 1)
@@ -206,7 +218,7 @@ class AnalyticsActivity : BaseActivity() {
                 }
                 periodEnd = endCal.time
                 val fmt = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
-                periodLabel = "${fmt.format(periodStart)} – ${fmt.format(periodEnd)}"
+                periodLabel = "${fmt.format(periodStart)} - ${fmt.format(periodEnd)}"
                 activePeriod = Period.CUSTOM
                 updateChipStyles(Period.CUSTOM)
                 heroPeriodLabel.text = periodLabel
@@ -215,7 +227,7 @@ class AnalyticsActivity : BaseActivity() {
         }, today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH)).show()
     }
 
-    // ── ViewModels ────────────────────────────────────────────────────────────
+    // -- ViewModels --
 
     private fun setupViewModels() {
         val db = AppDatabase.getDatabase(applicationContext)
@@ -227,9 +239,16 @@ class AnalyticsActivity : BaseActivity() {
         expenseViewModel = ViewModelProvider(
             this, ViewModelFactory { ExpenseEntryViewModel(ExpenseEntryRepository(db.expenseEntryDao())) }
         )[ExpenseEntryViewModel::class.java]
+
+        bankAccountViewModel = ViewModelProvider(
+            this, ViewModelFactory { BankAccountViewModel(com.example.pulserds_prog7313.repository.BankAccountRepository(db.bankAccountDao())) }
+        )[BankAccountViewModel::class.java]
+
+        val userId = SessionManager(this).getUserId()
+        if (userId != -1) bankAccountViewModel.init(userId)
     }
 
-    // ── RecyclerViews ─────────────────────────────────────────────────────────
+    // -- RecyclerViews
 
     private fun setupCategoryTilesRecycler() {
         tileAdapter = CategoryTileAdapter()
@@ -249,7 +268,16 @@ class AnalyticsActivity : BaseActivity() {
         }
     }
 
-    // ── Data loading & observation ────────────────────────────────────────────
+    private fun setupAccountSpendingRecycler() {
+        accountSpendingAdapter = AccountSpendingAdapter()
+        findViewById<RecyclerView>(R.id.accountsBreakdownRecycler).apply {
+            layoutManager = LinearLayoutManager(this@AnalyticsActivity)
+            adapter = accountSpendingAdapter
+            isNestedScrollingEnabled = false
+        }
+    }
+
+    // -- Data loading & observation
 
     /** Central method: re-triggers all data loads whenever the period changes. */
     private fun reloadData() {
@@ -259,11 +287,14 @@ class AnalyticsActivity : BaseActivity() {
         val startStr = dbDateFmt.format(periodStart)
         val endStr   = dbDateFmt.format(periodEnd)
 
-        // Reload categories (which triggers observeCategories → adapter update)
+        // Reload categories (which triggers observeCategories -> adapter update)
         categoryViewModel.loadCategoriesForUser(userId)
 
-        // Reload entries for the period (which triggers observeEntries → totals map)
+        // Reload entries for the period (which triggers observeEntries -> totals map)
         expenseViewModel.loadEntriesForPeriod(userId, startStr, endStr)
+
+        // Reload per-account spending totals
+        expenseViewModel.loadExpensesByAccount(userId, startStr, endStr)
 
         // Hero income / expense totals via LiveData
         expenseViewModel.getIncomeLive(userId, startStr, endStr).observe(this) { income ->
@@ -307,10 +338,30 @@ class AnalyticsActivity : BaseActivity() {
         }
     }
 
+    /**
+     * Observes per-account spending and cross-references with the account list
+     * from [bankAccountViewModel] to populate the Spending by Account card.
+     */
+    private fun observeAccountSpending() {
+        expenseViewModel.accountSpending.observe(this) { spending ->
+            val accounts = bankAccountViewModel.accounts.value ?: emptyList()
+            accountSpendingAdapter.submitData(accounts, spending ?: emptyList())
+        }
+        bankAccountViewModel.accounts.observe(this) { accounts ->
+            val spending = expenseViewModel.accountSpending.value ?: emptyList()
+            accountSpendingAdapter.submitData(accounts ?: emptyList(), spending)
+        }
+    }
+
     /** Recalculates the hero balance card from cached income/expense values. */
     private fun updateHeroBalance() {
         val saved = (lastIncome - lastExpenses).coerceAtLeast(0.0)
         heroBalance.text = "R ${ "%,.2f".format(saved) }"
+
+        // Update legend values next to donut chart
+        legendIncomeValue.text   = "R ${ "%,.2f".format(lastIncome) }"
+        legendExpensesValue.text = "R ${ "%,.2f".format(lastExpenses) }"
+        legendSavedValue.text    = "R ${ "%,.2f".format(saved) }"
 
         if (lastIncome > 0) {
             val savedPct = (saved / lastIncome * 100).coerceIn(0.0, 100.0)
@@ -331,7 +382,7 @@ class AnalyticsActivity : BaseActivity() {
         } else {
             heroChangeBadge.text = "No income recorded this period"
             summaryPieChart.setSegments(emptyList())
-            summaryPieChart.setCenterLabel("—", "No data")
+            summaryPieChart.setCenterLabel("-", "No data")
         }
     }
 }
