@@ -40,4 +40,7 @@ class ExpenseEntryRepository(private val expenseEntryDao: ExpenseEntryDao) {
     suspend fun getTotalIncome(userId: Int): Double = expenseEntryDao.getTotalIncome(userId)
 
     suspend fun getTotalExpenses(userId: Int): Double = expenseEntryDao.getTotalExpenses(userId)
+
+    suspend fun getExpensesByAccount(userId: Int, startDate: String, endDate: String) =
+        expenseEntryDao.getExpensesByAccount(userId, startDate, endDate)
 }

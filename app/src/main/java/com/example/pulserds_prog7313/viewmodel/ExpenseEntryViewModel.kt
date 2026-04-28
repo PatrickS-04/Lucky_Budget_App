@@ -57,4 +57,13 @@ class ExpenseEntryViewModel(private val expenseEntryRepository: ExpenseEntryRepo
             _categoryTotal.value = expenseEntryRepository.getTotalForCategory(userId, categoryId, startDate, endDate)
         }
     }
+
+    private val _accountSpending = MutableLiveData<List<com.example.pulserds_prog7313.data.AccountSpending>>()
+    val accountSpending: LiveData<List<com.example.pulserds_prog7313.data.AccountSpending>> get() = _accountSpending
+
+    fun loadExpensesByAccount(userId: Int, startDate: String, endDate: String) {
+        viewModelScope.launch {
+            _accountSpending.value = expenseEntryRepository.getExpensesByAccount(userId, startDate, endDate)
+        }
+    }
 }

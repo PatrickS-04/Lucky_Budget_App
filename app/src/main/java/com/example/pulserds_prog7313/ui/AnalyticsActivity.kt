@@ -8,6 +8,8 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -18,9 +20,11 @@ import com.example.pulserds_prog7313.data.AppDatabase
 import com.example.pulserds_prog7313.data.Category
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
+import com.example.pulserds_prog7313.ui.adapters.AccountSpendingAdapter
 import com.example.pulserds_prog7313.ui.adapters.CategoryTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.SpendingRowAdapter
 import com.example.pulserds_prog7313.utils.SessionManager
+import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
 import com.example.pulserds_prog7313.viewmodel.ExpenseEntryViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
@@ -32,8 +36,10 @@ class AnalyticsActivity : BaseActivity() {
 
     private lateinit var categoryViewModel: CategoryViewModel
     private lateinit var expenseViewModel: ExpenseEntryViewModel
+    private lateinit var bankAccountViewModel: BankAccountViewModel
     private lateinit var tileAdapter: CategoryTileAdapter
     private lateinit var spendingAdapter: SpendingRowAdapter
+    private lateinit var accountSpendingAdapter: AccountSpendingAdapter
 
     enum class Period { WEEK, MONTH, QUARTER, YEAR, CUSTOM }
     private var activePeriod = Period.MONTH
@@ -54,13 +60,34 @@ class AnalyticsActivity : BaseActivity() {
     private lateinit var totalIncomeView: TextView
     private lateinit var totalExpensesView: TextView
     private lateinit var summaryPieChart: DonutChartView
+    private lateinit var legendIncomeValue: TextView
+    private lateinit var legendExpensesValue: TextView
+    private lateinit var legendSavedValue: TextView
 
     private val dbDateFmt = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    private var cachedCategories: List<Category> = emptyList()
 
     // Track last-seen income/expense so balance can be recomputed from either observer
     private var lastIncome: Double = 0.0
     private var lastExpenses: Double = 0.0
+
+    // Cached data — both must be present before adapters are updated
+    private var cachedCategories: List<Category> = emptyList()
+    private var cachedTotals: Map<Int, Double> = emptyMap()
+
+    // Swappable LiveData observers — removed and re-added on every period change
+    // so we never accumulate duplicate observers
+    private var incomeLiveData: LiveData<Double>? = null
+    private var expensesLiveData: LiveData<Double>? = null
+    private val incomeObserver = Observer<Double> { income ->
+        lastIncome = income ?: 0.0
+        totalIncomeView.text = "R ${ "%,.2f".format(lastIncome) }"
+        updateHeroBalance()
+    }
+    private val expensesObserver = Observer<Double> { expenses ->
+        lastExpenses = kotlin.math.abs(expenses ?: 0.0)
+        totalExpensesView.text = "R ${ "%,.2f".format(lastExpenses) }"
+        updateHeroBalance()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,8 +104,10 @@ class AnalyticsActivity : BaseActivity() {
         setupViewModels()
         setupCategoryTilesRecycler()
         setupSpendingBreakdownRecycler()
+        setupAccountSpendingRecycler()
         observeCategories()
         observeEntries()
+        observeAccountSpending()
         setupPeriodChips()
         selectPeriod(Period.MONTH)
 
@@ -86,10 +115,14 @@ class AnalyticsActivity : BaseActivity() {
             Toast.makeText(this, "Export coming soon", Toast.LENGTH_SHORT).show()
         }
 
+        findViewById<TextView>(R.id.seeAllCategories)?.setOnClickListener {
+            startActivity(android.content.Intent(this, CategoryTotalsActivity::class.java))
+        }
+
         setupBottomNav(R.id.navAnalytics)
     }
 
-    // ── View binding ──────────────────────────────────────────────────────────
+    // -- View binding
 
     private fun bindViews() {
         chipWeek     = findViewById(R.id.chipWeek)
@@ -104,9 +137,12 @@ class AnalyticsActivity : BaseActivity() {
         totalIncomeView   = findViewById(R.id.totalIncome)
         totalExpensesView = findViewById(R.id.totalExpenses)
         summaryPieChart   = findViewById(R.id.summaryPieChart)
+        legendIncomeValue   = findViewById(R.id.legendIncomeValue)
+        legendExpensesValue = findViewById(R.id.legendExpensesValue)
+        legendSavedValue    = findViewById(R.id.legendSavedValue)
     }
 
-    // ── Period chips ──────────────────────────────────────────────────────────
+    // -- Period chips
 
     private fun setupPeriodChips() {
         chipWeek.setOnClickListener    { selectPeriod(Period.WEEK) }
@@ -158,7 +194,7 @@ class AnalyticsActivity : BaseActivity() {
                 cal.add(Calendar.DAY_OF_WEEK, 6)
                 periodEnd = cal.time
                 val start = Calendar.getInstance().apply { set(Calendar.DAY_OF_WEEK, Calendar.MONDAY) }
-                periodLabel = "${shortFmt.format(start.time)} – ${shortFmt.format(periodEnd)}"
+                periodLabel = "${shortFmt.format(start.time)} - ${shortFmt.format(periodEnd)}"
             }
             Period.MONTH -> {
                 cal.set(Calendar.DAY_OF_MONTH, 1)
@@ -206,7 +242,7 @@ class AnalyticsActivity : BaseActivity() {
                 }
                 periodEnd = endCal.time
                 val fmt = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
-                periodLabel = "${fmt.format(periodStart)} – ${fmt.format(periodEnd)}"
+                periodLabel = "${fmt.format(periodStart)} - ${fmt.format(periodEnd)}"
                 activePeriod = Period.CUSTOM
                 updateChipStyles(Period.CUSTOM)
                 heroPeriodLabel.text = periodLabel
@@ -215,7 +251,7 @@ class AnalyticsActivity : BaseActivity() {
         }, today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH)).show()
     }
 
-    // ── ViewModels ────────────────────────────────────────────────────────────
+    // -- ViewModels --
 
     private fun setupViewModels() {
         val db = AppDatabase.getDatabase(applicationContext)
@@ -227,9 +263,16 @@ class AnalyticsActivity : BaseActivity() {
         expenseViewModel = ViewModelProvider(
             this, ViewModelFactory { ExpenseEntryViewModel(ExpenseEntryRepository(db.expenseEntryDao())) }
         )[ExpenseEntryViewModel::class.java]
+
+        bankAccountViewModel = ViewModelProvider(
+            this, ViewModelFactory { BankAccountViewModel(com.example.pulserds_prog7313.repository.BankAccountRepository(db.bankAccountDao())) }
+        )[BankAccountViewModel::class.java]
+
+        val userId = SessionManager(this).getUserId()
+        if (userId != -1) bankAccountViewModel.init(userId)
     }
 
-    // ── RecyclerViews ─────────────────────────────────────────────────────────
+    // -- RecyclerViews
 
     private fun setupCategoryTilesRecycler() {
         tileAdapter = CategoryTileAdapter()
@@ -249,9 +292,23 @@ class AnalyticsActivity : BaseActivity() {
         }
     }
 
-    // ── Data loading & observation ────────────────────────────────────────────
+    private fun setupAccountSpendingRecycler() {
+        accountSpendingAdapter = AccountSpendingAdapter()
+        findViewById<RecyclerView>(R.id.accountsBreakdownRecycler).apply {
+            layoutManager = LinearLayoutManager(this@AnalyticsActivity)
+            adapter = accountSpendingAdapter
+            isNestedScrollingEnabled = false
+        }
+    }
 
-    /** Central method: re-triggers all data loads whenever the period changes. */
+    // -- Data loading & observation
+
+    /**
+     * Central method: re-triggers all data loads whenever the period changes.
+     *
+     * FIX: Income/Expense LiveData observers are removed before being re-added so
+     * changing the period never stacks up duplicate observers that fire stale data.
+     */
     private fun reloadData() {
         val userId = SessionManager(this).getUserId()
         if (userId == -1) return
@@ -259,42 +316,48 @@ class AnalyticsActivity : BaseActivity() {
         val startStr = dbDateFmt.format(periodStart)
         val endStr   = dbDateFmt.format(periodEnd)
 
-        // Reload categories (which triggers observeCategories → adapter update)
+        // Reload categories
         categoryViewModel.loadCategoriesForUser(userId)
 
-        // Reload entries for the period (which triggers observeEntries → totals map)
+        // Reload entries for the period (triggers observeEntries -> totals map)
         expenseViewModel.loadEntriesForPeriod(userId, startStr, endStr)
 
-        // Hero income / expense totals via LiveData
-        expenseViewModel.getIncomeLive(userId, startStr, endStr).observe(this) { income ->
-            lastIncome = income ?: 0.0
-            totalIncomeView.text = "R ${ "%,.2f".format(lastIncome) }"
-            updateHeroBalance()
-        }
+        // Reload per-account spending totals
+        expenseViewModel.loadExpensesByAccount(userId, startStr, endStr)
 
-        expenseViewModel.getExpensesLive(userId, startStr, endStr).observe(this) { expenses ->
-            lastExpenses = kotlin.math.abs(expenses ?: 0.0)
-            totalExpensesView.text = "R ${ "%,.2f".format(lastExpenses) }"
-            updateHeroBalance()
-        }
-    }
+        // Remove stale income/expense observers before attaching new period-scoped ones
+        incomeLiveData?.removeObserver(incomeObserver)
+        expensesLiveData?.removeObserver(expensesObserver)
 
-    /** Observes the category list. When it changes, refresh the tile adapter. */
-    private fun observeCategories() {
-        categoryViewModel.categories.observe(this) { categories ->
-            cachedCategories = categories ?: emptyList()
-            // Pass empty totals initially; observeEntries() will supply real totals
-            tileAdapter.submitCategories(cachedCategories, emptyMap())
+        incomeLiveData = expenseViewModel.getIncomeLive(userId, startStr, endStr).also {
+            it.observe(this, incomeObserver)
+        }
+        expensesLiveData = expenseViewModel.getExpensesLive(userId, startStr, endStr).also {
+            it.observe(this, expensesObserver)
         }
     }
 
     /**
-     * Observes entries loaded by [reloadData]. Computes per-category totals
-     * (expenses only, as positive values) and pushes them to both adapters.
+     * Permanent observer on the category list.
+     * Caches the list and delegates to [pushAdapterUpdates] so both adapters always
+     * receive the latest categories + latest totals together.
+     */
+    private fun observeCategories() {
+        categoryViewModel.categories.observe(this) { categories ->
+            cachedCategories = categories ?: emptyList()
+            pushAdapterUpdates()
+        }
+    }
+
+    /**
+     * Permanent observer on the entries MutableLiveData.
+     * Computes per-category expense totals, caches them, then delegates to
+     * [pushAdapterUpdates] — eliminating the race condition where cachedCategories
+     * was still empty when entries arrived first.
      */
     private fun observeEntries() {
         expenseViewModel.entries.observe(this) { entries ->
-            val totals: Map<Int, Double> = if (entries.isNullOrEmpty()) {
+            cachedTotals = if (entries.isNullOrEmpty()) {
                 emptyMap()
             } else {
                 entries
@@ -302,8 +365,45 @@ class AnalyticsActivity : BaseActivity() {
                     .groupBy { it.categoryId }
                     .mapValues { (_, list) -> list.sumOf { kotlin.math.abs(it.amount) } }
             }
-            tileAdapter.submitCategories(cachedCategories, totals)
-            spendingAdapter.submitData(cachedCategories, totals)
+            pushAdapterUpdates()
+        }
+    }
+
+    /**
+     * Single point of truth for updating both category adapters.
+     *
+     * Always uses [cachedCategories] + [cachedTotals] so adapter updates are
+     * correct regardless of which observer fires first.
+     *
+     * Budget Category tiles  — all categories (EXPENSE + INCOME + BOTH).
+     * Spending Breakdown rows — EXPENSE/BOTH categories only; if none have
+     *   recorded spending yet, show all expense categories with zero amounts
+     *   so the list is never empty.
+     */
+    private fun pushAdapterUpdates() {
+        // Budget Categories grid — show every category the user has
+        tileAdapter.submitCategories(cachedCategories, cachedTotals)
+
+        // Spending Breakdown — filter out pure income categories (e.g. Salary)
+        val expenseCategories = cachedCategories.filter { it.type != "INCOME" }
+        val withSpend = expenseCategories.filter { (cachedTotals[it.id] ?: 0.0) > 0.0 }
+        // Show categories with actual spend; fall back to all expense categories if none
+        val breakdownList = withSpend.ifEmpty { expenseCategories }
+        spendingAdapter.submitData(breakdownList, cachedTotals)
+    }
+
+    /**
+     * Observes per-account spending and cross-references with the account list
+     * from [bankAccountViewModel] to populate the Spending by Account card.
+     */
+    private fun observeAccountSpending() {
+        expenseViewModel.accountSpending.observe(this) { spending ->
+            val accounts = bankAccountViewModel.accounts.value ?: emptyList()
+            accountSpendingAdapter.submitData(accounts, spending ?: emptyList())
+        }
+        bankAccountViewModel.accounts.observe(this) { accounts ->
+            val spending = expenseViewModel.accountSpending.value ?: emptyList()
+            accountSpendingAdapter.submitData(accounts ?: emptyList(), spending)
         }
     }
 
@@ -312,14 +412,17 @@ class AnalyticsActivity : BaseActivity() {
         val saved = (lastIncome - lastExpenses).coerceAtLeast(0.0)
         heroBalance.text = "R ${ "%,.2f".format(saved) }"
 
+        legendIncomeValue.text   = "R ${ "%,.2f".format(lastIncome) }"
+        legendExpensesValue.text = "R ${ "%,.2f".format(lastExpenses) }"
+        legendSavedValue.text    = "R ${ "%,.2f".format(saved) }"
+
         if (lastIncome > 0) {
             val savedPct = (saved / lastIncome * 100).coerceIn(0.0, 100.0)
             val expPct   = (lastExpenses / lastIncome * 100).coerceIn(0.0, 100.0)
             heroChangeBadge.text = "Saved ${"%.1f".format(savedPct)}% of income"
 
-            // Update donut chart with real data using DonutChartView's actual API
-            val savedColor  = Color.parseColor("#2EC4B6")
-            val expColor    = Color.parseColor("#2A1A1A")
+            val savedColor = Color.parseColor("#2EC4B6")
+            val expColor   = Color.parseColor("#2A1A1A")
             summaryPieChart.setSegments(listOf(
                 Pair(savedPct.toFloat(), savedColor),
                 Pair(expPct.toFloat(), expColor)
@@ -331,7 +434,7 @@ class AnalyticsActivity : BaseActivity() {
         } else {
             heroChangeBadge.text = "No income recorded this period"
             summaryPieChart.setSegments(emptyList())
-            summaryPieChart.setCenterLabel("—", "No data")
+            summaryPieChart.setCenterLabel("-", "No data")
         }
     }
 }

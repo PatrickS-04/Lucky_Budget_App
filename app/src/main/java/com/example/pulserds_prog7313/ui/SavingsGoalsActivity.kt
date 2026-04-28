@@ -74,7 +74,7 @@ class SavingsGoalsActivity : BaseActivity() {
         vm.refreshTotals(userId)
     }
 
-    // ── Bind ──────────────────────────────────────────────────────────────────
+    // Bind
 
     private fun bindViews() {
         overallAmount       = findViewById(R.id.overallAmount)
@@ -92,7 +92,7 @@ class SavingsGoalsActivity : BaseActivity() {
         emptyCompletedText  = findViewById(R.id.emptyCompletedText)
     }
 
-    // ── Buttons ───────────────────────────────────────────────────────────────
+    // Buttons
 
     private fun setupButtons() {
         val toCreate = View.OnClickListener {
@@ -103,7 +103,7 @@ class SavingsGoalsActivity : BaseActivity() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
     }
 
-    // ── Observe ───────────────────────────────────────────────────────────────
+    // Observe
 
     private fun observeData() {
         vm.getAllGoalsLive(userId).observe(this) { goals ->
@@ -128,7 +128,7 @@ class SavingsGoalsActivity : BaseActivity() {
     /**
      * FIX: saveResult is observed exactly ONCE at activity level.
      * Previously it was re-observed inside showAddFundsDialog(), which stacked
-     * a new observer on every tap — causing multiple toasts, ANR-level event
+     * a new observer on every tap - causing multiple toasts, ANR-level event
      * flooding, and unpredictable navigation side-effects.
      */
     private fun observeSaveResult() {
@@ -138,12 +138,12 @@ class SavingsGoalsActivity : BaseActivity() {
                     Toast.makeText(this, "Funds added! 💰", Toast.LENGTH_SHORT).show()
                 is SavingsGoalViewModel.GoalResult.Error ->
                     Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()
-                else -> { /* Success belongs to CreateSavingsGoalActivity — SingleLiveEvent ensures it won't reach here */ }
+                else -> { /* Success belongs to CreateSavingsGoalActivity - SingleLiveEvent ensures it won't reach here */ }
             }
         }
     }
 
-    // ── Render goals ──────────────────────────────────────────────────────────
+    // Render goals
 
     private fun renderGoals(goals: List<SavingsGoal>) {
         val active    = goals.filter { !it.isCompleted }
@@ -180,7 +180,7 @@ class SavingsGoalsActivity : BaseActivity() {
         completed.forEach { goal -> completedContainer.addView(buildCompletedCard(goal)) }
     }
 
-    // ── Active goal card ──────────────────────────────────────────────────────
+    // Active goal card
 
     private fun buildGoalCard(goal: SavingsGoal): View {
         val card = LayoutInflater.from(this).inflate(R.layout.item_savings_goal, null, false)
@@ -224,7 +224,7 @@ class SavingsGoalsActivity : BaseActivity() {
         return card
     }
 
-    // ── Completed goal card ───────────────────────────────────────────────────
+    // Completed goal card
 
     private fun buildCompletedCard(goal: SavingsGoal): View {
         val card = LayoutInflater.from(this).inflate(R.layout.item_savings_goal_completed, null, false)
@@ -245,7 +245,7 @@ class SavingsGoalsActivity : BaseActivity() {
         return card
     }
 
-    // ── Add funds dialog ──────────────────────────────────────────────────────
+    // Add funds dialog
 
     /**
      * FIX: removed vm.saveResult.observe() from inside this method.
@@ -254,6 +254,7 @@ class SavingsGoalsActivity : BaseActivity() {
      */
     private fun showAddFundsDialog(goal: SavingsGoal) {
         val remaining = goal.targetAmount - goal.savedAmount
+
         val editText = EditText(this).apply {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
             hint = "Amount (max R %,.2f)".format(remaining)
@@ -262,22 +263,40 @@ class SavingsGoalsActivity : BaseActivity() {
             setHintTextColor(Color.parseColor("#7A99B0"))
         }
 
-        AlertDialog.Builder(this)
+        // Build without setPositiveButton so we can control dismissal manually.
+        val dialog = AlertDialog.Builder(this)
             .setTitle("Add Funds to \"${goal.name}\"")
             .setView(editText)
-            .setPositiveButton("Add") { _, _ ->
-                val amount = editText.text.toString().toDoubleOrNull() ?: 0.0
-                if (amount <= 0) {
-                    Toast.makeText(this, "Please enter a valid amount.", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                vm.addFunds(goal.id, amount.coerceAtMost(remaining), userId)
-            }
             .setNegativeButton("Cancel", null)
-            .show()
+            .create()
+
+        // Register the positive button but leave the callback empty -
+        // the real logic is wired via setOnClickListener after show()
+        // so we can prevent auto-dismiss on invalid input.
+        dialog.setButton(AlertDialog.BUTTON_POSITIVE, "Add") { _, _ -> }
+
+        dialog.show()
+
+        // Override after show() so we fully control when the dialog closes.
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val amount = editText.text.toString().toDoubleOrNull() ?: 0.0
+            when {
+                amount <= 0 -> {
+                    editText.error = "Please enter a valid amount"
+                    // Dialog intentionally stays open.
+                }
+                amount > remaining -> {
+                    editText.error = "Max R %,.2f".format(remaining)
+                }
+                else -> {
+                    dialog.dismiss()                      // dismiss BEFORE DB write
+                    vm.addFunds(goal.id, amount, userId)  // triggers Room LiveData + re-render
+                }
+            }
+        }
     }
 
-    // ── Goal menu ─────────────────────────────────────────────────────────────
+    // Goal menu
 
     private fun showGoalMenu(goal: SavingsGoal, anchor: View) {
         val popup = PopupMenu(this, anchor)
