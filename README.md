@@ -1,7 +1,7 @@
 # Pulser DS - Personal Finance Manager - The Lucky Budget
 > PROG7311 POE Part 2  
 
-The Lucky Budget is personal finance manager application that helps user manage funds, expenses, goals and financial information that can provide financial knowledge to users allowing them to achieve financial freedom.
+The Lucky Budget is a personal finance manager application that helps users manage funds, expenses, goals and financial information that can provide financial knowledge to users allowing them to achieve financial freedom.
 
 ---
 
@@ -181,6 +181,9 @@ Schema JSON exports are stored in `app/schemas/` for migration history.
 Camera hardware is declared as **not required** (`android:required="false"`), so the app installs on devices without a camera.
 
 ---
+
+## Youtube Video Mobile App Demonstration Video Link
+- https://youtu.be/pipU8XDkbBA
 
 ## References
 
