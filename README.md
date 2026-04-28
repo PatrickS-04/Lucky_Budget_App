@@ -276,3 +276,75 @@ Camera hardware is declared as **not required** (`android:required="false"`), so
      Android Developers, 2024.
      Available: https://developer.android.com/training/testing/espresso.
  
+## DECLARATION OF AI USAGE:
+### Sections where AI was used:
+AI was used in small sections of the code to aid in troubleshooting on the login page.
+### AI Tool Used:  
+Claude AI 
+### Purpose/Intent:
+The purpose of using the ai tool was to get an idea of how the login functionality of the app should look.
+The other purpose was to help fix an id reference issue in different classes between variables.
+### Dates used: 
+10/04/2026
+### Link:
+https://claude.ai/share/dd1caa85-5884-4b9d-b899-88d3234fc2d8
+### Action taken:
+The generated code was not used at all for the login functionality as we found another a similar way to code it. Similarly, the ai tool’s code was not used to fix the error as it was redone again to avoid the issue.
+
+## DECLARATION OF AI USAGE:
+### Sections where AI was used:
+AI was used in the create account page 
+### AI Tool Used:
+Claude AI 
+### Purpose/Intent:
+The purpose of using the ai tool was to help fix a layout overlap issue of different visual interactive elements.
+### Dates used:
+16/04/2026
+### Link:
+https://claude.ai/share/88a5d0cb-a044-414b-be2e-2aaac0ca8a9c
+### Action taken:
+The generated code was used to fix the error in the layout only, but the rest was all done manually by us.
+
+## DECLARATION OF AI USAGE:
+### Sections where AI was used:
+AI was used for the image upload feature
+### AI Tool Used: 
+Claude AI 
+### Purpose/Intent:
+The purpose of using the ai tool was to help determine if the image upload feature works as the button directed the user to google drive where we could not upload an image from.
+### Dates used:
+27/04/2026
+### Link:
+https://claude.ai/share/40b1dbf3-4c4f-4ff2-b609-a29acc39e7c0
+### Action taken:
+The action taken was to just understand the response the ai tool provided and determine if the feature worked or not.
+
+## DECLARATION OF AI USAGE:
+### Sections where AI was used:
+AI was used for a filter issue
+### AI Tool Used:  
+Claude AI 
+### Purpose/Intent:
+The purpose of using the ai tool was to help determine the cause of a week filter not working correctly even though entries exist within the filtered period.
+### Dates used:
+28/04/2026
+### Link:
+https://claude.ai/share/061c7497-53d9-43e7-93b0-9900f54a475b
+https://claude.ai/share/353e3527-cce5-4e5c-a5ab-ae4d3d0fca40
+### Action taken:
+The code was tested to see if the minor formatting change worked or not for the week filter.
+ 
+## DECLARATION OF AI USAGE:
+### Sections where AI was used:
+AI was used for the Github CI workflow
+### AI Tool Used:  
+Claude AI 
+### Purpose/Intent:
+The purpose of using the ai tool was to help determine the cause of the workflow failure during testing.
+### Dates used: 
+28/04/2026
+### Link: 
+https://claude.ai/share/9cdf5f21-1522-47c3-8d6d-92ae827bc0f5
+### Action taken:
+The code was used to determine which option was best suited to fix the workflow error.
+
