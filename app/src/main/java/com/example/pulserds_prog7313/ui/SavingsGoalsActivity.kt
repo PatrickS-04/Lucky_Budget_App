@@ -247,11 +247,6 @@ class SavingsGoalsActivity : BaseActivity() {
 
     // Add funds dialog
 
-    /**
-     * FIX: removed vm.saveResult.observe() from inside this method.
-     * The observer now lives in observeSaveResult() which is called once in onCreate().
-     * This prevents observer accumulation on every dialog open.
-     */
     private fun showAddFundsDialog(goal: SavingsGoal) {
         val remaining = goal.targetAmount - goal.savedAmount
 
@@ -259,7 +254,7 @@ class SavingsGoalsActivity : BaseActivity() {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
             hint = "Amount (max R %,.2f)".format(remaining)
             setPadding(40, 24, 40, 24)
-            setTextColor(Color.WHITE)
+            setTextColor(Color.BLACK)
             setHintTextColor(Color.parseColor("#7A99B0"))
         }
 
