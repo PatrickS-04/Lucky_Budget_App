@@ -62,6 +62,18 @@ class CreateAccActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_create_acc)
 
+        val backArrowButton = findViewById<TextView>(R.id.backArrow)
+        backArrowButton.setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+        }
+
+        val signInButton = findViewById<TextView>(R.id.signInText)
+        signInButton.setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+        }
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
