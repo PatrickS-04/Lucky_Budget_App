@@ -11,6 +11,9 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+// MVVM ViewModel — based off the official google documents
+// [2] Google, "ViewModel overview," Android Developers, 2024.
+// [7] Google, AndroidX Lifecycle ViewModel KTX, ver. 2.8.4. [Software]. Android Developers, 2024.
 class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel() {
 
     sealed class GoalResult {

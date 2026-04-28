@@ -81,6 +81,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etPassword: TextInputEditText
 
     /** Primary action button that triggers form validation and the login flow. */
+    // ViewBinding enabled in build.gradle — eliminates findViewById calls.
+    // [15] Google, "View Binding," Android Developers, 2024.
     private lateinit var btnLogin: Button
 
     /** Tappable label that navigates to the account creation screen. */

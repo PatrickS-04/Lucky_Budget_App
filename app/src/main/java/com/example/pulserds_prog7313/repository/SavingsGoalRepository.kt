@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData
 import com.example.pulserds_prog7313.data.SavingsGoal
 import com.example.pulserds_prog7313.data.SavingsGoalDao
 
+// Repository pattern as recommended by the Android Guide to App Architecture.
+// [5] Google, "Guide to app architecture," Android Developers, 2024.
 class SavingsGoalRepository(private val dao: SavingsGoalDao) {
 
     fun getAllGoalsLive(userId: Int): LiveData<List<SavingsGoal>> = dao.getAllGoalsLive(userId)

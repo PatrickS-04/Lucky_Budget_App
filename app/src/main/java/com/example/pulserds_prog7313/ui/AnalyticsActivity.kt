@@ -76,6 +76,7 @@ class AnalyticsActivity : BaseActivity() {
 
     // Swappable LiveData observers — removed and re-added on every period change
     // so we never accumulate duplicate observers
+    // [3] Google, "LiveData overview," Android Developers, 2024.
     private var incomeLiveData: LiveData<Double>? = null
     private var expensesLiveData: LiveData<Double>? = null
     private val incomeObserver = Observer<Double> { income ->

@@ -3,6 +3,8 @@ package com.example.pulserds_prog7313.data
 import androidx.lifecycle.LiveData
 import androidx.room.*
 
+// Room DAO pattern
+// [1] Google, "Save data in a local database using Room," Android Developers, 2024.
 @Dao
 interface SavingsGoalDao {
 

@@ -8,6 +8,9 @@ import com.example.pulserds_prog7313.data.Category
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import kotlinx.coroutines.launch
 
+// MVVM ViewModel — based off the official google documents
+// [2] Google, "ViewModel overview," Android Developers, 2024.
+// [7] Google, AndroidX Lifecycle ViewModel KTX, ver. 2.8.4. [Software]. Android Developers, 2024.
 class CategoryViewModel(private val categoryRepository: CategoryRepository) : ViewModel() {
 
     private val _categories = MutableLiveData<List<Category>>()

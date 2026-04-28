@@ -3,6 +3,8 @@ package com.example.pulserds_prog7313.utils
 import android.content.Context
 import android.content.SharedPreferences
 
+// SharedPreferences used to persist login session between app launches.
+// [18] Google, "SharedPreferences — save key-value data," Android Developers, 2024.
 class SessionManager(context: Context) {
 
     private val prefs: SharedPreferences =

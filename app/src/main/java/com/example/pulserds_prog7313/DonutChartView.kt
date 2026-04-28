@@ -5,6 +5,8 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
 
+// Custom View drawn using Android Canvas API for the donut spending chart.
+// [20] Google, "Canvas and drawables," Android Developers, 2024.
 class DonutChartView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {

@@ -8,6 +8,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 
+// Room DAO pattern
+// [1] Google, "Save data in a local database using Room," Android Developers, 2024.
 @Dao
 interface BankAccountDao {
 

@@ -5,6 +5,8 @@ import android.app.Activity
 import android.os.Bundle
 import com.example.pulserds_prog7313.utils.SessionManager
 
+// ActivityLifecycleCallbacks used to track foreground/background state for auto-logout.
+// [2] Google, "ViewModel overview," Android Developers, 2024.
 class App : Application() {
 
     // Counts how many activities are currently visible/started.

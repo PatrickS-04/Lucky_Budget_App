@@ -156,6 +156,8 @@ class DashBoardActivity : BaseActivity() {
 
     // ── LiveData observers ────────────────────────────────────────────────────
 
+    // LiveData used to observe database changes on the UI thread safely.
+    // [3] Google, "LiveData overview," Android Developers, 2024.
     private fun observeLiveData() {
         if (userId == -1) return
 

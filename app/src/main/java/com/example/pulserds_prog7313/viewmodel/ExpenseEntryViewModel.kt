@@ -8,6 +8,9 @@ import com.example.pulserds_prog7313.data.ExpenseEntry
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
 import kotlinx.coroutines.launch
 
+// MVVM ViewModel — based off the official google documents
+// [2] Google, "ViewModel overview," Android Developers, 2024.
+// [7] Google, AndroidX Lifecycle ViewModel KTX, ver. 2.8.4. [Software]. Android Developers, 2024.
 class ExpenseEntryViewModel(private val expenseEntryRepository: ExpenseEntryRepository) : ViewModel() {
 
     private val _entries = MutableLiveData<List<ExpenseEntry>>()

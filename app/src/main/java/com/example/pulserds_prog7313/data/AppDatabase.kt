@@ -5,6 +5,9 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
+// Room Persistence Library used for local database management. We used the official android documents for secure implementation
+// [1] Google, "Save data in a local database using Room," Android Developers, 2024.
+// [6] Google, AndroidX Room, ver. 2.7.0-alpha11. [Software]. Android Developers, 2024.
 @Database(
     entities = [
         User::class,

@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData
 import com.example.pulserds_prog7313.data.ExpenseEntry
 import com.example.pulserds_prog7313.data.ExpenseEntryDao
 
+// Repository pattern as recommended by the Android Guide to App Architecture.
+// [5] Google, "Guide to app architecture," Android Developers, 2024.
 class ExpenseEntryRepository(private val expenseEntryDao: ExpenseEntryDao) {
 
     suspend fun addEntry(entry: ExpenseEntry) {

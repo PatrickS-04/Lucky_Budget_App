@@ -111,6 +111,8 @@ class AddTransactionActivity : AppCompatActivity() {
         categoryViewModel = ViewModelProvider(this, catFactory)[CategoryViewModel::class.java]
 
         // FIX: seedDefaultCategories is suspend — must be called inside a coroutine
+        // [4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024.
+        // [8] JetBrains, kotlinx-coroutines-android, ver. 1.8.1. [Software]. JetBrains, 2024.
         if (loggedInUserId != -1) {
             lifecycleScope.launch {
                 categoryViewModel.seedDefaultCategories(loggedInUserId)

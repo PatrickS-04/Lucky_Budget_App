@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData
 import com.example.pulserds_prog7313.data.BankAccount
 import com.example.pulserds_prog7313.data.BankAccountDao
 
+// Repository pattern as recommended by the Android Guide to App Architecture.
+// [5] Google, "Guide to app architecture," Android Developers, 2024.
 class BankAccountRepository(private val dao: BankAccountDao) {
 
     fun getAccountsForUser(userId: Int): LiveData<List<BankAccount>> =

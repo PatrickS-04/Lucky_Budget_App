@@ -25,6 +25,9 @@ import com.example.pulserds_prog7313.R
  *   app:donutThickness        float 0–1      (default 0.38 = 38% of radius)
  *   app:donutGap              float degrees  (default 3)
  */
+
+// Custom View drawn using Android Canvas API for the donut spending chart.
+// [20] Google, "Canvas and drawables," Android Developers, 2024.
 class DonutChart @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,

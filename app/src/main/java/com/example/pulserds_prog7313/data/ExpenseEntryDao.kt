@@ -22,6 +22,8 @@ private const val NORM_PARAM = """
          ELSE substr(?,7,4)||'/'||substr(?,4,2)||'/'||substr(?,1,2)
     END"""
 
+// Room DAO pattern
+// [1] Google, "Save data in a local database using Room," Android Developers, 2024.
 @Dao
 interface ExpenseEntryDao {
     @Insert
