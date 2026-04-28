@@ -5,6 +5,15 @@ The Lucky Budget is a personal finance manager application that helps users mana
 
 ---
 
+## Collaborators
+ 
+- Dillon Rinkwest- ST10439147 (Group Leader)
+- Liam Swile- ST10438679
+- Patrick Shutte- ST10440987
+- Uzair Essa- ST10440109 
+
+---
+
 ## Table of Contents
  
 - [Features](#features)
