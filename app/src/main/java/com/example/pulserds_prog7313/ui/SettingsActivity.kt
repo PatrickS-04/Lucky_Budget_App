@@ -303,9 +303,8 @@ class SettingsActivity : BaseActivity() {
                 .show()
         }
 
-        // Delete Account: warns the user, clears the session, and redirects to login.
-        // NOTE: Full DB record deletion requires UserDao.deleteById() — currently
-        // only the session is cleared as a placeholder implementation.
+        // Delete Account: warns the user, deletes all their data from the database,
+        // clears the session, and redirects to the login screen.
         findViewById<LinearLayout>(R.id.deleteAccountRow).setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle("Delete Account")
@@ -314,12 +313,22 @@ class SettingsActivity : BaseActivity() {
                             "This action cannot be undone."
                 )
                 .setPositiveButton("Delete") { _, _ ->
-                    sessionManager.logout()
-                    Toast.makeText(this, "Account deleted. Goodbye!", Toast.LENGTH_LONG).show()
-                    val intent = Intent(this, MainActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                    finish()
+                    val currentUserId = sessionManager.getUserId()
+                    lifecycleScope.launch {
+                        // Delete the user record from the database
+                        if (currentUserId != -1) {
+                            userRepo.deleteUserById(currentUserId)
+                        }
+                        // Clear the local session after DB deletion
+                        sessionManager.logout()
+                        runOnUiThread {
+                            Toast.makeText(this@SettingsActivity, "Account deleted. Goodbye!", Toast.LENGTH_LONG).show()
+                            val intent = Intent(this@SettingsActivity, MainActivity::class.java)
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            startActivity(intent)
+                            finish()
+                        }
+                    }
                 }
                 .setNegativeButton("Cancel", null)
                 .show()

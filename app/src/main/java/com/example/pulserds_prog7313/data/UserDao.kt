@@ -17,4 +17,7 @@ interface UserDao {
 
     @Query("SELECT * FROM users WHERE email = :email AND passwordHash = :passwordHash LIMIT 1")
     suspend fun login(email: String, passwordHash: String): User?
+
+    @Query("DELETE FROM users WHERE id = :userId")
+    suspend fun deleteById(userId: Int)
 }

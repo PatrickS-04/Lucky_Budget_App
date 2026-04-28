@@ -16,7 +16,7 @@ import androidx.room.RoomDatabase
         BankAccount::class,
         SavingsGoal::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

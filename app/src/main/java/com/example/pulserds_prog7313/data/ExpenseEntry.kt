@@ -1,5 +1,6 @@
 package com.example.pulserds_prog7313.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -32,8 +33,8 @@ import androidx.room.PrimaryKey
 data class ExpenseEntry(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val userId: Int,
-    val categoryId: Int,
-    val bankAccountId: Int = 0,   // FK -> bank_accounts.id (0 = unknown/legacy)
+    @ColumnInfo(defaultValue = "0") val categoryId: Int,
+    @ColumnInfo(defaultValue = "0") val bankAccountId: Int = 0,   // FK -> bank_accounts.id (0 = unknown/legacy)
     val amount: Double,
     val date: String,             // "dd/MM/yyyy"
     val startTime: String,
