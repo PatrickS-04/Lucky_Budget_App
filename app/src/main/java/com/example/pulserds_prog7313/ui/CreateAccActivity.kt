@@ -53,6 +53,9 @@ class CreateAccActivity : AppCompatActivity() {
     private lateinit var etConfirmPassword: TextInputEditText
     private lateinit var btnCreateAccount: Button
     private lateinit var tvLogin: TextView
+    private lateinit var backArrow: TextView
+    private lateinit var signInText: TextView
+    private lateinit var termsCheckBox: android.widget.CheckBox
 
     private lateinit var userViewModel: UserViewModel
     private lateinit var sessionManager: SessionManager
@@ -93,12 +96,20 @@ class CreateAccActivity : AppCompatActivity() {
         etConfirmPassword  = findViewById(R.id.etConfirmPassword)
         btnCreateAccount   = findViewById(R.id.btnCreateAccount)
         tvLogin            = findViewById(R.id.tvLogin)
+        backArrow          = findViewById(R.id.backArrow)
+        signInText         = findViewById(R.id.signInText)
+        termsCheckBox      = findViewById(R.id.termsCheckBox)
     }
 
     // -------------------------------------------------------------------------
     // Listeners
     // -------------------------------------------------------------------------
     private fun setupListeners() {
+
+        // Back arrow — navigate back to login screen
+        backArrow.setOnClickListener {
+            finish()
+        }
 
         etFullName.addTextChangedListener(clearErrorWatcher(tilFullName))
         etEmail.addTextChangedListener(clearErrorWatcher(tilEmail))
@@ -136,6 +147,10 @@ class CreateAccActivity : AppCompatActivity() {
 
         // Create Account button - validate, save to DB, then navigate
         btnCreateAccount.setOnClickListener {
+            if (!termsCheckBox.isChecked) {
+                Toast.makeText(this, "Please agree to the Terms of Service to continue", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             if (validateSignUpForm()) {
                 val fullName = etFullName.text?.toString()?.trim() ?: ""
                 val email    = etEmail.text?.toString()?.trim() ?: ""
@@ -154,8 +169,7 @@ class CreateAccActivity : AppCompatActivity() {
                     val newUser = User(fullName = fullName, email = email, passwordHash = hash)
                     userViewModel.register(newUser)
 
-                    // FIX: fetch the saved user AFTER register() has fully completed.
-                    // Because register() is a suspend function, the DB insert is
+                    // the DB insert is
                     // guaranteed to be done before this line runs, so getUserByEmail
                     // will always find the row and return a valid userId — preventing
                     // the FOREIGN KEY crash when DashBoardActivity seeds categories.
@@ -189,6 +203,11 @@ class CreateAccActivity : AppCompatActivity() {
 
         // "Already have an account? Log in" link
         tvLogin.setOnClickListener {
+            finish()
+        }
+
+        // "Sign in" bold link next to tvLogin — same action
+        signInText.setOnClickListener {
             finish()
         }
     }
