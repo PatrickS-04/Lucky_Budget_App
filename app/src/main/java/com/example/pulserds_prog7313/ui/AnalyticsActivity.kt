@@ -115,6 +115,10 @@ class AnalyticsActivity : BaseActivity() {
             Toast.makeText(this, "Export coming soon", Toast.LENGTH_SHORT).show()
         }
 
+        findViewById<TextView>(R.id.seeAllCategories)?.setOnClickListener {
+            startActivity(android.content.Intent(this, CategoryTotalsActivity::class.java))
+        }
+
         setupBottomNav(R.id.navAnalytics)
     }
 

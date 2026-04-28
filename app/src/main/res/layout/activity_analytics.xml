@@ -556,8 +556,11 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/seeAllCategories"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:text="See all"
                     android:textColor="@color/very_darkGreen"
                     android:textSize="13sp" />

@@ -48,6 +48,9 @@
             android:name=".ui.AnalyticsActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.CategoryTotalsActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.AddSubscriptionActivity"
             android:exported="false" />
         <activity
