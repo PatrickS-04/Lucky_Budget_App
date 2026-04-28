@@ -64,8 +64,7 @@ class CreateAccActivity : AppCompatActivity() {
 
         val backArrowButton = findViewById<TextView>(R.id.backArrow)
         backArrowButton.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
+            finish()
         }
 
         val signInButton = findViewById<TextView>(R.id.signInText)
