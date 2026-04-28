@@ -28,7 +28,7 @@ The Lucky Budget is personal finance manager application that helps user manage 
 | **Category Totals** | Detailed view of totals grouped by category |
 | **Bank Accounts** | Add and manage multiple bank accounts; view per-account spending |
 | **Savings Goals** | Create savings goals with target amounts and deadlines; track progress and mark goals complete |
-| **Settings** | Toggle app preferences ((Future Implementation)biometric, 2FA, overspend alerts, subscription reminders, transaction alerts, savings milestones, dark mode, currency, collabrative access); manage profile and session |
+| **Settings** | Toggle app preferences ((Future Implementation) 2FA, overspend alerts, subscription reminders, transaction alerts, savings milestones, dark mode, currency, collabrative access, google login); manage profile and session |
 | **Manage Categories** | Create and manage custom expense categories |
  
 ---
