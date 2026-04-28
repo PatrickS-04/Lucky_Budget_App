@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_category_totals.xml  —  Feature: View category totals in a period
+    ─────────────────────────────────────────────────────────────────────────────
+    Background : @color/backgroundGreen  (#CBF3F0  seafoam)
+    Header     : @color/darkerGreen      (#2EC4B6  teal)
+    Hero card  : #FFBB55  (amber/orange)
+    Tile cards : #1A3A2A · #2A1A1A · #1A1A3A · #2A1E10  (dark palette)
+    Accent text: @color/very_darkGreen   (#023E1D)
+    ─────────────────────────────────────────────────────────────────────────────
+    Activity : CategoryTotalsActivity
+    ViewModels used :
+      • CategoryViewModel      → categories LiveData
+      • ExpenseEntryViewModel  → entries / income / expenses LiveData per period
+    Adapters :
+      • CategoryTileAdapter    → categoryTilesRecycler  (GridLayoutManager, 2 cols)
+      • SpendingRowAdapter     → spendingBreakdownRecycler (LinearLayoutManager)
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/backgroundGreen"
+    tools:context=".ui.CategoryTotalsActivity">
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!--   SCROLLABLE BODY  (sits above the bottom nav)                         -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottomNav"
+        android:fillViewport="true">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="16dp">
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!--   TOP HEADER BAR                                               -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/headerCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/darkerGreen"
+                app:cardCornerRadius="0dp"
+                app:cardElevation="6dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="20dp"
+                    android:paddingTop="40dp"
+                    android:paddingEnd="20dp"
+                    android:paddingBottom="14dp">
+
+                    <!-- Title -->
+                    <TextView
+                        android:id="@+id/headerTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Category Totals"
+                        android:textColor="@color/very_darkGreen"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintEnd_toStartOf="@id/heroPeriodLabel" />
+
+                    <!-- Period label (updated at runtime) -->
+                    <TextView
+                        android:id="@+id/heroPeriodLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/very_darkGreen"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:text=""
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!--   PERIOD FILTER CHIPS  (Week · Month · Quarter · Year · Custom) -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <HorizontalScrollView
+                android:id="@+id/periodScrollView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:scrollbars="none"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/headerCard">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/chipWeek"
+                        android:layout_width="wrap_content"
+                        android:layout_height="33dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@color/backgroundOrange"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Week"
+                        android:textColor="@color/very_darkGreen"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/chipMonth"
+                        android:layout_width="wrap_content"
+                        android:layout_height="33dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@color/darkerGreen"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Month"
+                        android:textColor="#1A1A1A"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/chipQuarter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="33dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@color/backgroundOrange"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Quarter"
+                        android:textColor="@color/very_darkGreen"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/chipYear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="33dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@color/backgroundOrange"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Year"
+                        android:textColor="@color/very_darkGreen"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/chipCustom"
+                        android:layout_width="wrap_content"
+                        android:layout_height="33dp"
+                        android:background="@color/backgroundOrange"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Custom"
+                        android:textColor="@color/very_darkGreen"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!--   HERO SUMMARY CARD  (amber — shows totals for the period)     -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/heroCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="16dp"
+                app:cardBackgroundColor="#FFBB55"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="8dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/periodScrollView">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Label -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:letterSpacing="0.10"
+                        android:text="PERIOD SUMMARY"
+                        android:textColor="#4A3A20"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <!-- Income / Expenses sub-cards (side by side) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="0dp"
+                        android:orientation="horizontal">
+
+                        <!-- Income — dark-green card -->
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
+                            android:layout_weight="1"
+                            app:cardBackgroundColor="#1A3A2A"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="12dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:letterSpacing="0.08"
+                                    android:text="↑ INCOME"
+                                    android:textColor="#6ADB8A"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/totalIncome"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="4dp"
+                                    android:text=""
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+
+                        <!-- Expenses — dark-maroon card -->
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:cardBackgroundColor="#2A1A1A"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="12dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:letterSpacing="0.08"
+                                    android:text="↓ EXPENSES"
+                                    android:textColor="#DB8A8A"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/totalExpenses"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="4dp"
+                                    android:text=""
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!--   SECTION HEADER — Budget Categories                           -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <TextView
+                android:id="@+id/budgetCatHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="22dp"
+                android:text="Budget Categories"
+                android:textColor="@color/very_darkGreen"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/heroCard" />
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!--   CATEGORY TILES GRID  (2-column, populated by                 -->
+            <!--   CategoryTileAdapter — shows every category + spend total)    -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/budgetCatCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="16dp"
+                app:cardBackgroundColor="#FFBB55"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="6dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/budgetCatHeader">
+
+                <!--
+                    Each tile is inflated from item_category_tile.xml.
+                    CategoryTileAdapter cycles tile background colours through:
+                      #1A3A2A (dark-green) | #2A1A1A (dark-maroon)
+                      #1A1A3A (dark-navy)  | #2A1E10 (dark-brown)
+                    and shows the emoji icon, category name, and spend amount for
+                    the selected period.
+                -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/categoryTilesRecycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:padding="9dp"
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                    app:spanCount="2"
+                    tools:listitem="@layout/item_category_tile" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!--   SECTION HEADER — Spending Breakdown                          -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <TextView
+                android:id="@+id/spendingBreakdownTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="22dp"
+                android:text="Spending Breakdown"
+                android:textColor="@color/very_darkGreen"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/budgetCatCard" />
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!--   SPENDING BREAKDOWN ROWS  (populated by SpendingRowAdapter —  -->
+            <!--   EXPENSE/BOTH categories only; each row shows amount + bar)   -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/spendingBreakdownCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="16dp"
+                app:cardBackgroundColor="#FFBB55"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="6dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/spendingBreakdownTitle">
+
+                <!--
+                    Each row is inflated from item_spending_row.xml.
+                    SpendingRowAdapter shows: emoji · name · amount · percentage label
+                    + a horizontal ProgressBar (0-100) tinted per category position.
+                    Falls back to showing all EXPENSE categories with R 0 when no
+                    entries exist for the period.
+                -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/spendingBreakdownRecycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:padding="16dp"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    tools:listitem="@layout/item_spending_row" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!--   EMPTY-STATE MESSAGE                                          -->
+            <!--   Shown (VISIBLE) when no entries exist for the chosen period; -->
+            <!--   hidden (GONE) once the adapters have data.                   -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <TextView
+                android:id="@+id/emptyStateText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:gravity="center"
+                android:text="No transactions recorded\nfor this period."
+                android:textColor="@color/very_darkGreen"
+                android:textSize="14sp"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/spendingBreakdownCard" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!--   BOTTOM NAVIGATION BAR  (matches all other activities)                -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        app:cardBackgroundColor="#111820"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingTop="10dp"
+            android:paddingBottom="20dp">
+
+            <!-- Home -->
+            <LinearLayout
+                android:id="@+id/navHome"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🏠"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Home"
+                    android:textColor="#7A99B0"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Accounts -->
+            <LinearLayout
+                android:id="@+id/navAccounts"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💳"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Accounts"
+                    android:textColor="#7A99B0"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Transactions -->
+            <LinearLayout
+                android:id="@+id/navTransactions"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="↕️"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Transactions"
+                    android:textColor="#7A99B0"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Analytics (active — this screen lives under Analytics) -->
+            <LinearLayout
+                android:id="@+id/navAnalytics"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📊"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Analytics"
+                    android:textColor="#4ADE80"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Settings -->
+            <LinearLayout
+                android:id="@+id/navSettings"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚙️"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Settings"
+                    android:textColor="#7A99B0"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+</RelativeLayout>

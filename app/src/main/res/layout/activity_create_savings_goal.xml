@@ -354,7 +354,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="20dp"
-                    app:boxBackgroundColor="#0D1B2A"
+                    app:boxBackgroundColor="#FFFFFF"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
@@ -370,14 +370,13 @@
                         android:id="@+id/goalNameEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
                         android:hint="e.g. Emergency Fund, Vacation..."
                         android:inputType="textCapSentences"
                         android:maxLength="40"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
-                        android:textColorHint="#3D5A70"
+                        android:textColor="#1A1A1A"
+                        android:textColorHint="#AAAAAA"
                         android:textSize="15sp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -399,7 +398,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="20dp"
-                    app:boxBackgroundColor="#0D1B2A"
+                    app:boxBackgroundColor="#FFFFFF"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
@@ -414,13 +413,12 @@
                         android:id="@+id/targetAmountEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
                         android:hint="0.00"
                         android:inputType="numberDecimal"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
-                        android:textColorHint="#3D5A70"
+                        android:textColor="#1A1A1A"
+                        android:textColorHint="#AAAAAA"
                         android:textSize="15sp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -442,7 +440,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="20dp"
-                    app:boxBackgroundColor="#0D1B2A"
+                    app:boxBackgroundColor="#FFFFFF"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
@@ -457,13 +455,12 @@
                         android:id="@+id/initialDepositEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
                         android:hint="0.00"
                         android:inputType="numberDecimal"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
-                        android:textColorHint="#3D5A70"
+                        android:textColor="#1A1A1A"
+                        android:textColorHint="#AAAAAA"
                         android:textSize="15sp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -485,7 +482,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="20dp"
-                    app:boxBackgroundColor="#0D1B2A"
+                    app:boxBackgroundColor="#FFFFFF"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
@@ -501,15 +498,14 @@
                         android:id="@+id/targetDateEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
                         android:clickable="true"
                         android:focusable="false"
                         android:hint="DD / MM / YYYY"
                         android:inputType="none"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
-                        android:textColorHint="#3D5A70"
+                        android:textColor="#1A1A1A"
+                        android:textColorHint="#AAAAAA"
                         android:textSize="15sp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -530,7 +526,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    app:boxBackgroundColor="#0D1B2A"
+                    app:boxBackgroundColor="#FFFFFF"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
@@ -544,13 +540,12 @@
                         android:id="@+id/linkedAccountDropdown"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
                         android:hint="Select account..."
                         android:inputType="none"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
-                        android:textColorHint="#3D5A70"
+                        android:textColor="#1A1A1A"
+                        android:textColorHint="#AAAAAA"
                         android:textSize="15sp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -665,7 +660,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:layout_marginBottom="16dp"
-                        app:boxBackgroundColor="#0D1B2A"
+                        app:boxBackgroundColor="#FFFFFF"
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
@@ -685,8 +680,8 @@
                             android:inputType="numberDecimal"
                             android:paddingTop="14dp"
                             android:paddingBottom="14dp"
-                            android:textColor="#FFFFFF"
-                            android:textColorHint="#3D5A70"
+                            android:textColor="#1A1A1A"
+                            android:textColorHint="#AAAAAA"
                             android:textSize="15sp" />
 
                     </com.google.android.material.textfield.TextInputLayout>

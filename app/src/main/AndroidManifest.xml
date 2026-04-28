@@ -1,8 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+    <!--
+        android:name=".App" tells Android to use our custom Application class.
+        This is what makes App.kt run on startup and register the
+        ActivityLifecycleCallbacks that handle automatic logout.
+        WITHOUT this line, App.kt is never instantiated and the fix won't work.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
 
     <application
+        android:name=".App"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -12,7 +28,27 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Pulserds_PROG7313">
         <activity
+            android:name=".ui.AddTransactionActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.ManageCategoriesActivity"
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <activity
             android:name=".ui.AnalyticsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.CategoryTotalsActivity"
             android:exported="false" />
         <activity
             android:name=".ui.AddSubscriptionActivity"
@@ -28,9 +64,6 @@
             android:exported="false" />
         <activity
             android:name=".ui.SettingsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.AddTransactionActivity"
             android:exported="false" />
         <activity
             android:name=".ui.TransactionsActivity"

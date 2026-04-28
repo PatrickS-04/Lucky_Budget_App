@@ -24,6 +24,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
+
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -31,6 +32,7 @@
                 android:paddingTop="40dp"
                 android:paddingEnd="20dp"
                 android:paddingBottom="16dp">
+
                 <TextView
                     android:id="@+id/backArrow"
                     android:layout_width="wrap_content"
@@ -44,6 +46,7 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
+
                 <TextView
                     android:id="@+id/headerTitle"
                     android:layout_width="wrap_content"
@@ -73,11 +76,13 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/headerCard">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:padding="6dp">
+
                 <TextView
                     android:id="@+id/expenseToggle"
                     android:layout_width="0dp"
@@ -91,6 +96,7 @@
                     android:textColor="#0D1B2A"
                     android:textSize="14sp"
                     android:textStyle="bold" />
+
                 <TextView
                     android:id="@+id/incomeToggle"
                     android:layout_width="0dp"
@@ -119,6 +125,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/typeToggleCard">
+
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -126,6 +133,7 @@
                 android:paddingTop="28dp"
                 android:paddingEnd="24dp"
                 android:paddingBottom="24dp">
+
                 <TextView
                     android:id="@+id/amountLabel"
                     android:layout_width="wrap_content"
@@ -138,6 +146,7 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
+
                 <LinearLayout
                     android:id="@+id/amountRow"
                     android:layout_width="wrap_content"
@@ -148,6 +157,7 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/amountLabel">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -156,6 +166,7 @@
                         android:textColor="#7A99B0"
                         android:textSize="32sp"
                         android:textStyle="bold" />
+
                     <EditText
                         android:id="@+id/amountInput"
                         android:layout_width="wrap_content"
@@ -171,6 +182,7 @@
                         android:textSize="48sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+
                 <View
                     android:id="@+id/amountUnderline"
                     android:layout_width="200dp"
@@ -196,6 +208,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/amountCard">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -213,6 +226,7 @@
                     android:textColor="@color/very_darkGreen"
                     android:textSize="11sp"
                     android:textStyle="bold" />
+
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/merchantInputLayout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -228,6 +242,7 @@
                     app:boxStrokeColor="#4ADE80"
                     app:boxStrokeWidth="1.5dp"
                     app:hintEnabled="false">
+
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/merchantEditText"
                         android:layout_width="match_parent"
@@ -237,60 +252,297 @@
                         android:inputType="textCapSentences"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/black"
                         android:textColorHint="#3D5A70"
                         android:textSize="15sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:letterSpacing="0.08"
-                    android:text="CATEGORY"
-                    android:textColor="@color/very_darkGreen"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-                <HorizontalScrollView
+                <!-- CATEGORY LABEL + MANAGE BUTTON -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:letterSpacing="0.08"
+                        android:text="CATEGORY"
+                        android:textColor="@color/very_darkGreen"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/manageCategoriesLink"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="4dp"
+                        android:text="+ Manage"
+                        android:textColor="@color/darkerGreen"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- CATEGORY DROPDOWN -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
                     android:layout_marginBottom="20dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/categoryDropdown"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@color/white"
+                        android:focusable="false"
+                        android:hint="Select a category"
+                        android:inputType="none"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="14dp"
+                        android:textColor="@color/black"
+                        android:textColorHint="#3D5A70"
+                        android:textSize="15sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- KEEP OLD HORIZONTAL SCROLL but hidden — prevents layout crashes -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:visibility="gone"
                     android:scrollbars="none">
+
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
-                        <LinearLayout android:id="@+id/catGroceries" android:layout_width="72dp" android:layout_height="72dp" android:layout_marginEnd="10dp" android:background="#0D2A1A" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:text="🛒" android:textSize="24sp" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="Groceries" android:textColor="#4ADE80" android:textSize="10sp" />
+
+                        <LinearLayout
+                            android:id="@+id/catGroceries"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:layout_marginEnd="10dp"
+                            android:background="#0D2A1A"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="🛒"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:text="Groceries"
+                                android:textColor="#4ADE80"
+                                android:textSize="10sp" />
                         </LinearLayout>
-                        <LinearLayout android:id="@+id/catDining" android:layout_width="72dp" android:layout_height="72dp" android:layout_marginEnd="10dp" android:background="#1A2A38" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:text="🍽️" android:textSize="24sp" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="Dining" android:textColor="#7A99B0" android:textSize="10sp" />
+
+                        <LinearLayout
+                            android:id="@+id/catDining"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:layout_marginEnd="10dp"
+                            android:background="#1A2A38"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="🍽️"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:text="Dining"
+                                android:textColor="#7A99B0"
+                                android:textSize="10sp" />
                         </LinearLayout>
-                        <LinearLayout android:id="@+id/catTransport" android:layout_width="72dp" android:layout_height="72dp" android:layout_marginEnd="10dp" android:background="#1A2A38" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:text="🚗" android:textSize="24sp" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="Transport" android:textColor="#7A99B0" android:textSize="10sp" />
+
+                        <LinearLayout
+                            android:id="@+id/catTransport"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:layout_marginEnd="10dp"
+                            android:background="#1A2A38"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="🚗"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:text="Transport"
+                                android:textColor="#7A99B0"
+                                android:textSize="10sp" />
                         </LinearLayout>
-                        <LinearLayout android:id="@+id/catEntertainment" android:layout_width="72dp" android:layout_height="72dp" android:layout_marginEnd="10dp" android:background="#1A2A38" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:text="🎮" android:textSize="24sp" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="Entertainment" android:textColor="#7A99B0" android:textSize="10sp" />
+
+                        <LinearLayout
+                            android:id="@+id/catEntertainment"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:layout_marginEnd="10dp"
+                            android:background="#1A2A38"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="🎮"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:text="Entertainment"
+                                android:textColor="#7A99B0"
+                                android:textSize="10sp" />
                         </LinearLayout>
-                        <LinearLayout android:id="@+id/catSubscriptions" android:layout_width="72dp" android:layout_height="72dp" android:layout_marginEnd="10dp" android:background="#1A2A38" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:text="📺" android:textSize="24sp" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="Subscriptions" android:textColor="#7A99B0" android:textSize="10sp" />
+
+                        <LinearLayout
+                            android:id="@+id/catSubscriptions"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:layout_marginEnd="10dp"
+                            android:background="#1A2A38"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="📺"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:text="Subscriptions"
+                                android:textColor="#7A99B0"
+                                android:textSize="10sp" />
                         </LinearLayout>
-                        <LinearLayout android:id="@+id/catUtilities" android:layout_width="72dp" android:layout_height="72dp" android:layout_marginEnd="10dp" android:background="#1A2A38" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:text="⚡" android:textSize="24sp" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="Utilities" android:textColor="#7A99B0" android:textSize="10sp" />
+
+                        <LinearLayout
+                            android:id="@+id/catUtilities"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:layout_marginEnd="10dp"
+                            android:background="#1A2A38"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="⚡"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:text="Utilities"
+                                android:textColor="#7A99B0"
+                                android:textSize="10sp" />
                         </LinearLayout>
-                        <LinearLayout android:id="@+id/catIncome" android:layout_width="72dp" android:layout_height="72dp" android:layout_marginEnd="10dp" android:background="#1A2A38" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:text="💼" android:textSize="24sp" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="Income" android:textColor="#7A99B0" android:textSize="10sp" />
+
+                        <LinearLayout
+                            android:id="@+id/catIncome"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:layout_marginEnd="10dp"
+                            android:background="#1A2A38"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="💼"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:text="Income"
+                                android:textColor="#7A99B0"
+                                android:textSize="10sp" />
                         </LinearLayout>
-                        <LinearLayout android:id="@+id/catInvest" android:layout_width="72dp" android:layout_height="72dp" android:background="#1A2A38" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:text="📈" android:textSize="24sp" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="Invest" android:textColor="#7A99B0" android:textSize="10sp" />
+
+                        <LinearLayout
+                            android:id="@+id/catInvest"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:background="#1A2A38"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="📈"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:text="Invest"
+                                android:textColor="#7A99B0"
+                                android:textSize="10sp" />
                         </LinearLayout>
                     </LinearLayout>
                 </HorizontalScrollView>
@@ -303,6 +555,7 @@
                     android:textColor="@color/very_darkGreen"
                     android:textSize="11sp"
                     android:textStyle="bold" />
+
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/accountInputLayout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -319,6 +572,7 @@
                     app:boxStrokeWidth="1.5dp"
                     app:endIconMode="dropdown_menu"
                     app:hintEnabled="false">
+
                     <AutoCompleteTextView
                         android:id="@+id/accountDropdown"
                         android:layout_width="match_parent"
@@ -328,7 +582,7 @@
                         android:inputType="none"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/black"
                         android:textColorHint="#3D5A70"
                         android:textSize="15sp" />
                 </com.google.android.material.textfield.TextInputLayout>
@@ -341,6 +595,7 @@
                     android:textColor="@color/very_darkGreen"
                     android:textSize="11sp"
                     android:textStyle="bold" />
+
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/dateInputLayout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -359,6 +614,7 @@
                     app:endIconMode="custom"
                     app:endIconTint="#4ADE80"
                     app:hintEnabled="false">
+
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/dateEditText"
                         android:layout_width="match_parent"
@@ -370,7 +626,7 @@
                         android:inputType="none"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/black"
                         android:textColorHint="#3D5A70"
                         android:textSize="15sp" />
                 </com.google.android.material.textfield.TextInputLayout>
@@ -383,6 +639,7 @@
                     android:textColor="@color/very_darkGreen"
                     android:textSize="11sp"
                     android:textStyle="bold" />
+
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/noteInputLayout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -400,6 +657,7 @@
                     app:counterMaxLength="120"
                     app:counterTextColor="@color/counterTextColor"
                     app:hintEnabled="false">
+
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/noteEditText"
                         android:layout_width="match_parent"
@@ -412,7 +670,7 @@
                         android:minLines="3"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/black"
                         android:textColorHint="#3D5A70"
                         android:textSize="15sp" />
                 </com.google.android.material.textfield.TextInputLayout>
@@ -601,6 +859,7 @@
                                 app:cardBackgroundColor="#0D2A1A"
                                 app:cardCornerRadius="6dp"
                                 app:cardElevation="0dp">
+
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
@@ -636,6 +895,7 @@
                                 app:cardElevation="0dp"
                                 android:clickable="true"
                                 android:focusable="true">
+
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
@@ -654,6 +914,7 @@
                                 app:cardElevation="0dp"
                                 android:clickable="true"
                                 android:focusable="true">
+
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
@@ -855,6 +1116,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/recurringCard">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -863,10 +1125,58 @@
                 android:paddingTop="12dp"
                 android:paddingEnd="20dp"
                 android:paddingBottom="12dp">
-                <TextView android:layout_width="0dp" android:layout_height="36dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="#122033" android:clickable="true" android:focusable="true" android:gravity="center" android:text="Daily" android:textColor="#7A99B0" android:textSize="13sp" />
-                <TextView android:layout_width="0dp" android:layout_height="36dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="#4ADE80" android:clickable="true" android:focusable="true" android:gravity="center" android:text="Weekly" android:textColor="#0D1B2A" android:textSize="13sp" android:textStyle="bold" />
-                <TextView android:layout_width="0dp" android:layout_height="36dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="#122033" android:clickable="true" android:focusable="true" android:gravity="center" android:text="Monthly" android:textColor="#7A99B0" android:textSize="13sp" />
-                <TextView android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:background="#122033" android:clickable="true" android:focusable="true" android:gravity="center" android:text="Yearly" android:textColor="#7A99B0" android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    android:background="#122033"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:text="Daily"
+                    android:textColor="#7A99B0"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    android:background="#4ADE80"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:text="Weekly"
+                    android:textColor="#0D1B2A"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    android:background="#122033"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:text="Monthly"
+                    android:textColor="#7A99B0"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:background="#122033"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:text="Yearly"
+                    android:textColor="#7A99B0"
+                    android:textSize="13sp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 

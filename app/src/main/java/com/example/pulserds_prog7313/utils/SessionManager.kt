@@ -8,26 +8,31 @@ class SessionManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
 
-    fun saveSession(userId: Int, username: String) {
+    // Called after a successful login - saves user data AND marks the session as active
+    fun saveSession(userId: Int, fullName: String, email: String) {
         prefs.edit()
             .putInt("USER_ID", userId)
-            .putString("USERNAME", username)
+            .putString("FULL_NAME", fullName)
+            .putString("EMAIL", email)
+            .putBoolean("IS_LOGGED_IN", true)
             .apply()
     }
 
-    fun getUserId(): Int {
-        return prefs.getInt("USER_ID", -1)
-    }
+    fun getUserId(): Int = prefs.getInt("USER_ID", -1)
 
-    fun getUsername(): String? {
-        return prefs.getString("USERNAME", null)
-    }
+    fun getFullName(): String? = prefs.getString("FULL_NAME", null)
 
-    fun isLoggedIn(): Boolean {
-        return getUserId() != -1
-    }
+    fun getEmail(): String? = prefs.getString("EMAIL", null)
 
+    fun isLoggedIn(): Boolean = prefs.getBoolean("IS_LOGGED_IN", false)
+
+    // Full logout - wipes everything from SharedPreferences.
     fun logout() {
         prefs.edit().clear().apply()
+    }
+
+    // Soft logout - only clears the IS_LOGGED_IN flag.
+    fun clearLoginFlag() {
+        prefs.edit().putBoolean("IS_LOGGED_IN", false).apply()
     }
 }

@@ -13,6 +13,9 @@ class CategoryViewModel(private val categoryRepository: CategoryRepository) : Vi
     private val _categories = MutableLiveData<List<Category>>()
     val categories: LiveData<List<Category>> get() = _categories
 
+    fun getCategoriesLive(userId: Int): LiveData<List<Category>> =
+        categoryRepository.getCategoriesForUserLive(userId)
+
     fun loadCategoriesForUser(userId: Int) {
         viewModelScope.launch {
             _categories.value = categoryRepository.getCategoriesForUser(userId)
@@ -31,5 +34,27 @@ class CategoryViewModel(private val categoryRepository: CategoryRepository) : Vi
             categoryRepository.deleteCategory(category)
             loadCategoriesForUser(category.userId)
         }
+    }
+
+    suspend fun seedDefaultCategories(userId: Int) {
+        if (userId == -1) return
+        val existingDefaults = categoryRepository.countDefaultsForUser(userId)
+        if (existingDefaults > 0) return
+
+        val defaults = listOf(
+            Category(userId = userId, name = "Groceries",     type = "EXPENSE", isDefault = true),
+            Category(userId = userId, name = "Dining Out",    type = "EXPENSE", isDefault = true),
+            Category(userId = userId, name = "Transport",     type = "EXPENSE", isDefault = true),
+            Category(userId = userId, name = "Entertainment", type = "EXPENSE", isDefault = true),
+            Category(userId = userId, name = "Subscriptions", type = "EXPENSE", isDefault = true),
+            Category(userId = userId, name = "Utilities",     type = "EXPENSE", isDefault = true),
+            Category(userId = userId, name = "Healthcare",    type = "EXPENSE", isDefault = true),
+            Category(userId = userId, name = "Shopping",      type = "EXPENSE", isDefault = true),
+            Category(userId = userId, name = "Salary",        type = "INCOME",  isDefault = true),
+            Category(userId = userId, name = "Investment",    type = "INCOME",  isDefault = true),
+            Category(userId = userId, name = "Freelance",     type = "INCOME",  isDefault = true),
+            Category(userId = userId, name = "Gift",          type = "BOTH",    isDefault = true)
+        )
+        defaults.forEach { categoryRepository.addCategory(it) }
     }
 }
