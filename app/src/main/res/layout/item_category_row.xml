@@ -47,6 +47,6 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Delete category"
             android:src="@android:drawable/ic_delete"
-            android:tint="#EF4444" />
+            app:tint="#EF4444" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>
