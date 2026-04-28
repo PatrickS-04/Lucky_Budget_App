@@ -3,6 +3,25 @@ package com.example.pulserds_prog7313.data
 import androidx.lifecycle.LiveData
 import androidx.room.*
 
+// Normalises a stored date to yyyy/MM/dd for correct lexicographic comparison.
+// Handles both formats that may exist in the database:
+//   yyyy-MM-dd  (e.g. "2026-04-28") — detected by a '-' or '/' at position 5
+//   dd/MM/yyyy  (e.g. "28/04/2026") — everything else
+private const val NORM_COL = """
+    CASE WHEN substr(date,5,1) IN ('-','/')
+         THEN substr(date,1,4)||'/'||substr(date,6,2)||'/'||substr(date,9,2)
+         ELSE substr(date,7,4)||'/'||substr(date,4,2)||'/'||substr(date,1,2)
+    END"""
+
+// Same normalisation for a bound parameter (:name becomes 7 repeated ? bindings
+// because Room doesn't support expressions in named parameters).
+// Use NORM_PARAM_START for :startDate and NORM_PARAM_END for :endDate.
+private const val NORM_PARAM = """
+    CASE WHEN substr(?,5,1) IN ('-','/')
+         THEN substr(?,1,4)||'/'||substr(?,6,2)||'/'||substr(?,9,2)
+         ELSE substr(?,7,4)||'/'||substr(?,4,2)||'/'||substr(?,1,2)
+    END"""
+
 @Dao
 interface ExpenseEntryDao {
     @Insert
@@ -11,44 +30,62 @@ interface ExpenseEntryDao {
     @Delete
     suspend fun delete(entry: ExpenseEntry)
 
-    @Query("SELECT * FROM expense_entries WHERE userId = :userId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC, id DESC")
+    @Query("""SELECT * FROM expense_entries
+        WHERE userId = :userId
+        AND ($NORM_COL) BETWEEN
+            (CASE WHEN substr(:startDate,5,1) IN ('-','/') THEN substr(:startDate,1,4)||'/'||substr(:startDate,6,2)||'/'||substr(:startDate,9,2) ELSE substr(:startDate,7,4)||'/'||substr(:startDate,4,2)||'/'||substr(:startDate,1,2) END)
+        AND (CASE WHEN substr(:endDate,5,1) IN ('-','/') THEN substr(:endDate,1,4)||'/'||substr(:endDate,6,2)||'/'||substr(:endDate,9,2) ELSE substr(:endDate,7,4)||'/'||substr(:endDate,4,2)||'/'||substr(:endDate,1,2) END)
+        ORDER BY ($NORM_COL) DESC, id DESC""")
     suspend fun getEntriesForPeriod(userId: Int, startDate: String, endDate: String): List<ExpenseEntry>
 
-    @Query("SELECT SUM(amount) FROM expense_entries WHERE userId = :userId AND categoryId = :categoryId AND date BETWEEN :startDate AND :endDate")
+    @Query("""SELECT SUM(amount) FROM expense_entries
+        WHERE userId = :userId AND categoryId = :categoryId
+        AND ($NORM_COL) BETWEEN
+            (CASE WHEN substr(:startDate,5,1) IN ('-','/') THEN substr(:startDate,1,4)||'/'||substr(:startDate,6,2)||'/'||substr(:startDate,9,2) ELSE substr(:startDate,7,4)||'/'||substr(:startDate,4,2)||'/'||substr(:startDate,1,2) END)
+        AND (CASE WHEN substr(:endDate,5,1) IN ('-','/') THEN substr(:endDate,1,4)||'/'||substr(:endDate,6,2)||'/'||substr(:endDate,9,2) ELSE substr(:endDate,7,4)||'/'||substr(:endDate,4,2)||'/'||substr(:endDate,1,2) END)""")
     suspend fun getTotalForCategory(userId: Int, categoryId: Int, startDate: String, endDate: String): Double
 
-    /** LiveData stream of ALL entries for a user - observed by TransactionsActivity */
-    @Query("SELECT * FROM expense_entries WHERE userId = :userId ORDER BY date DESC, id DESC")
+    @Query("SELECT * FROM expense_entries WHERE userId = :userId ORDER BY ($NORM_COL) DESC, id DESC")
     fun getAllEntriesLive(userId: Int): LiveData<List<ExpenseEntry>>
 
-    /** One-shot all entries - for search/filter in coroutine */
-    @Query("SELECT * FROM expense_entries WHERE userId = :userId ORDER BY date DESC, id DESC")
+    @Query("SELECT * FROM expense_entries WHERE userId = :userId ORDER BY ($NORM_COL) DESC, id DESC")
     suspend fun getAllEntriesOnce(userId: Int): List<ExpenseEntry>
 
-    /** Sum of positive amounts (income) for a user */
     @Query("SELECT COALESCE(SUM(amount), 0.0) FROM expense_entries WHERE userId = :userId AND amount > 0")
     suspend fun getTotalIncome(userId: Int): Double
 
-    /** Sum of negative amounts (expenses) for a user - returns a negative or zero value */
     @Query("SELECT COALESCE(SUM(amount), 0.0) FROM expense_entries WHERE userId = :userId AND amount < 0")
     suspend fun getTotalExpenses(userId: Int): Double
 
-    /** LiveData sum of income for period filters */
-    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM expense_entries WHERE userId = :userId AND amount > 0 AND date BETWEEN :startDate AND :endDate")
+    @Query("""SELECT COALESCE(SUM(amount), 0.0) FROM expense_entries
+        WHERE userId = :userId AND amount > 0
+        AND ($NORM_COL) BETWEEN
+            (CASE WHEN substr(:startDate,5,1) IN ('-','/') THEN substr(:startDate,1,4)||'/'||substr(:startDate,6,2)||'/'||substr(:startDate,9,2) ELSE substr(:startDate,7,4)||'/'||substr(:startDate,4,2)||'/'||substr(:startDate,1,2) END)
+        AND (CASE WHEN substr(:endDate,5,1) IN ('-','/') THEN substr(:endDate,1,4)||'/'||substr(:endDate,6,2)||'/'||substr(:endDate,9,2) ELSE substr(:endDate,7,4)||'/'||substr(:endDate,4,2)||'/'||substr(:endDate,1,2) END)""")
     fun getIncomeLive(userId: Int, startDate: String, endDate: String): LiveData<Double>
 
-    /** LiveData sum of expenses for period filters */
-    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM expense_entries WHERE userId = :userId AND amount < 0 AND date BETWEEN :startDate AND :endDate")
+    @Query("""SELECT COALESCE(SUM(amount), 0.0) FROM expense_entries
+        WHERE userId = :userId AND amount < 0
+        AND ($NORM_COL) BETWEEN
+            (CASE WHEN substr(:startDate,5,1) IN ('-','/') THEN substr(:startDate,1,4)||'/'||substr(:startDate,6,2)||'/'||substr(:startDate,9,2) ELSE substr(:startDate,7,4)||'/'||substr(:startDate,4,2)||'/'||substr(:startDate,1,2) END)
+        AND (CASE WHEN substr(:endDate,5,1) IN ('-','/') THEN substr(:endDate,1,4)||'/'||substr(:endDate,6,2)||'/'||substr(:endDate,9,2) ELSE substr(:endDate,7,4)||'/'||substr(:endDate,4,2)||'/'||substr(:endDate,1,2) END)""")
     fun getExpensesLive(userId: Int, startDate: String, endDate: String): LiveData<Double>
 
-    /** LiveData entries filtered by date range */
-    @Query("SELECT * FROM expense_entries WHERE userId = :userId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC, id DESC")
+    @Query("""SELECT * FROM expense_entries
+        WHERE userId = :userId
+        AND ($NORM_COL) BETWEEN
+            (CASE WHEN substr(:startDate,5,1) IN ('-','/') THEN substr(:startDate,1,4)||'/'||substr(:startDate,6,2)||'/'||substr(:startDate,9,2) ELSE substr(:startDate,7,4)||'/'||substr(:startDate,4,2)||'/'||substr(:startDate,1,2) END)
+        AND (CASE WHEN substr(:endDate,5,1) IN ('-','/') THEN substr(:endDate,1,4)||'/'||substr(:endDate,6,2)||'/'||substr(:endDate,9,2) ELSE substr(:endDate,7,4)||'/'||substr(:endDate,4,2)||'/'||substr(:endDate,1,2) END)
+        ORDER BY ($NORM_COL) DESC, id DESC""")
     fun getEntriesForPeriodLive(userId: Int, startDate: String, endDate: String): LiveData<List<ExpenseEntry>>
 
-    /** Sum of expenses (negative amounts) grouped by bankAccountId for a period */
-    @Query("SELECT bankAccountId, COALESCE(SUM(amount), 0.0) as total FROM expense_entries WHERE userId = :userId AND amount < 0 AND date BETWEEN :startDate AND :endDate GROUP BY bankAccountId")
+    @Query("""SELECT bankAccountId, COALESCE(SUM(amount), 0.0) as total FROM expense_entries
+        WHERE userId = :userId AND amount < 0
+        AND ($NORM_COL) BETWEEN
+            (CASE WHEN substr(:startDate,5,1) IN ('-','/') THEN substr(:startDate,1,4)||'/'||substr(:startDate,6,2)||'/'||substr(:startDate,9,2) ELSE substr(:startDate,7,4)||'/'||substr(:startDate,4,2)||'/'||substr(:startDate,1,2) END)
+        AND (CASE WHEN substr(:endDate,5,1) IN ('-','/') THEN substr(:endDate,1,4)||'/'||substr(:endDate,6,2)||'/'||substr(:endDate,9,2) ELSE substr(:endDate,7,4)||'/'||substr(:endDate,4,2)||'/'||substr(:endDate,1,2) END)
+        GROUP BY bankAccountId""")
     suspend fun getExpensesByAccount(userId: Int, startDate: String, endDate: String): List<AccountSpending>
 }
 
-/** Lightweight projection for per-account spending totals */
 data class AccountSpending(val bankAccountId: Int, val total: Double)
