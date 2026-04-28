@@ -96,12 +96,16 @@
                         app:strokeColor="#4ADE80"
                         app:strokeWidth="2dp">
 
+                        <!-- FIX: Use a proper TextView ID for avatar initials -->
                         <TextView
+                            android:id="@+id/avatarInitials"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:gravity="center"
                             android:text="👤"
-                            android:textSize="30sp" />
+                            android:textColor="#4ADE80"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
                     </androidx.cardview.widget.CardView>
 
                     <LinearLayout
@@ -205,7 +209,7 @@
                     android:paddingEnd="16dp"
                     android:paddingBottom="14dp">
 
-                    <!-- New Car Fund — completed goal row -->
+                    <!-- Completed goal row — IDs added to all data-bound views -->
                     <androidx.cardview.widget.CardView
                         android:id="@+id/completedGoalCarCard"
                         android:layout_width="match_parent"
@@ -219,7 +223,7 @@
                             android:layout_height="wrap_content"
                             android:padding="14dp">
 
-                            <!-- Car emoji badge -->
+                            <!-- Goal emoji badge — FIX: added ID -->
                             <androidx.cardview.widget.CardView
                                 android:id="@+id/carBadge"
                                 android:layout_width="48dp"
@@ -231,7 +235,9 @@
                                 app:layout_constraintStart_toStartOf="parent"
                                 app:layout_constraintTop_toTopOf="parent">
 
+                                <!-- FIX: added ID goalIcon -->
                                 <TextView
+                                    android:id="@+id/goalIcon"
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
                                     android:gravity="center"
@@ -239,7 +245,7 @@
                                     android:textSize="22sp" />
                             </androidx.cardview.widget.CardView>
 
-                            <!-- Goal name + detail -->
+                            <!-- FIX: added IDs goalName and goalDetail -->
                             <LinearLayout
                                 android:id="@+id/carGoalInfo"
                                 android:layout_width="0dp"
@@ -252,6 +258,7 @@
                                 app:layout_constraintTop_toTopOf="parent">
 
                                 <TextView
+                                    android:id="@+id/goalName"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text=""
@@ -260,6 +267,7 @@
                                     android:textStyle="bold" />
 
                                 <TextView
+                                    android:id="@+id/goalDetail"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
@@ -298,6 +306,7 @@
 
                     <!-- 100% progress bar -->
                     <ProgressBar
+                        android:id="@+id/goalProgressBar"
                         style="@style/Widget.AppCompat.ProgressBar.Horizontal"
                         android:layout_width="match_parent"
                         android:layout_height="8dp"
@@ -529,6 +538,7 @@
                                 android:textStyle="bold" />
 
                             <TextView
+                                android:id="@+id/passwordLastChanged"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
@@ -596,7 +606,6 @@
                             android:thumbTint="#4ADE80"
                             android:trackTint="#1A3248" />
                     </LinearLayout>
-
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -921,7 +930,9 @@
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
 
+                            <!-- FIX: added ID so the selected value can be updated from code -->
                             <TextView
+                                android:id="@+id/currencyValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"

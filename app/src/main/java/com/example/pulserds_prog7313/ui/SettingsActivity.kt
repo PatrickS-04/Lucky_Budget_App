@@ -37,7 +37,6 @@ class SettingsActivity : BaseActivity() {
     // -------------------------------------------------------------------------
     companion object {
         private const val PREFS_SETTINGS = "app_settings"
-        private const val KEY_BIOMETRIC  = "biometric_enabled"
         private const val KEY_2FA        = "two_factor_enabled"
         private const val KEY_OVERSPEND  = "overspend_alerts"
         private const val KEY_SUB_REMIND = "sub_reminders"
@@ -140,25 +139,12 @@ class SettingsActivity : BaseActivity() {
             showChangePasswordDialog()
         }
 
-        // Auto Lock row
-        findViewById<LinearLayout>(R.id.autoLockRow).setOnClickListener {
-            showAutoLockDialog()
-        }
-
         // ─────────────────────────────────────────────────────────────────────
         // SECURITY — Switches (persisted in SharedPreferences)
         // ─────────────────────────────────────────────────────────────────────
-        val biometricSwitch = findViewById<Switch>(R.id.biometricSwitch)
         val twoFactorSwitch = findViewById<Switch>(R.id.twoFactorSwitch)
 
-        biometricSwitch.isChecked = settingsPrefs.getBoolean(KEY_BIOMETRIC, true)
         twoFactorSwitch.isChecked = settingsPrefs.getBoolean(KEY_2FA, false)
-
-        biometricSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean(KEY_BIOMETRIC, isChecked).apply()
-            val msg = if (isChecked) "Biometric login enabled" else "Biometric login disabled"
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-        }
 
         twoFactorSwitch.setOnCheckedChangeListener { _, isChecked ->
             settingsPrefs.edit().putBoolean(KEY_2FA, isChecked).apply()
@@ -213,17 +199,6 @@ class SettingsActivity : BaseActivity() {
 
         findViewById<LinearLayout>(R.id.languageRow).setOnClickListener {
             Toast.makeText(this, "Language: English (South Africa)", Toast.LENGTH_SHORT).show()
-        }
-
-        findViewById<LinearLayout>(R.id.tutorialRow).setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("Replay Tutorial")
-                .setMessage("This would restart the app walkthrough from the beginning.")
-                .setPositiveButton("Replay") { _, _ ->
-                    Toast.makeText(this, "Tutorial restarted", Toast.LENGTH_SHORT).show()
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -450,25 +425,6 @@ class SettingsActivity : BaseActivity() {
                         }
                     }
                 }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Auto Lock dialog
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun showAutoLockDialog() {
-        val options = arrayOf("1 minute", "5 minutes", "15 minutes", "30 minutes", "Never")
-        val settingsPrefs = getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE)
-        val currentIndex  = settingsPrefs.getInt("auto_lock_index", 1) // default: 5 min
-
-        AlertDialog.Builder(this)
-            .setTitle("Auto Lock After")
-            .setSingleChoiceItems(options, currentIndex) { dialog, which ->
-                settingsPrefs.edit().putInt("auto_lock_index", which).apply()
-                Toast.makeText(this, "Auto lock set to: ${options[which]}", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
             }
             .setNegativeButton("Cancel", null)
             .show()
