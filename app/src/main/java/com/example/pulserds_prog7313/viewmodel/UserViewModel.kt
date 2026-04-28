@@ -17,4 +17,8 @@ class UserViewModel(private val userRepository: UserRepository) : ViewModel() {
     suspend fun getUserByEmail(email: String): User? {
         return userRepository.getUserByEmail(email)
     }
+
+    suspend fun updateUser(user: User) {
+        userRepository.updateUser(user)
+    }
 }

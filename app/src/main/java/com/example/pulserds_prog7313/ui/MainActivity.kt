@@ -48,6 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etPassword: TextInputEditText
     private lateinit var btnLogin: Button
     private lateinit var tvSignUp: TextView
+    private lateinit var tvForgotPassword: TextView
 
     private lateinit var userViewModel: UserViewModel
     private lateinit var sessionManager: SessionManager
@@ -91,6 +92,7 @@ class MainActivity : AppCompatActivity() {
         etPassword  = findViewById(R.id.etPassword)
         btnLogin    = findViewById(R.id.btnLogin)
         tvSignUp    = findViewById(R.id.tvSignUp)
+        tvForgotPassword = findViewById(R.id.forgotPasswordText)
     }
 
     // -------------------------------------------------------------------------
@@ -140,6 +142,10 @@ class MainActivity : AppCompatActivity() {
 
         tvSignUp.setOnClickListener {
             startActivity(Intent(this, CreateAccActivity::class.java))
+        }
+
+        tvForgotPassword.setOnClickListener {
+            startActivity(Intent(this, ForgotPasswordActivity::class.java))
         }
     }
 

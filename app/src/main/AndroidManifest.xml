@@ -81,6 +81,9 @@
             android:name=".ui.CreateAccActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.ForgotPasswordActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.MainActivity"
             android:exported="true">
             <intent-filter>
