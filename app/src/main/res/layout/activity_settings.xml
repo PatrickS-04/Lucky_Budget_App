@@ -562,58 +562,6 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="14dp"
-                            android:text="🫆"
-                            android:textSize="20sp" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Biometric Login"
-                                android:textColor="@color/backgroundGreen"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Use fingerprint or face ID to sign in"
-                                android:textColor="@color/very_darkGreen"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <Switch
-                            android:id="@+id/biometricSwitch"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:checked="true"
-                            android:thumbTint="#4ADE80"
-                            android:trackTint="#0D2A1A" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="#1A3248" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="14dp"
                             android:text="🛡️"
                             android:textSize="20sp" />
 
@@ -649,59 +597,6 @@
                             android:trackTint="#1A3248" />
                     </LinearLayout>
 
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="#1A3248" />
-
-                    <LinearLayout
-                        android:id="@+id/autoLockRow"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="14dp"
-                            android:text="⏱️"
-                            android:textSize="20sp" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Auto Lock"
-                                android:textColor="@color/backgroundGreen"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Lock app after 5 minutes of inactivity"
-                                android:textColor="@color/very_darkGreen"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="›"
-                            android:textColor="#7A99B0"
-                            android:textSize="22sp" />
-                    </LinearLayout>
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
