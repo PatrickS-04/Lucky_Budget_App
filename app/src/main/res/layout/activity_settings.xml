@@ -1149,60 +1149,6 @@
                             android:trackTint="#0D2A1A" />
                     </LinearLayout>
 
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="#1A3248" />
-
-                    <LinearLayout
-                        android:id="@+id/tutorialRow"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="14dp"
-                            android:text="📖"
-                            android:textSize="20sp" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Replay Tutorial"
-                                android:textColor="@color/backgroundGreen"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Revisit the app walkthrough anytime"
-                                android:textColor="@color/very_darkGreen"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="›"
-                            android:textColor="#7A99B0"
-                            android:textSize="22sp" />
-                    </LinearLayout>
-
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -1530,10 +1476,6 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- ═══════════════════════════════════════ -->
-            <!--           BOTTOM NAV BAR                -->
-            <!-- ═══════════════════════════════════════ -->
-
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.core.widget.NestedScrollView>
@@ -1545,8 +1487,7 @@
         android:layout_height="wrap_content"
         app:cardBackgroundColor="#0A1520"
         app:cardCornerRadius="0dp"
-        app:cardElevation="12dp"
-        >
+        app:cardElevation="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -1693,6 +1634,5 @@
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
-
 
 </RelativeLayout>
