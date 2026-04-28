@@ -15,19 +15,23 @@ import com.example.pulserds_prog7313.data.SavingsGoal
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+// Displays a compact list of savings goals in the dashboard summary card.
 class DashSavingsAdapter :
     ListAdapter<SavingsGoal, DashSavingsAdapter.GoalViewHolder>(DIFF) {
 
+    // -- ViewHolder creation ---------------------------------------------------
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GoalViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_dash_savings_row, parent, false)
         return GoalViewHolder(view)
     }
 
+    // -- ViewHolder binding ----------------------------------------------------
     override fun onBindViewHolder(holder: GoalViewHolder, position: Int) {
         holder.bind(getItem(position), isLast = position == itemCount - 1)
     }
 
+    // -- ViewHolder ------------------------------------------------------------
     inner class GoalViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val icon: TextView          = itemView.findViewById(R.id.dashGoalIcon)
         private val name: TextView          = itemView.findViewById(R.id.dashGoalName)
@@ -40,6 +44,7 @@ class DashSavingsAdapter :
             icon.text = goal.icon.ifBlank { "🏦" }
             name.text = goal.name
 
+            // Calculate progress percentage and remaining amount
             val saved  = goal.savedAmount
             val target = goal.targetAmount
             val pct    = if (target > 0) min((saved / target * 100).roundToInt(), 100) else 0
@@ -48,6 +53,7 @@ class DashSavingsAdapter :
             amounts.text = "R %,.0f / R %,.0f".format(saved, target)
             progressBar.progress = pct
 
+            // Colour-code the progress bar and label based on how close the goal is to completion
             val (barHex, labelHex, labelText) = when {
                 pct >= 90 -> Triple("#22C55E", "#22C55E", "$pct% — almost there! 🔥")
                 pct >= 50 -> Triple("#4ADE80", "#4ADE80", "$pct% reached")
@@ -57,10 +63,12 @@ class DashSavingsAdapter :
             percent.text = labelText
             percent.setTextColor(Color.parseColor(labelHex))
 
+            // Hide the divider after the last item to avoid a trailing line
             divider.visibility = if (isLast) View.GONE else View.VISIBLE
         }
     }
 
+    // -- DiffUtil callback -----------------------------------------------------
     companion object {
         private val DIFF = object : DiffUtil.ItemCallback<SavingsGoal>() {
             override fun areItemsTheSame(a: SavingsGoal, b: SavingsGoal) = a.id == b.id

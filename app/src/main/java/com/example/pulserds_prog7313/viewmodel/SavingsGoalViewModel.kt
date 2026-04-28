@@ -11,17 +11,19 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-// MVVM ViewModel — based off the official google documents
+// MVVM ViewModel -- based off the official google documents
 // [2] Google, "ViewModel overview," Android Developers, 2024.
 // [7] Google, AndroidX Lifecycle ViewModel KTX, ver. 2.8.4. [Software]. Android Developers, 2024.
 class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel() {
 
+    // -- Result sealed class ---------------------------------------------------
     sealed class GoalResult {
         object Success    : GoalResult()
         object FundsAdded : GoalResult()
         data class Error(val message: String) : GoalResult()
     }
 
+    // -- LiveData --------------------------------------------------------------
     private val _totalSaved  = MutableLiveData(0.0)
     val totalSaved: LiveData<Double> get() = _totalSaved
 
@@ -33,8 +35,9 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
     private val _saveResult = SingleLiveEvent<GoalResult>()
     val saveResult: LiveData<GoalResult> get() = _saveResult
 
-    fun consumeResult() { /* no-op — SingleLiveEvent self-consumes */ }
+    fun consumeResult() { /* no-op -- SingleLiveEvent self-consumes */ }
 
+    // -- Data access -----------------------------------------------------------
     fun getAllGoalsLive(userId: Int): LiveData<List<SavingsGoal>> =
         repo.getAllGoalsLive(userId)
 
@@ -45,6 +48,7 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
         }
     }
 
+    // -- Create goal -----------------------------------------------------------
     fun createGoal(
         userId         : Int,
         name           : String,
@@ -57,7 +61,7 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
         autoSaveAmount : Double,
         autoSaveFreq   : String
     ) {
-        // Validation runs on main thread — use setValue() directly as a method call
+        // Validation runs on main thread -- use setValue() directly as a method call
         when {
             name.isBlank() -> {
                 _saveResult.setValue(GoalResult.Error("Please enter a goal name."))
@@ -99,7 +103,7 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
             completedDate     = if (completed) now else ""
         )
 
-        // DB insert runs on a background thread — use postValue()
+        // DB insert runs on a background thread -- use postValue()
         viewModelScope.launch {
             val id = repo.insert(goal)
             if (id > 0) {
@@ -111,6 +115,7 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
         }
     }
 
+    // -- Add funds -------------------------------------------------------------
     fun addFunds(goalId: Int, amount: Double, userId: Int) {
         if (amount <= 0) {
             _saveResult.setValue(GoalResult.Error("Please enter a valid amount."))
@@ -124,6 +129,7 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
         }
     }
 
+    // -- Delete goal -----------------------------------------------------------
     fun deleteGoal(goal: SavingsGoal, userId: Int) {
         viewModelScope.launch {
             repo.delete(goal)

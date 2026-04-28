@@ -12,8 +12,12 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class SingleLiveEvent<T> : MutableLiveData<T>() {
 
+    // -- Pending flag ----------------------------------------------------------
+    // AtomicBoolean ensures thread-safe read-and-clear in compareAndSet()
     private val pending = AtomicBoolean(false)
 
+    // -- Observer --------------------------------------------------------------
+    // Wraps the caller's observer so it only fires when a new value is pending
     override fun observe(owner: LifecycleOwner, observer: Observer<in T>) {
         super.observe(owner) { value ->
             if (pending.compareAndSet(true, false)) {
@@ -22,6 +26,10 @@ class SingleLiveEvent<T> : MutableLiveData<T>() {
         }
     }
 
+    // -- setValue / postValue --------------------------------------------------
+    // Both set the pending flag before delegating to MutableLiveData,
+    // ensuring the event is consumed exactly once regardless of which
+    // thread posts the value.
     override fun setValue(value: T) {
         pending.set(true)
         super.setValue(value)

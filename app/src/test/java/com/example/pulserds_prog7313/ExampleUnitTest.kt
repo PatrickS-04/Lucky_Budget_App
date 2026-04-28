@@ -8,17 +8,19 @@ import com.example.pulserds_prog7313.data.User
 import org.junit.Assert.*
 import org.junit.Test
 
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 // User model tests
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 class UserModelTest {
 
+    // Verifies that the default id assigned to a new User is 0
     @Test
     fun `user has correct default id of zero`() {
         val user = User(fullName = "Jane Doe", email = "jane@example.com", passwordHash = "hashed123")
         assertEquals(0, user.id)
     }
 
+    // Two users with identical fields but different ids must not be considered equal
     @Test
     fun `two users with same data but different ids are not equal`() {
         val user1 = User(id = 1, fullName = "Jane Doe", email = "jane@example.com", passwordHash = "hashed123")
@@ -26,6 +28,7 @@ class UserModelTest {
         assertNotEquals(user1, user2)
     }
 
+    // copy() must return a new instance with the changed field while leaving the original intact
     @Test
     fun `user copy produces independent instance with updated field`() {
         val original = User(id = 1, fullName = "Jane Doe", email = "jane@example.com", passwordHash = "hash")
@@ -35,11 +38,12 @@ class UserModelTest {
     }
 }
 
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 // BankAccount model tests
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 class BankAccountModelTest {
 
+    // -- Helper ---------------------------------------------------------------
     private fun makeAccount(
         balance: Double = 1000.0,
         includeInTotal: Boolean = true,
@@ -54,6 +58,8 @@ class BankAccountModelTest {
         includeInTotal = includeInTotal,
         isPrimary = isPrimary
     )
+
+    // -- Default value tests --------------------------------------------------
 
     @Test
     fun `default balance is zero when not provided`() {
@@ -82,6 +88,9 @@ class BankAccountModelTest {
         assertFalse(account.isPrimary)
     }
 
+    // -- Business logic tests -------------------------------------------------
+
+    // Only accounts with includeInTotal = true should contribute to the dashboard total
     @Test
     fun `sum of included accounts matches dashboard total`() {
         val accounts = listOf(
@@ -93,6 +102,7 @@ class BankAccountModelTest {
         assertEquals(2000.0, dashboardTotal, 0.001)
     }
 
+    // Exactly one account in the list should be flagged as primary
     @Test
     fun `only one account should be primary`() {
         val accounts = listOf(
@@ -105,11 +115,12 @@ class BankAccountModelTest {
     }
 }
 
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 // SavingsGoal model tests
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 class SavingsGoalModelTest {
 
+    // -- Helper ---------------------------------------------------------------
     private fun makeGoal(
         targetAmount: Double = 10_000.0,
         savedAmount: Double = 0.0,
@@ -121,6 +132,8 @@ class SavingsGoalModelTest {
         savedAmount = savedAmount,
         isCompleted = isCompleted
     )
+
+    // -- Progress calculation tests -------------------------------------------
 
     @Test
     fun `progress percentage is zero when nothing saved`() {
@@ -136,6 +149,7 @@ class SavingsGoalModelTest {
         assertEquals(50.0, progress, 0.001)
     }
 
+    // Progress must be capped at 100 even when savedAmount exceeds targetAmount
     @Test
     fun `progress percentage does not exceed 100 when over-funded`() {
         val goal = makeGoal(targetAmount = 1_000.0, savedAmount = 1_500.0)
@@ -149,6 +163,8 @@ class SavingsGoalModelTest {
         val remaining = maxOf(goal.targetAmount - goal.savedAmount, 0.0)
         assertEquals(0.0, remaining, 0.001)
     }
+
+    // -- Default value tests --------------------------------------------------
 
     @Test
     fun `default icon is bank emoji`() {
@@ -169,11 +185,12 @@ class SavingsGoalModelTest {
     }
 }
 
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 // ExpenseEntry model tests
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 class ExpenseEntryModelTest {
 
+    // -- Helper ---------------------------------------------------------------
     private fun makeEntry(amount: Double = 150.0, categoryId: Int = 1) = ExpenseEntry(
         userId = 1,
         categoryId = categoryId,
@@ -183,6 +200,8 @@ class ExpenseEntryModelTest {
         endTime = "09:00",
         description = "Test expense"
     )
+
+    // -- Default value tests --------------------------------------------------
 
     @Test
     fun `photoPath is null by default`() {
@@ -196,6 +215,8 @@ class ExpenseEntryModelTest {
         assertEquals(0, entry.bankAccountId)
     }
 
+    // -- Aggregation tests ----------------------------------------------------
+
     @Test
     fun `total of multiple expenses sums correctly`() {
         val entries = listOf(makeEntry(50.0), makeEntry(75.50), makeEntry(24.50))
@@ -203,6 +224,7 @@ class ExpenseEntryModelTest {
         assertEquals(150.0, total, 0.001)
     }
 
+    // Filtering by categoryId and summing should return only matching entries
     @Test
     fun `filtering entries by category returns correct subset`() {
         val entries = listOf(
@@ -215,10 +237,12 @@ class ExpenseEntryModelTest {
     }
 }
 
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 // Category model tests
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 class CategoryModelTest {
+
+    // -- Default value tests --------------------------------------------------
 
     @Test
     fun `default category type is BOTH`() {
@@ -232,6 +256,9 @@ class CategoryModelTest {
         assertFalse(cat.isDefault)
     }
 
+    // -- Filtering tests ------------------------------------------------------
+
+    // Only categories flagged isDefault = true should be returned by the default filter
     @Test
     fun `only default categories are filtered correctly`() {
         val categories = listOf(
@@ -243,6 +270,7 @@ class CategoryModelTest {
         assertEquals(2, defaultCats.size)
     }
 
+    // EXPENSE and BOTH categories should both appear in the expense dropdown
     @Test
     fun `expense categories are filtered correctly`() {
         val categories = listOf(

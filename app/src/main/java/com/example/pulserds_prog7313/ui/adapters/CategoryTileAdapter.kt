@@ -17,7 +17,7 @@ import com.example.pulserds_prog7313.data.Category
  * hard-coded layout so the visual design is preserved regardless of how many categories
  * the user has created.
  *
- * Once ExpenseEntry totals are wired up, pass a Map<Int, Double> (categoryId → total)
+ * Once ExpenseEntry totals are wired up, pass a Map<Int, Double> (categoryId -> total)
  * into [submitCategories] and the tile amount will update automatically.
  */
 class CategoryTileAdapter(
@@ -59,7 +59,7 @@ class CategoryTileAdapter(
         )
     }
 
-    // ─── ViewHolder ────────────────────────────────────────────────────────────
+    // --- ViewHolder -----------------------------------------------------------
 
     inner class TileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val cardView = itemView as androidx.cardview.widget.CardView
@@ -76,13 +76,13 @@ class CategoryTileAdapter(
 
             name.text = category.name
 
-            // Format amount — shows "R 0" until expense totals are available
+            // Format amount -- shows "R 0" until expense totals are available
             amount.text = if (total == 0.0) "R 0" else "R ${"%,.0f".format(total)}"
             amount.setTextColor(android.graphics.Color.parseColor(amountColor))
         }
     }
 
-    // ─── Helpers ───────────────────────────────────────────────────────────────
+    // --- Helpers --------------------------------------------------------------
 
     /**
      * Returns a best-guess emoji for well-known category names.
@@ -108,7 +108,7 @@ class CategoryTileAdapter(
         }
     }
 
-    // ─── DiffUtil ──────────────────────────────────────────────────────────────
+    // --- DiffUtil -------------------------------------------------------------
 
     companion object {
         private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<Category>() {

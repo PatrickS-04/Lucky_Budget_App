@@ -11,7 +11,7 @@ class DonutChartView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    // No hardcoded defaults — starts empty until real data is pushed in
+    // No hardcoded defaults -- starts empty until real data is pushed in
     private val _segments = mutableListOf<Pair<Float, Int>>()
 
     private var centerLine1: String = ""
@@ -99,13 +99,13 @@ class DonutChartView @JvmOverloads constructor(
             }
         }
 
-        // Punch a transparent hole in the centre — CLEAR mode erases the ring pixels,
+        // Punch a transparent hole in the centre -- CLEAR mode erases the ring pixels,
         // letting the card's orange background show through naturally.
         // Hole inner edge = centre of stroke - half stroke width = radius - strokeWidth/2
         val holeRadius = radius - strokeWidth / 2f - 2f
         canvas.drawCircle(cx, cy, holeRadius, holePaint)
 
-        // Centre text — drawn AFTER the hole so text sits on top of transparency
+        // Centre text -- drawn AFTER the hole so text sits on top of transparency
         if (centerLine1.isNotEmpty()) {
             val holeDiameter = holeRadius * 2f
             val mainTextSize = holeDiameter * 0.20f

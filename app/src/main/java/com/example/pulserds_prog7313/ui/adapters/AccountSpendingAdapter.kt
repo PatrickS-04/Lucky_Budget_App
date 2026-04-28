@@ -22,10 +22,13 @@ import com.example.pulserds_prog7313.data.BankAccount
 class AccountSpendingAdapter :
     ListAdapter<BankAccount, AccountSpendingAdapter.AccountViewHolder>(DIFF_CALLBACK) {
 
-    /** bankAccountId → absolute amount spent this period */
+    // -- State -----------------------------------------------------------------
+
+    /** bankAccountId -> absolute amount spent this period */
     private var spending: Map<Int, Double> = emptyMap()
     private var grandTotal: Double = 1.0
 
+    // -- Data submission -------------------------------------------------------
     fun submitData(accounts: List<BankAccount>, accountSpending: List<AccountSpending>) {
         spending = accountSpending.associate { it.bankAccountId to kotlin.math.abs(it.total) }
         grandTotal = spending.values.sumOf { it }.takeIf { it > 0.0 } ?: 1.0
@@ -36,12 +39,14 @@ class AccountSpendingAdapter :
         submitList(active)
     }
 
+    // -- ViewHolder creation ---------------------------------------------------
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AccountViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_account_spending_row, parent, false)
         return AccountViewHolder(view)
     }
 
+    // -- ViewHolder binding ----------------------------------------------------
     override fun onBindViewHolder(holder: AccountViewHolder, position: Int) {
         val account = getItem(position)
         val spent = spending[account.id] ?: 0.0
@@ -49,6 +54,7 @@ class AccountSpendingAdapter :
         holder.bind(account, spent, pct)
     }
 
+    // -- ViewHolder ------------------------------------------------------------
     inner class AccountViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val dot: View        = itemView.findViewById(R.id.accountColourDot)
         private val name: TextView   = itemView.findViewById(R.id.accountName)
@@ -56,6 +62,7 @@ class AccountSpendingAdapter :
         private val bar: ProgressBar = itemView.findViewById(R.id.accountProgress)
 
         fun bind(account: BankAccount, spent: Double, pct: Int) {
+            // Fall back to a dark green if the stored colour string is invalid
             val colour = try { Color.parseColor(account.colour) } catch (e: Exception) { Color.parseColor("#1A3A2A") }
 
             dot.setBackgroundColor(colour)
@@ -67,6 +74,7 @@ class AccountSpendingAdapter :
         }
     }
 
+    // -- DiffUtil callback -----------------------------------------------------
     companion object {
         private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<BankAccount>() {
             override fun areItemsTheSame(old: BankAccount, new: BankAccount) = old.id == new.id

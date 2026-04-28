@@ -17,13 +17,13 @@ import com.example.pulserds_prog7313.data.Category
  * Spending Breakdown card.
  *
  * Usage:
- *   1. Set [totals] (categoryId → amount spent) via [submitData].
+ *   1. Set [totals] (categoryId -> amount spent) via [submitData].
  *   2. The adapter computes the percentage of each category against the grand total
  *      and drives the [ProgressBar] accordingly.
  */
 class SpendingRowAdapter : ListAdapter<Category, SpendingRowAdapter.RowViewHolder>(DIFF_CALLBACK) {
 
-    // categoryId → total amount spent; updated together with the category list
+    // categoryId -> total amount spent; updated together with the category list
     private var totals: Map<Int, Double> = emptyMap()
 
     // Cached so the adapter can compute percentage in onBindViewHolder without re-summing each time
@@ -56,7 +56,7 @@ class SpendingRowAdapter : ListAdapter<Category, SpendingRowAdapter.RowViewHolde
         holder.bind(category, spent, pct, tint)
     }
 
-    // ─── ViewHolder ────────────────────────────────────────────────────────────
+    // --- ViewHolder -----------------------------------------------------------
 
     inner class RowViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val icon: TextView = itemView.findViewById(R.id.rowIcon)
@@ -78,7 +78,7 @@ class SpendingRowAdapter : ListAdapter<Category, SpendingRowAdapter.RowViewHolde
         }
     }
 
-    // ─── Helpers ───────────────────────────────────────────────────────────────
+    // --- Helpers --------------------------------------------------------------
 
     private fun emojiForCategory(name: String): String {
         val lower = name.lowercase()
@@ -100,7 +100,7 @@ class SpendingRowAdapter : ListAdapter<Category, SpendingRowAdapter.RowViewHolde
         }
     }
 
-    // ─── DiffUtil ──────────────────────────────────────────────────────────────
+    // --- DiffUtil -------------------------------------------------------------
 
     companion object {
         private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<Category>() {

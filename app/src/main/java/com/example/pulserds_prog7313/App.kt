@@ -10,7 +10,7 @@ import com.example.pulserds_prog7313.utils.SessionManager
 class App : Application() {
 
     // Counts how many activities are currently visible/started.
-    // When this drops to 0, no screen in the app is open → user has left the app.
+    // When this drops to 0, no screen in the app is open -> user has left the app.
     private var activityCount = 0
 
     override fun onCreate() {
@@ -35,7 +35,7 @@ class App : Application() {
                 }
             }
 
-            // ── Required interface methods — no logic needed here ──────────────
+            // -- Required interface methods -- no logic needed here ------------
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
             override fun onActivityResumed(activity: Activity) {}
             override fun onActivityPaused(activity: Activity) {}

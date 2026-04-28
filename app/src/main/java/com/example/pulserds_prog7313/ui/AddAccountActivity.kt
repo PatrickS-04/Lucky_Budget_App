@@ -21,16 +21,16 @@ import com.google.android.material.textfield.TextInputLayout
 
 class AddAccountActivity : AppCompatActivity() {
 
-    // ── ViewModel ─────────────────────────────────────────────────────────────
+    // -- ViewModel -------------------------------------------------------------
     private lateinit var viewModel: BankAccountViewModel
     private var userId = -1
 
-    // ── Selection state ───────────────────────────────────────────────────────
+    // -- Selection state -------------------------------------------------------
     private var selectedAccountType = ""
     private var selectedBank        = ""
     private var selectedColour      = "#4ADE80"   // default green
 
-    // ── Account-type buttons ──────────────────────────────────────────────────
+    // -- Account-type buttons --------------------------------------------------
     private lateinit var typeCheque  : LinearLayout
     private lateinit var typeSavings : LinearLayout
     private lateinit var typeCredit  : LinearLayout
@@ -46,7 +46,7 @@ class AddAccountActivity : AppCompatActivity() {
         "typeInvest"  to "Invest",
         "typeWallet"  to "Wallet")
 
-    // ── Bank buttons ──────────────────────────────────────────────────────────
+    // -- Bank buttons ----------------------------------------------------------
     private lateinit var bankStandard : LinearLayout
     private lateinit var bankFNB      : LinearLayout
     private lateinit var bankAbsa     : LinearLayout
@@ -58,14 +58,14 @@ class AddAccountActivity : AppCompatActivity() {
     private val bankButtons get() = listOf(bankStandard, bankFNB, bankAbsa, bankNedbank,
         bankCapitec, bankInvestec, bankBinance, bankOther)
 
-    // ── Input fields ──────────────────────────────────────────────────────────
+    // -- Input fields ----------------------------------------------------------
     private lateinit var nicknameLayout      : TextInputLayout
     private lateinit var nicknameEditText    : TextInputEditText
     private lateinit var accountNumberLayout : TextInputLayout
     private lateinit var accountNumberEditText: TextInputEditText
     private lateinit var balanceEditText     : TextInputEditText
 
-    // ── Colour swatches ───────────────────────────────────────────────────────
+    // -- Colour swatches -------------------------------------------------------
     private lateinit var colourGreen  : View
     private lateinit var colourBlue   : View
     private lateinit var colourYellow : View
@@ -81,22 +81,22 @@ class AddAccountActivity : AppCompatActivity() {
         colourOrange to "#FB923C"
     )
 
-    // ── Toggles ───────────────────────────────────────────────────────────────
+    // -- Toggles ---------------------------------------------------------------
     private lateinit var includeInTotalSwitch  : Switch
     private lateinit var primaryAccountSwitch  : Switch
 
-    // ── Preview views ─────────────────────────────────────────────────────────
+    // -- Preview views ---------------------------------------------------------
     private lateinit var previewDot     : View
     private lateinit var previewName    : TextView
     private lateinit var previewType    : TextView
     private lateinit var previewBalance : TextView
 
-    // ── Buttons ───────────────────────────────────────────────────────────────
+    // -- Buttons ---------------------------------------------------------------
     private lateinit var addAccountButton : MaterialButton
     private lateinit var cancelButton     : TextView
     private lateinit var backArrow        : TextView
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -118,7 +118,7 @@ class AddAccountActivity : AppCompatActivity() {
         observeResults()
     }
 
-    // ── ViewModel setup ───────────────────────────────────────────────────────
+    // -- ViewModel setup -------------------------------------------------------
     private fun setupViewModel() {
         userId = SessionManager(this).getUserId()
         val dao    = AppDatabase.getDatabase(this).bankAccountDao()
@@ -127,7 +127,7 @@ class AddAccountActivity : AppCompatActivity() {
             .get(BankAccountViewModel::class.java)
     }
 
-    // ── View binding ──────────────────────────────────────────────────────────
+    // -- View binding ----------------------------------------------------------
     private fun bindViews() {
         typeCheque  = findViewById(R.id.typeCheque)
         typeSavings = findViewById(R.id.typeSavings)
@@ -171,7 +171,7 @@ class AddAccountActivity : AppCompatActivity() {
         backArrow        = findViewById(R.id.backArrow)
     }
 
-    // ── Account-type tile selection ───────────────────────────────────────────
+    // -- Account-type tile selection -------------------------------------------
     private fun setupTypeSelection() {
         val tagMap = mapOf(
             typeCheque  to "Cheque",
@@ -193,7 +193,7 @@ class AddAccountActivity : AppCompatActivity() {
         typeCheque.performClick()
     }
 
-    // ── Bank tile selection ───────────────────────────────────────────────────
+    // -- Bank tile selection ---------------------------------------------------
     private fun setupBankSelection() {
         val bankMap = mapOf(
             bankStandard to "Standard Bank",
@@ -217,7 +217,7 @@ class AddAccountActivity : AppCompatActivity() {
         bankStandard.performClick()
     }
 
-    // ── Colour swatch selection ───────────────────────────────────────────────
+    // -- Colour swatch selection -----------------------------------------------
     private fun setupColourSelection() {
         colourMap.forEach { (view, hex) ->
             view.setOnClickListener {
@@ -231,7 +231,7 @@ class AddAccountActivity : AppCompatActivity() {
         colourGreen.alpha  = 1f   // default selected
     }
 
-    // ── Live preview listeners ────────────────────────────────────────────────
+    // -- Live preview listeners ------------------------------------------------
     private fun setupPreviewListeners() {
         nicknameEditText.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
@@ -257,7 +257,7 @@ class AddAccountActivity : AppCompatActivity() {
         previewType.text = "$type  •  $bank"
     }
 
-    // ── Button listeners ──────────────────────────────────────────────────────
+    // -- Button listeners ------------------------------------------------------
     private fun setupButtons() {
         backArrow.setOnClickListener    { finish() }
         cancelButton.setOnClickListener { finish() }
@@ -285,7 +285,7 @@ class AddAccountActivity : AppCompatActivity() {
         }
     }
 
-    // ── Observe ViewModel results ─────────────────────────────────────────────
+    // -- Observe ViewModel results ---------------------------------------------
     private fun observeResults() {
         viewModel.saveResult.observe(this) { result ->
             when (result) {

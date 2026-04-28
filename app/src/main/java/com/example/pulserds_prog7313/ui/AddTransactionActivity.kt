@@ -42,7 +42,7 @@ import java.util.*
 
 class AddTransactionActivity : AppCompatActivity() {
 
-    // State
+    // -- State -----------------------------------------------------------------
     private var isExpense = true
     private var selectedCategoryId: Int? = null
     private var uriOfCameraImage: Uri? = null
@@ -55,7 +55,7 @@ class AddTransactionActivity : AppCompatActivity() {
     private var selectedAccountId: Int? = null
     private var categoriesList: List<Category> = emptyList()
 
-    // View references
+    // -- View references -------------------------------------------------------
     private lateinit var amountInput: EditText
     private lateinit var merchantInput: EditText
     private lateinit var accountDropdown: AutoCompleteTextView
@@ -65,7 +65,7 @@ class AddTransactionActivity : AppCompatActivity() {
     private lateinit var expenseToggle: TextView
     private lateinit var incomeToggle: TextView
 
-    // Activity result launchers
+    // -- Activity result launchers ---------------------------------------------
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success && uriOfCameraImage != null) handleSelectedReceipt(uriOfCameraImage!!)
     }
@@ -80,7 +80,7 @@ class AddTransactionActivity : AppCompatActivity() {
         else Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show()
     }
 
-    // Lifecycle
+    // -- Lifecycle -------------------------------------------------------------
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -110,7 +110,7 @@ class AddTransactionActivity : AppCompatActivity() {
         }
         categoryViewModel = ViewModelProvider(this, catFactory)[CategoryViewModel::class.java]
 
-        // FIX: seedDefaultCategories is suspend — must be called inside a coroutine
+        // FIX: seedDefaultCategories is suspend -- must be called inside a coroutine
         // [4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024.
         // [8] JetBrains, kotlinx-coroutines-android, ver. 1.8.1. [Software]. JetBrains, 2024.
         if (loggedInUserId != -1) {
@@ -119,7 +119,7 @@ class AddTransactionActivity : AppCompatActivity() {
             }
         }
 
-        // Receipt buttons
+        // -- Receipt buttons ---------------------------------------------------
         findViewById<View>(R.id.receiptEmptyState).setOnClickListener { openPhoneGallery() }
         findViewById<View>(R.id.receiptCameraBtn).setOnClickListener { checkCameraPermission() }
         findViewById<View>(R.id.receiptGalleryBtn).setOnClickListener { openPhoneGallery() }
@@ -144,7 +144,7 @@ class AddTransactionActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // FIX: seedDefaultCategories is suspend — must be called inside a coroutine
+        // FIX: seedDefaultCategories is suspend -- must be called inside a coroutine
         if (loggedInUserId != -1) {
             lifecycleScope.launch {
                 categoryViewModel.seedDefaultCategories(loggedInUserId)
@@ -163,7 +163,7 @@ class AddTransactionActivity : AppCompatActivity() {
         incomeToggle     = findViewById(R.id.incomeToggle)
     }
 
-    // Toggle Expense / Income
+    // -- Toggle Expense / Income -----------------------------------------------
     private fun setupToggle() {
         updateToggleUI()
         expenseToggle.setOnClickListener { isExpense = true; updateToggleUI(); refreshCategoryDropdown() }
@@ -175,7 +175,7 @@ class AddTransactionActivity : AppCompatActivity() {
         incomeToggle.alpha  = if (isExpense) 0.45f else 1f
     }
 
-    // Category dropdown
+    // -- Category dropdown -----------------------------------------------------
     private fun setupCategoryDropdown() {
         categoryViewModel.getCategoriesLive(loggedInUserId).observe(this) { all ->
             categoriesList = all
@@ -202,7 +202,7 @@ class AddTransactionActivity : AppCompatActivity() {
         selectedCategoryId = null
     }
 
-    // Account dropdown
+    // -- Account dropdown ------------------------------------------------------
     private fun setupAccountDropdown() {
         bankAccountViewModel.accounts.observe(this) { accounts ->
             accountsList = accounts
@@ -223,7 +223,7 @@ class AddTransactionActivity : AppCompatActivity() {
         accountDropdown.setOnClickListener { accountDropdown.showDropDown() }
     }
 
-    // Date picker
+    // -- Date picker -----------------------------------------------------------
     private var datePickerDialog: DatePickerDialog? = null
 
     private fun setupDatePicker() {
@@ -242,7 +242,7 @@ class AddTransactionActivity : AppCompatActivity() {
         datePickerDialog?.dismiss()
     }
 
-    // Navigation
+    // -- Navigation ------------------------------------------------------------
     private fun setupNavigation() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
         findViewById<TextView>(R.id.manageCategoriesLink)?.setOnClickListener {
@@ -257,7 +257,7 @@ class AddTransactionActivity : AppCompatActivity() {
         findViewById<View>(R.id.cancelButton).setOnClickListener { finish() }
     }
 
-    // Receipt helpers
+    // -- Receipt helpers -------------------------------------------------------
     private fun openPhoneGallery()       { galleryLauncher.launch("image/*") }
     private fun openPhoneFilesExplorer() { fileLauncher.launch("*/*") }
 
@@ -346,7 +346,7 @@ class AddTransactionActivity : AppCompatActivity() {
         findViewById<View>(R.id.receiptAttachedState).visibility = View.GONE
     }
 
-    // Save transaction
+    // -- Save transaction ------------------------------------------------------
     private fun saveTransaction() {
         val amountStr   = amountInput.text.toString().trim()
         val description = merchantInput.text.toString().trim()
@@ -396,6 +396,7 @@ class AddTransactionActivity : AppCompatActivity() {
     }
 }
 
+// -- ViewModel factories -------------------------------------------------------
 class ExpenseEntryViewModelFactory(private val repository: ExpenseEntryRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ExpenseEntryViewModel::class.java)) {

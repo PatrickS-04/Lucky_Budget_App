@@ -32,22 +32,58 @@ import com.google.android.material.button.MaterialButton
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * AnalyticsActivity
+ * -----------------
+ * Main analytics screen that gives the user a financial overview for a
+ * selected time period (Week, Month, Quarter, Year, or Custom range).
+ *
+ * Displays:
+ *   - Hero balance card with income, expense, and saved totals.
+ *   - Donut chart summarising saved vs. spent percentages.
+ *   - Category tile grid (all categories).
+ *   - Spending breakdown list (expense/both categories only).
+ *   - Per-bank-account spending breakdown.
+ *
+ * Layout   : activity_analytics.xml
+ * Adapters :
+ *   - CategoryTileAdapter      -> categoryTilesRecycler      (2-col grid)
+ *   - SpendingRowAdapter       -> spendingBreakdownRecycler  (vertical list)
+ *   - AccountSpendingAdapter   -> accountsBreakdownRecycler  (vertical list)
+ * ViewModels:
+ *   - CategoryViewModel        -> all categories for the logged-in user
+ *   - ExpenseEntryViewModel    -> period-filtered entries, income/expense totals
+ *   - BankAccountViewModel     -> bank accounts for per-account spending cross-ref
+ */
 class AnalyticsActivity : BaseActivity() {
 
+    // -- ViewModels -----------------------------------------------------------
     private lateinit var categoryViewModel: CategoryViewModel
     private lateinit var expenseViewModel: ExpenseEntryViewModel
+
+    /** Provides the account list needed to label per-account spending rows. */
     private lateinit var bankAccountViewModel: BankAccountViewModel
+
+    // -- Adapters -------------------------------------------------------------
     private lateinit var tileAdapter: CategoryTileAdapter
     private lateinit var spendingAdapter: SpendingRowAdapter
     private lateinit var accountSpendingAdapter: AccountSpendingAdapter
 
+    // -- Period state ---------------------------------------------------------
+    /** Represents the available reporting periods the user can select. */
     enum class Period { WEEK, MONTH, QUARTER, YEAR, CUSTOM }
+
+    /** The currently active period; defaults to MONTH on launch. */
     private var activePeriod = Period.MONTH
 
+    /** Start and end boundaries of the current period window. */
     private var periodStart: Date = Date()
     private var periodEnd: Date = Date()
+
+    /** Human-readable label shown in the hero card (e.g. "April 2025", "Q2 2025"). */
     private var periodLabel: String = ""
 
+    // -- View references ------------------------------------------------------
     private lateinit var chipWeek: TextView
     private lateinit var chipMonth: TextView
     private lateinit var chipQuarter: TextView
@@ -64,37 +100,58 @@ class AnalyticsActivity : BaseActivity() {
     private lateinit var legendExpensesValue: TextView
     private lateinit var legendSavedValue: TextView
 
+    // -- Date formatting ------------------------------------------------------
+    /** Formatter used to convert period boundaries into DB query strings. */
     private val dbDateFmt = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
-    // Track last-seen income/expense so balance can be recomputed from either observer
+    // -- Cached income/expense values -----------------------------------------
+    // Both values are kept so the hero balance can be recomputed from either
+    // observer regardless of which one fires last.
     private var lastIncome: Double = 0.0
     private var lastExpenses: Double = 0.0
 
-    // Cached data — both must be present before adapters are updated
+    // -- Cached data (both must be present before adapters update) ------------
+    /** Full list of categories for the logged-in user. */
     private var cachedCategories: List<Category> = emptyList()
+
+    /** Map of categoryId -> total spend amount for the current period. */
     private var cachedTotals: Map<Int, Double> = emptyMap()
 
-    // Swappable LiveData observers — removed and re-added on every period change
-    // so we never accumulate duplicate observers
+    // -- Swappable LiveData observers -----------------------------------------
+    // References are kept so old observers can be removed before new ones are
+    // attached whenever the user switches periods, preventing duplicate callbacks.
     // [3] Google, "LiveData overview," Android Developers, 2024.
     private var incomeLiveData: LiveData<Double>? = null
     private var expensesLiveData: LiveData<Double>? = null
+
+    /** Updates the income label and triggers a hero balance recalculation. */
     private val incomeObserver = Observer<Double> { income ->
         lastIncome = income ?: 0.0
         totalIncomeView.text = "R ${ "%,.2f".format(lastIncome) }"
         updateHeroBalance()
     }
+
+    /**
+     * Updates the expense label (stored as negatives, displayed as positive)
+     * and triggers a hero balance recalculation.
+     */
     private val expensesObserver = Observer<Double> { expenses ->
         lastExpenses = kotlin.math.abs(expenses ?: 0.0)
         totalExpensesView.text = "R ${ "%,.2f".format(lastExpenses) }"
         updateHeroBalance()
     }
 
+    // -------------------------------------------------------------------------
+    // Lifecycle
+    // -------------------------------------------------------------------------
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_analytics)
 
+        // Adjust root layout padding so content is not obscured by system bars
+        // (status bar, navigation bar) on edge-to-edge displays.
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -110,12 +167,14 @@ class AnalyticsActivity : BaseActivity() {
         observeEntries()
         observeAccountSpending()
         setupPeriodChips()
-        selectPeriod(Period.MONTH)
+        selectPeriod(Period.MONTH) // Default to Month view on first launch.
 
+        // Export button — feature placeholder; shows a coming-soon toast for now.
         findViewById<MaterialButton>(R.id.exportButton)?.setOnClickListener {
             Toast.makeText(this, "Export coming soon", Toast.LENGTH_SHORT).show()
         }
 
+        // "See all categories" link navigates to the dedicated CategoryTotalsActivity.
         findViewById<TextView>(R.id.seeAllCategories)?.setOnClickListener {
             startActivity(android.content.Intent(this, CategoryTotalsActivity::class.java))
         }
@@ -123,7 +182,10 @@ class AnalyticsActivity : BaseActivity() {
         setupBottomNav(R.id.navAnalytics)
     }
 
-    // -- View binding
+    // -------------------------------------------------------------------------
+    // View binding
+    // Centralises all findViewById calls so onCreate stays clean and readable.
+    // -------------------------------------------------------------------------
 
     private fun bindViews() {
         chipWeek     = findViewById(R.id.chipWeek)
@@ -143,8 +205,11 @@ class AnalyticsActivity : BaseActivity() {
         legendSavedValue    = findViewById(R.id.legendSavedValue)
     }
 
-    // -- Period chips
+    // -------------------------------------------------------------------------
+    // Period chips
+    // -------------------------------------------------------------------------
 
+    /** Attaches click listeners to each period chip. */
     private fun setupPeriodChips() {
         chipWeek.setOnClickListener    { selectPeriod(Period.WEEK) }
         chipMonth.setOnClickListener   { selectPeriod(Period.MONTH) }
@@ -153,6 +218,10 @@ class AnalyticsActivity : BaseActivity() {
         chipCustom.setOnClickListener  { showCustomDatePicker() }
     }
 
+    /**
+     * Switches the active period: updates chip styles, recomputes the date
+     * range, refreshes the hero label, and triggers a data reload.
+     */
     private fun selectPeriod(period: Period) {
         activePeriod = period
         updateChipStyles(period)
@@ -161,6 +230,10 @@ class AnalyticsActivity : BaseActivity() {
         reloadData()
     }
 
+    /**
+     * Highlights the active chip in darkerGreen and resets the rest to
+     * backgroundOrange, matching the style used throughout the app.
+     */
     private fun updateChipStyles(active: Period) {
         val chips = mapOf(
             Period.WEEK    to chipWeek,
@@ -182,14 +255,24 @@ class AnalyticsActivity : BaseActivity() {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Date-range computation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Sets [periodStart], [periodEnd], and [periodLabel] for the given [period].
+     * All non-CUSTOM periods compute their boundaries relative to today's date.
+     * CUSTOM is a no-op here — its dates are set directly by [showCustomDatePicker].
+     */
     private fun computeDateRange(period: Period) {
         val cal      = Calendar.getInstance()
-        val monthFmt = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
-        val shortFmt = SimpleDateFormat("d MMM", Locale.getDefault())
-        val yearFmt  = SimpleDateFormat("yyyy", Locale.getDefault())
+        val monthFmt = SimpleDateFormat("MMMM yyyy", Locale.getDefault()) // e.g. "April 2025"
+        val shortFmt = SimpleDateFormat("d MMM",     Locale.getDefault()) // e.g. "1 Apr"
+        val yearFmt  = SimpleDateFormat("yyyy",      Locale.getDefault()) // e.g. "2025"
 
         when (period) {
             Period.WEEK -> {
+                // Monday -> Sunday of the current week.
                 cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
                 periodStart = cal.time
                 cal.add(Calendar.DAY_OF_WEEK, 6)
@@ -197,14 +280,19 @@ class AnalyticsActivity : BaseActivity() {
                 val start = Calendar.getInstance().apply { set(Calendar.DAY_OF_WEEK, Calendar.MONDAY) }
                 periodLabel = "${shortFmt.format(start.time)} - ${shortFmt.format(periodEnd)}"
             }
+
             Period.MONTH -> {
+                // 1st -> last day of the current month.
                 cal.set(Calendar.DAY_OF_MONTH, 1)
                 periodStart = cal.time
                 cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
                 periodEnd = cal.time
                 periodLabel = monthFmt.format(periodStart)
             }
+
             Period.QUARTER -> {
+                // First day of the current quarter -> last day.
+                // Quarter derived by grouping months: Jan-Mar = Q1, Apr-Jun = Q2, etc.
                 val month = cal.get(Calendar.MONTH)
                 val qStart = (month / 3) * 3
                 cal.set(Calendar.MONTH, qStart)
@@ -218,7 +306,9 @@ class AnalyticsActivity : BaseActivity() {
                 }
                 periodLabel = "Q${(qStart / 3) + 1} ${yearFmt.format(startCal.time)}"
             }
+
             Period.YEAR -> {
+                // 1 Jan -> 31 Dec of the current year.
                 cal.set(Calendar.DAY_OF_YEAR, 1)
                 periodStart = cal.time
                 cal.set(Calendar.MONTH, Calendar.DECEMBER)
@@ -226,17 +316,27 @@ class AnalyticsActivity : BaseActivity() {
                 periodEnd = cal.time
                 periodLabel = yearFmt.format(periodStart)
             }
-            Period.CUSTOM -> { /* set by showCustomDatePicker */ }
+
+            Period.CUSTOM -> { /* Dates set directly by showCustomDatePicker — nothing to compute here. */ }
         }
     }
 
+    /**
+     * Two-step DatePickerDialog: pick start date, then pick end date.
+     * Validates that end >= start before accepting the range.
+     */
     private fun showCustomDatePicker() {
         val today = Calendar.getInstance()
         DatePickerDialog(this, { _, sy, sm, sd ->
+            // Step 1: User selects the start date.
             val startCal = Calendar.getInstance().apply { set(sy, sm, sd, 0, 0, 0) }
             periodStart = startCal.time
+
+            // Step 2: User selects the end date.
             DatePickerDialog(this, { _, ey, em, ed ->
                 val endCal = Calendar.getInstance().apply { set(ey, em, ed, 23, 59, 59) }
+
+                // Guard: reject a range where the end date precedes the start date.
                 if (endCal.before(startCal)) {
                     Toast.makeText(this, "End date must be after start date", Toast.LENGTH_SHORT).show()
                     return@DatePickerDialog
@@ -244,6 +344,7 @@ class AnalyticsActivity : BaseActivity() {
                 periodEnd = endCal.time
                 val fmt = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
                 periodLabel = "${fmt.format(periodStart)} - ${fmt.format(periodEnd)}"
+
                 activePeriod = Period.CUSTOM
                 updateChipStyles(Period.CUSTOM)
                 heroPeriodLabel.text = periodLabel
@@ -252,7 +353,10 @@ class AnalyticsActivity : BaseActivity() {
         }, today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH)).show()
     }
 
-    // -- ViewModels --
+    // -------------------------------------------------------------------------
+    // ViewModels
+    // Build the dependency chain: Database -> DAO -> Repository -> ViewModel.
+    // -------------------------------------------------------------------------
 
     private fun setupViewModels() {
         val db = AppDatabase.getDatabase(applicationContext)
@@ -269,64 +373,74 @@ class AnalyticsActivity : BaseActivity() {
             this, ViewModelFactory { BankAccountViewModel(com.example.pulserds_prog7313.repository.BankAccountRepository(db.bankAccountDao())) }
         )[BankAccountViewModel::class.java]
 
+        // Initialise the bank account ViewModel with the current user's ID so it
+        // loads only accounts that belong to the logged-in user.
         val userId = SessionManager(this).getUserId()
         if (userId != -1) bankAccountViewModel.init(userId)
     }
 
-    // -- RecyclerViews
+    // -------------------------------------------------------------------------
+    // RecyclerViews
+    // -------------------------------------------------------------------------
 
+    /** Sets up the 2-column grid that shows a tile per category. */
     private fun setupCategoryTilesRecycler() {
         tileAdapter = CategoryTileAdapter()
         findViewById<RecyclerView>(R.id.categoryTilesRecycler).apply {
             layoutManager = GridLayoutManager(this@AnalyticsActivity, 2)
             adapter = tileAdapter
-            isNestedScrollingEnabled = false
+            isNestedScrollingEnabled = false // Parent ScrollView handles scrolling.
         }
     }
 
+    /** Sets up the vertical list that shows a spending row per expense category. */
     private fun setupSpendingBreakdownRecycler() {
         spendingAdapter = SpendingRowAdapter()
         findViewById<RecyclerView>(R.id.spendingBreakdownRecycler).apply {
             layoutManager = LinearLayoutManager(this@AnalyticsActivity)
             adapter = spendingAdapter
-            isNestedScrollingEnabled = false
+            isNestedScrollingEnabled = false // Parent ScrollView handles scrolling.
         }
     }
 
+    /** Sets up the vertical list that shows spending grouped by bank account. */
     private fun setupAccountSpendingRecycler() {
         accountSpendingAdapter = AccountSpendingAdapter()
         findViewById<RecyclerView>(R.id.accountsBreakdownRecycler).apply {
             layoutManager = LinearLayoutManager(this@AnalyticsActivity)
             adapter = accountSpendingAdapter
-            isNestedScrollingEnabled = false
+            isNestedScrollingEnabled = false // Parent ScrollView handles scrolling.
         }
     }
 
-    // -- Data loading & observation
+    // -------------------------------------------------------------------------
+    // Data loading & observation
+    // -------------------------------------------------------------------------
 
     /**
      * Central method: re-triggers all data loads whenever the period changes.
      *
-     * FIX: Income/Expense LiveData observers are removed before being re-added so
+     * Income/Expense LiveData observers are removed before being re-added so
      * changing the period never stacks up duplicate observers that fire stale data.
      */
     private fun reloadData() {
         val userId = SessionManager(this).getUserId()
-        if (userId == -1) return
+        if (userId == -1) return // No active session — bail out early.
 
         val startStr = dbDateFmt.format(periodStart)
         val endStr   = dbDateFmt.format(periodEnd)
 
-        // Reload categories
+        // Reload categories for the current user.
         categoryViewModel.loadCategoriesForUser(userId)
 
-        // Reload entries for the period (triggers observeEntries -> totals map)
+        // Reload period-filtered entries (triggers observeEntries -> cachedTotals update).
         expenseViewModel.loadEntriesForPeriod(userId, startStr, endStr)
 
-        // Reload per-account spending totals
+        // Reload per-account spending totals for the Spending by Account card.
         expenseViewModel.loadExpensesByAccount(userId, startStr, endStr)
 
-        // Remove stale income/expense observers before attaching new period-scoped ones
+        // Detach stale income/expense observers before attaching new ones for the
+        // new period, preventing duplicate callbacks from the old LiveData instances.
         incomeLiveData?.removeObserver(incomeObserver)
         expensesLiveData?.removeObserver(expensesObserver)
 
@@ -339,9 +453,9 @@ class AnalyticsActivity : BaseActivity() {
     }
 
     /**
-     * Permanent observer on the category list.
-     * Caches the list and delegates to [pushAdapterUpdates] so both adapters always
-     * receive the latest categories + latest totals together.
+     * Permanent observer on the category list for the logged-in user.
+     * Caches it and calls [pushAdapterUpdates] so any pending totals are
+     * applied immediately even if entries arrived first.
      */
     private fun observeCategories() {
         categoryViewModel.categories.observe(this) { categories ->
@@ -351,10 +465,10 @@ class AnalyticsActivity : BaseActivity() {
     }
 
     /**
-     * Permanent observer on the entries MutableLiveData.
-     * Computes per-category expense totals, caches them, then delegates to
-     * [pushAdapterUpdates] — eliminating the race condition where cachedCategories
-     * was still empty when entries arrived first.
+     * Permanent observer on the period-filtered expense entries.
+     * Computes per-category spend totals (absolute value of negative amounts),
+     * caches them, and delegates to [pushAdapterUpdates] — eliminating the race
+     * condition where cachedCategories was still empty when entries arrived first.
      */
     private fun observeEntries() {
         expenseViewModel.entries.observe(this) { entries ->
@@ -362,7 +476,7 @@ class AnalyticsActivity : BaseActivity() {
                 emptyMap()
             } else {
                 entries
-                    .filter { it.amount < 0 }
+                    .filter { it.amount < 0 }          // Expenses are stored as negative values.
                     .groupBy { it.categoryId }
                     .mapValues { (_, list) -> list.sumOf { kotlin.math.abs(it.amount) } }
             }
@@ -371,24 +485,25 @@ class AnalyticsActivity : BaseActivity() {
     }
 
     /**
-     * Single point of truth for updating both category adapters.
+     * Single source of truth for updating both category RecyclerView adapters.
      *
-     * Always uses [cachedCategories] + [cachedTotals] so adapter updates are
-     * correct regardless of which observer fires first.
+     * Always reads [cachedCategories] + [cachedTotals] so the result is
+     * consistent regardless of which LiveData observer fires first.
      *
-     * Budget Category tiles  — all categories (EXPENSE + INCOME + BOTH).
-     * Spending Breakdown rows — EXPENSE/BOTH categories only; if none have
-     *   recorded spending yet, show all expense categories with zero amounts
-     *   so the list is never empty.
+     *  - Category Tiles  — every category (EXPENSE, INCOME, BOTH).
+     *  - Spending Rows   — EXPENSE/BOTH categories only; falls back to showing
+     *                      all expense categories with R 0 if none have spend yet.
      */
     private fun pushAdapterUpdates() {
-        // Budget Categories grid — show every category the user has
+        // Pass all categories to the tile grid regardless of type.
         tileAdapter.submitCategories(cachedCategories, cachedTotals)
 
-        // Spending Breakdown — filter out pure income categories (e.g. Salary)
+        // The spending breakdown excludes pure income categories (e.g. Salary).
         val expenseCategories = cachedCategories.filter { it.type != "INCOME" }
         val withSpend = expenseCategories.filter { (cachedTotals[it.id] ?: 0.0) > 0.0 }
-        // Show categories with actual spend; fall back to all expense categories if none
+
+        // If no categories have recorded spend yet, fall back to all expense
+        // categories so the list is never empty.
         val breakdownList = withSpend.ifEmpty { expenseCategories }
         spendingAdapter.submitData(breakdownList, cachedTotals)
     }
@@ -396,6 +511,9 @@ class AnalyticsActivity : BaseActivity() {
     /**
      * Observes per-account spending and cross-references with the account list
      * from [bankAccountViewModel] to populate the Spending by Account card.
+     *
+     * Both observers update the adapter so the card stays correct whichever
+     * LiveData (accounts or spending) emits a new value first.
      */
     private fun observeAccountSpending() {
         expenseViewModel.accountSpending.observe(this) { spending ->
@@ -408,8 +526,20 @@ class AnalyticsActivity : BaseActivity() {
         }
     }
 
-    /** Recalculates the hero balance card from cached income/expense values. */
+    /**
+     * Recalculates and renders the hero balance card from the cached
+     * [lastIncome] and [lastExpenses] values.
+     *
+     * Also updates:
+     *   - The legend labels (income, expenses, saved).
+     *   - The donut chart segments and centre label (saved % vs spent %).
+     *   - The hero change badge text.
+     *
+     * When no income has been recorded, the chart is cleared and a
+     * "No income recorded" message is shown instead.
+     */
     private fun updateHeroBalance() {
+        // Saved = income minus expenses, floored at zero (cannot save a negative amount).
         val saved = (lastIncome - lastExpenses).coerceAtLeast(0.0)
         heroBalance.text = "R ${ "%,.2f".format(saved) }"
 
@@ -418,12 +548,16 @@ class AnalyticsActivity : BaseActivity() {
         legendSavedValue.text    = "R ${ "%,.2f".format(saved) }"
 
         if (lastIncome > 0) {
+            // Compute saved and expense percentages, clamped to [0, 100] to avoid
+            // chart rendering issues when expenses exceed income.
             val savedPct = (saved / lastIncome * 100).coerceIn(0.0, 100.0)
             val expPct   = (lastExpenses / lastIncome * 100).coerceIn(0.0, 100.0)
             heroChangeBadge.text = "Saved ${"%.1f".format(savedPct)}% of income"
 
             val savedColor = Color.parseColor("#2EC4B6")
             val expColor   = Color.parseColor("#2A1A1A")
+
+            // Draw two donut segments: saved (teal) and spent (dark).
             summaryPieChart.setSegments(listOf(
                 Pair(savedPct.toFloat(), savedColor),
                 Pair(expPct.toFloat(), expColor)
@@ -433,6 +567,7 @@ class AnalyticsActivity : BaseActivity() {
                 "Saved"
             )
         } else {
+            // No income recorded — clear the chart and show a placeholder message.
             heroChangeBadge.text = "No income recorded this period"
             summaryPieChart.setSegments(emptyList())
             summaryPieChart.setCenterLabel("-", "No data")

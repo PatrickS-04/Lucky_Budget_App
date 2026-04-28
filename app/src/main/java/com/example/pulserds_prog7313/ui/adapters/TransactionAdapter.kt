@@ -23,9 +23,11 @@ import kotlin.math.abs
  */
 class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHolder>(DIFF) {
 
+    // -- State -----------------------------------------------------------------
     private var categories: Map<Int, Category> = emptyMap()
     private var accounts: Map<Int, BankAccount> = emptyMap()
 
+    // -- Data submission -------------------------------------------------------
     fun submitData(
         entries: List<ExpenseEntry>,
         categories: List<Category>,
@@ -36,16 +38,19 @@ class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHo
         submitList(entries)
     }
 
+    // -- ViewHolder creation ---------------------------------------------------
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TxViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_transaction_row, parent, false)
         return TxViewHolder(view)
     }
 
+    // -- ViewHolder binding ----------------------------------------------------
     override fun onBindViewHolder(holder: TxViewHolder, position: Int) {
         holder.bind(getItem(position), categories, accounts)
     }
 
+    // -- ViewHolder ------------------------------------------------------------
     inner class TxViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val icon        : TextView  = itemView.findViewById(R.id.txIcon)
         private val description : TextView  = itemView.findViewById(R.id.txDescription)
@@ -62,11 +67,11 @@ class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHo
             val cat     = categories[entry.categoryId]
             val account = accounts[entry.bankAccountId]
 
-            // Icon — derived from category name
+            // Icon -- derived from category name
             val catName = cat?.name ?: ""
             icon.text = emojiFor(catName)
 
-            // Description — first line of the stored description
+            // Description -- first line of the stored description
             description.text = entry.description.lines().firstOrNull()?.ifBlank { "Transaction" } ?: "Transaction"
 
             // Subtitle: "Category  •  AccountNickname (BankName)"
@@ -74,7 +79,7 @@ class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHo
             val accLabel = account?.let { "${it.nickname} (${it.bankName})" } ?: "Unknown account"
             subtitle.text = "$catLabel  •  $accLabel"
 
-            // Amount — green for income, red for expense
+            // Amount -- green for income, red for expense
             val isIncome = entry.amount >= 0
             val formatted = "R %,.2f".format(abs(entry.amount))
             amount.text = if (isIncome) "+ $formatted" else "- $formatted"
@@ -85,7 +90,7 @@ class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHo
             // Date
             date.text = entry.date
 
-            // Receipt badge
+            // Receipt badge -- show and wire up tap if a receipt URI is stored
             if (!entry.photoPath.isNullOrBlank()) {
                 receiptBadge.visibility = View.VISIBLE
                 receiptBadge.setOnClickListener {
@@ -102,6 +107,7 @@ class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHo
         }
     }
 
+    // -- Helpers ---------------------------------------------------------------
     private fun emojiFor(name: String): String {
         val l = name.lowercase()
         return when {
@@ -123,6 +129,7 @@ class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHo
         }
     }
 
+    // -- DiffUtil callback -----------------------------------------------------
     companion object {
         private val DIFF = object : DiffUtil.ItemCallback<ExpenseEntry>() {
             override fun areItemsTheSame(a: ExpenseEntry, b: ExpenseEntry) = a.id == b.id

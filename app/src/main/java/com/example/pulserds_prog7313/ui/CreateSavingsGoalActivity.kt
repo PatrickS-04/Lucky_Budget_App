@@ -27,22 +27,60 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
+ * CreateSavingsGoalActivity — Provides a form for creating a new savings goal.
+ *
  * Fully self-contained — does NOT use SavingsGoalViewModel or any LiveData
  * for its create flow. Validation + DB insert + navigation all happen inside
  * a single lifecycleScope.launch block, so there is no shared observer state
  * that can fire finish() unexpectedly when the keyboard appears.
+ *
+ * The screen includes:
+ * - An emoji icon picker for personalising the goal.
+ * - Fields for the goal name, target amount, initial deposit, and target date.
+ * - An optional linked bank account dropdown.
+ * - An optional auto-save configuration section (amount + frequency).
+ * - A live preview card that updates as the user types.
  */
 class CreateSavingsGoalActivity : AppCompatActivity() {
 
-    private lateinit var bankVm : BankAccountViewModel
-    private lateinit var dao    : com.example.pulserds_prog7313.data.SavingsGoalDao
+    // -------------------------------------------------------------------------
+    // ViewModel and DAO
+    // -------------------------------------------------------------------------
 
-    private var userId            = -1
-    private var selectedIcon      = "🏦"
+    /** ViewModel for loading and observing the user's linked bank accounts. */
+    private lateinit var bankVm: BankAccountViewModel
+
+    /** Direct DAO reference used for the fire-and-forget goal insert in attemptCreate(). */
+    private lateinit var dao: com.example.pulserds_prog7313.data.SavingsGoalDao
+
+    // -------------------------------------------------------------------------
+    // State
+    // -------------------------------------------------------------------------
+
+    /** The ID of the currently signed-in user; -1 indicates no active session. */
+    private var userId = -1
+
+    /** The emoji character currently selected in the icon picker. Defaults to a bank. */
+    private var selectedIcon = "🏦"
+
+    /** The ID of the bank account selected in the dropdown; 0 means no linked account. */
     private var selectedAccountId = 0
-    private var selectedFrequency = "MONTHLY"
-    private var accountsList      : List<BankAccount> = emptyList()
 
+    /** The auto-save recurrence interval selected by the user. Defaults to monthly. */
+    private var selectedFrequency = "MONTHLY"
+
+    /** Cached list of the user's bank accounts populated when the LiveData emits. */
+    private var accountsList: List<BankAccount> = emptyList()
+
+    // -------------------------------------------------------------------------
+    // Icon picker mapping — maps each icon container view ID to its emoji string
+    // -------------------------------------------------------------------------
+
+    /**
+     * Maps each icon LinearLayout view ID to its corresponding emoji character.
+     * Used in setupIconPicker() to attach click listeners and in highlightIcon()
+     * to apply the selected / unselected background colours.
+     */
     private val iconMap = mapOf(
         R.id.iconBank   to "🏦",
         R.id.iconPlane  to "✈️",
@@ -56,39 +94,89 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         R.id.iconGift   to "🎁"
     )
 
-    private lateinit var goalNameEdit       : TextInputEditText
-    private lateinit var targetAmountEdit   : TextInputEditText
-    private lateinit var initialDepositEdit : TextInputEditText
-    private lateinit var targetDateEdit     : TextInputEditText
-    private lateinit var accountDropdown    : AutoCompleteTextView
-    private lateinit var autoSaveSwitch     : Switch
-    private lateinit var autoSaveOptions    : View
-    private lateinit var autoSaveAmountEdit : TextInputEditText
-    private lateinit var freqWeekly         : TextView
-    private lateinit var freqMonthly        : TextView
-    private lateinit var freqYearly         : TextView
-    private lateinit var previewIcon        : TextView
-    private lateinit var previewName        : TextView
-    private lateinit var previewDetails     : TextView
-    private lateinit var previewProgressBar : ProgressBar
-    private lateinit var previewProgressText: TextView
-    private lateinit var createGoalButton   : MaterialButton
+    // -------------------------------------------------------------------------
+    // View references — bound in bindViews() after setContentView()
+    // -------------------------------------------------------------------------
 
+    /** EditText for the user to enter the name of their savings goal. */
+    private lateinit var goalNameEdit: TextInputEditText
+
+    /** EditText for the total amount the user wants to save. */
+    private lateinit var targetAmountEdit: TextInputEditText
+
+    /** EditText for the amount the user is depositing immediately when creating the goal. */
+    private lateinit var initialDepositEdit: TextInputEditText
+
+    /** EditText that displays the chosen target date; opens a DatePickerDialog on tap. */
+    private lateinit var targetDateEdit: TextInputEditText
+
+    /** Auto-complete dropdown that lists the user's linked bank accounts. */
+    private lateinit var accountDropdown: AutoCompleteTextView
+
+    /** Toggle switch that shows or hides the auto-save configuration options. */
+    private lateinit var autoSaveSwitch: Switch
+
+    /** Container view for the auto-save amount and frequency fields; hidden by default. */
+    private lateinit var autoSaveOptions: View
+
+    /** EditText for the recurring auto-save amount when auto-save is enabled. */
+    private lateinit var autoSaveAmountEdit: TextInputEditText
+
+    /** Chip/TextView for selecting a weekly auto-save frequency. */
+    private lateinit var freqWeekly: TextView
+
+    /** Chip/TextView for selecting a monthly auto-save frequency (default). */
+    private lateinit var freqMonthly: TextView
+
+    /** Chip/TextView for selecting a yearly auto-save frequency. */
+    private lateinit var freqYearly: TextView
+
+    /** TextView in the preview card that displays the selected emoji icon. */
+    private lateinit var previewIcon: TextView
+
+    /** TextView in the preview card that displays the goal name. */
+    private lateinit var previewName: TextView
+
+    /** TextView in the preview card that displays the target amount and date. */
+    private lateinit var previewDetails: TextView
+
+    /** ProgressBar in the preview card showing the initial deposit as a percentage of the target. */
+    private lateinit var previewProgressBar: ProgressBar
+
+    /** TextView in the preview card showing the percentage saved and the initial deposit amount. */
+    private lateinit var previewProgressText: TextView
+
+    /** Primary action button that triggers validation and goal creation. */
+    private lateinit var createGoalButton: MaterialButton
+
+    // -------------------------------------------------------------------------
+    // Lifecycle
+    // -------------------------------------------------------------------------
+
+    /**
+     * Called when the activity is first created.
+     * Enables edge-to-edge rendering, resolves the signed-in user from the session,
+     * initialises the DAO and bank account ViewModel, then wires all UI sections
+     * in a logical top-to-bottom order.
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_create_savings_goal)
 
+        // Inset the root view so content is not obscured by status / navigation bars
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
 
+        // Resolve the signed-in user and obtain a direct DAO reference for inserts
         userId = SessionManager(this).getUserId()
         val db = AppDatabase.getDatabase(this)
         dao    = db.savingsGoalDao()
 
+        // Build the bank account ViewModel and load accounts for the current user
         bankVm = ViewModelProvider(
             this, ViewModelFactory { BankAccountViewModel(BankAccountRepository(db.bankAccountDao())) }
         )[BankAccountViewModel::class.java]
@@ -104,8 +192,14 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         setupButtons()
     }
 
-    // ── Bind ──────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Bind
+    // -------------------------------------------------------------------------
 
+    /**
+     * Binds every view reference to its corresponding XML element using findViewById.
+     * Kept separate from onCreate() for readability.
+     */
     private fun bindViews() {
         goalNameEdit        = findViewById(R.id.goalNameEditText)
         targetAmountEdit    = findViewById(R.id.targetAmountEditText)
@@ -126,9 +220,18 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         createGoalButton    = findViewById(R.id.createGoalButton)
     }
 
-    // ── Icon picker ───────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Icon picker
+    // -------------------------------------------------------------------------
 
+    /**
+     * Initialises the emoji icon picker by pre-selecting the bank icon and
+     * attaching a click listener to every icon container in iconMap.
+     * Each tap updates selectedIcon, refreshes the highlight, and syncs the
+     * preview card immediately.
+     */
     private fun setupIconPicker() {
+        // Pre-select the default icon so the picker has a visible selection on launch
         highlightIcon(R.id.iconBank)
         for ((viewId, emoji) in iconMap) {
             val view = findViewById<LinearLayout>(viewId) ?: continue
@@ -140,8 +243,15 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Applies a highlighted background to the selected icon container and resets
+     * all other containers to the unselected background colour.
+     *
+     * @param selectedId The view ID of the icon that should appear selected.
+     */
     private fun highlightIcon(selectedId: Int) {
         for (viewId in iconMap.keys) {
+            // Dark green for the active selection; dark blue for all others
             val bg = if (viewId == selectedId) "#0D2A1A" else "#1A2A38"
             try {
                 val v = findViewById<LinearLayout>(viewId) ?: continue
@@ -150,25 +260,44 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         }
     }
 
-    // ── Account dropdown ──────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Account dropdown
+    // -------------------------------------------------------------------------
 
+    /**
+     * Observes the bank account LiveData and populates the dropdown adapter
+     * whenever the account list changes. The first item is always "No linked account"
+     * (mapped to selectedAccountId = 0); subsequent items correspond to real accounts.
+     * An item-click listener updates selectedAccountId to the chosen account's ID.
+     */
     private fun setupAccountDropdown() {
         bankVm.accounts.observe(this) { accounts ->
             accountsList = accounts
+            // Prepend a "no account" option so index 0 is always a safe default
             val labels = listOf("No linked account") + accounts.map { "${it.nickname} (${it.bankName})" }
             val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, labels)
             accountDropdown.setAdapter(adapter)
             accountDropdown.setText("No linked account", false)
             selectedAccountId = 0
             accountDropdown.setOnItemClickListener { _, _, position, _ ->
+                // Position 0 is the "no account" sentinel; offset by 1 for real accounts
                 selectedAccountId = if (position == 0) 0 else accounts[position - 1].id
             }
         }
+        // Ensure the dropdown opens on a direct tap of the field (not just the arrow)
         accountDropdown.setOnClickListener { accountDropdown.showDropDown() }
     }
 
-    // ── Date picker ───────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Date picker
+    // -------------------------------------------------------------------------
 
+    /**
+     * Configures the target date field to open a DatePickerDialog on tap instead
+     * of showing a software keyboard. The minimum selectable date is today so the
+     * user cannot choose a date in the past. On confirmation, the selected date is
+     * formatted and written into the field, and the preview card is refreshed.
+     */
     private fun setupDatePicker() {
         val fmt = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
         val openPicker = View.OnClickListener {
@@ -185,37 +314,63 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
                 cal.get(Calendar.DAY_OF_MONTH)
             ).also { it.datePicker.minDate = System.currentTimeMillis() }.show()
         }
+        // Disable direct keyboard input so the field only receives values from the picker
         targetDateEdit.isFocusable = false
         targetDateEdit.isFocusableInTouchMode = false
         targetDateEdit.setOnClickListener(openPicker)
+        // Also open the picker when the surrounding layout container is tapped
         findViewById<View>(R.id.targetDateLayout)?.setOnClickListener(openPicker)
     }
 
-    // ── Auto-save toggle ──────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Auto-save toggle
+    // -------------------------------------------------------------------------
 
+    /**
+     * Attaches a checked-change listener to the auto-save switch.
+     * Shows the auto-save amount and frequency section when enabled,
+     * and hides it when disabled to keep the form concise.
+     */
     private fun setupAutoSaveToggle() {
         autoSaveSwitch.setOnCheckedChangeListener { _, checked ->
             autoSaveOptions.visibility = if (checked) View.VISIBLE else View.GONE
         }
     }
 
-    // ── Frequency chips ───────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Frequency chips
+    // -------------------------------------------------------------------------
 
+    /**
+     * Pre-selects the monthly frequency chip and attaches click listeners to all
+     * three chips. Each tap delegates to selectFreq() which updates the selection
+     * state and repaints the chip visuals accordingly.
+     */
     private fun setupFrequencyChips() {
+        // Default selection matches the selectedFrequency field initialised above
         selectFreq(freqMonthly, "MONTHLY")
         freqWeekly.setOnClickListener  { selectFreq(freqWeekly,  "WEEKLY")  }
         freqMonthly.setOnClickListener { selectFreq(freqMonthly, "MONTHLY") }
         freqYearly.setOnClickListener  { selectFreq(freqYearly,  "YEARLY")  }
     }
 
+    /**
+     * Updates selectedFrequency and repaints all three frequency chips so only
+     * the chosen chip appears highlighted.
+     *
+     * @param chip The TextView that was tapped and should be styled as active.
+     * @param freq The frequency string constant to store (e.g. "WEEKLY").
+     */
     private fun selectFreq(chip: TextView, freq: String) {
         selectedFrequency = freq
         listOf(freqWeekly, freqMonthly, freqYearly).forEach { c ->
             if (c == chip) {
+                // Active chip — green background, dark text, bold typeface
                 c.setBackgroundColor(android.graphics.Color.parseColor("#4ADE80"))
                 c.setTextColor(android.graphics.Color.parseColor("#0D1B2A"))
                 c.typeface = android.graphics.Typeface.DEFAULT_BOLD
             } else {
+                // Inactive chip — dark background, muted text, regular typeface
                 c.setBackgroundColor(android.graphics.Color.parseColor("#0D1B2A"))
                 c.setTextColor(android.graphics.Color.parseColor("#7A99B0"))
                 c.typeface = android.graphics.Typeface.DEFAULT
@@ -223,8 +378,15 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         }
     }
 
-    // ── Live preview ──────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Live preview
+    // -------------------------------------------------------------------------
 
+    /**
+     * Attaches a shared TextWatcher to the goal name, target amount, and initial
+     * deposit fields so that updatePreview() is called after every keystroke,
+     * keeping the preview card in sync with the form at all times.
+     */
     private fun setupLivePreview() {
         val watcher = object : TextWatcher {
             override fun afterTextChanged(s: Editable?) { updatePreview() }
@@ -236,8 +398,14 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         initialDepositEdit.addTextChangedListener(watcher)
     }
 
+    /**
+     * Reads the current form values and updates all elements of the live preview
+     * card — icon, name, target/date details, progress bar, and progress label.
+     * Parsing errors are swallowed silently so incomplete input never crashes the UI.
+     */
     private fun updatePreview() {
         try {
+            // Use placeholder text when fields are empty so the card always looks complete
             val name    = goalNameEdit.text.toString().trim().ifBlank { "Your Goal Name" }
             val target  = targetAmountEdit.text.toString().toDoubleOrNull() ?: 0.0
             val deposit = initialDepositEdit.text.toString().toDoubleOrNull() ?: 0.0
@@ -247,6 +415,7 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
             previewName.text    = name
             previewDetails.text = String.format(java.util.Locale.US, "Target: R %.2f  •  By: %s", target, date)
 
+            // Calculate deposit as a percentage of the target, clamped between 0 and 100
             val pct = if (target > 0) ((deposit / target) * 100).toInt().coerceIn(0, 100) else 0
             previewProgressBar.progress = pct
             previewProgressText.text    = String.format(java.util.Locale.US, "%d%% saved  •  R %.2f initial deposit", pct, deposit)
@@ -255,22 +424,44 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         }
     }
 
-    // ── Buttons ───────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Buttons
+    // -------------------------------------------------------------------------
 
+    /**
+     * Attaches click listeners to the back arrow, cancel button, and the primary
+     * create button. Both the back arrow and cancel simply finish the activity
+     * without saving. The create button delegates to attemptCreate().
+     */
     private fun setupButtons() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
         findViewById<TextView>(R.id.cancelButton)?.setOnClickListener { finish() }
         createGoalButton.setOnClickListener { attemptCreate() }
     }
 
-    // ── Create goal ───────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Create goal
+    // -------------------------------------------------------------------------
 
     /**
-     * Validates input, inserts directly via the DAO inside a lifecycleScope
-     * coroutine, then calls finish() on success — all in one self-contained
-     * block with zero LiveData observers involved.
+     * Validates the form input on the main thread, then inserts the new goal
+     * directly via the DAO inside a lifecycleScope coroutine and calls finish()
+     * on success — all in one self-contained block with zero LiveData observers
+     * involved to avoid unexpected lifecycle interactions.
+     *
+     * Validation rules (checked in order, first failure shown as a Toast):
+     * - Goal name must not be blank.
+     * - Target amount must be greater than R 0.
+     * - Initial deposit must be non-negative.
+     * - Initial deposit must not exceed the target amount.
+     * - If auto-save is enabled, the auto-save amount must be greater than R 0.
+     *
+     * On a successful insert (DAO returns a positive row ID), a confirmation Toast
+     * is shown and the activity is finished. On failure, the button is re-enabled
+     * and an error Toast is shown so the user can retry.
      */
     private fun attemptCreate() {
+        // Read and sanitise all form values before any validation
         val name    = goalNameEdit.text.toString().trim()
         val target  = targetAmountEdit.text.toString().toDoubleOrNull() ?: 0.0
         val deposit = initialDepositEdit.text.toString().toDoubleOrNull() ?: 0.0
@@ -278,23 +469,26 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         val autoOn  = autoSaveSwitch.isChecked
         val autoAmt = autoSaveAmountEdit.text.toString().toDoubleOrNull() ?: 0.0
 
-        // Validate on the main thread before touching the DB
+        // Validate on the main thread before touching the DB; return early on the first error
         val error = when {
-            name.isBlank()                           -> "Please enter a goal name."
-            target <= 0                              -> "Target amount must be greater than R 0."
-            deposit < 0                              -> "Initial deposit cannot be negative."
-            deposit > target                         -> "Initial deposit cannot exceed the target amount."
-            autoOn && autoAmt <= 0                   -> "Please enter an auto-save amount."
-            else                                     -> null
+            name.isBlank()         -> "Please enter a goal name."
+            target <= 0            -> "Target amount must be greater than R 0."
+            deposit < 0            -> "Initial deposit cannot be negative."
+            deposit > target       -> "Initial deposit cannot exceed the target amount."
+            autoOn && autoAmt <= 0 -> "Please enter an auto-save amount."
+            else                   -> null
         }
         if (error != null) {
             Toast.makeText(this, error, Toast.LENGTH_LONG).show()
             return
         }
 
+        // Disable the button to prevent duplicate inserts while the coroutine runs
         createGoalButton.isEnabled = false
 
         val now       = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date())
+
+        // Mark the goal as immediately completed if the initial deposit meets the target
         val completed = deposit >= target
 
         val goal = SavingsGoal(
@@ -309,17 +503,19 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
             autoSaveAmount    = autoAmt,
             autoSaveFrequency = selectedFrequency,
             isCompleted       = completed,
-            completedDate     = if (completed) now else ""
+            completedDate     = if (completed) now else ""   // Only set if goal is already met
         )
 
         lifecycleScope.launch {
             val id = dao.insert(goal)
-            // Switch back to the main thread to update UI
+            // Switch back to the main thread to update UI after the suspend insert
             runOnUiThread {
                 if (id > 0) {
+                    // Positive row ID confirms a successful insert
                     Toast.makeText(this@CreateSavingsGoalActivity, "Goal created! 🎯", Toast.LENGTH_SHORT).show()
                     finish()
                 } else {
+                    // Insert failed — re-enable the button so the user can retry
                     createGoalButton.isEnabled = true
                     Toast.makeText(this@CreateSavingsGoalActivity, "Could not save goal. Please try again.", Toast.LENGTH_LONG).show()
                 }
