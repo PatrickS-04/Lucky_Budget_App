@@ -23,6 +23,8 @@ The Lucky Budget is a personal finance manager application that helps users mana
 - [CI / CD](#ci--cd)
 - [Database](#database)
 - [Permissions](#permissions)
+- [Referencees](#references)
+- [Declaration of AI Usage](#declaration-of-ai-usage)
 
 ---
 
@@ -30,14 +32,14 @@ The Lucky Budget is a personal finance manager application that helps users mana
  
 | Screen | Description |
 |---|---|
-| **Login / Register** | Secure account creation and login with SHA-256 password hashing and strict password-strength rules (8+ chars, upper, lower, digit, special character) |
+| **Login / Register** | Secure account creation and login with SHA-256 password hashing and strict password-strength rules (8+ chars, upper, lower, digit, special character), google login will be implented in the Final POE |
 | **Dashboard** | Personalised greeting, spending category tiles, recent transactions, and a savings-goal snapshot |
 | **Transactions** | Full transaction history with the ability to add new expense entries linked to a category and bank account |
 | **Analytics** | Date-range filtered spending breakdown with a custom donut chart and per-account / per-category spending rows |
 | **Category Totals** | Detailed view of totals grouped by category |
 | **Bank Accounts** | Add and manage multiple bank accounts; view per-account spending |
 | **Savings Goals** | Create savings goals with target amounts and deadlines; track progress and mark goals complete |
-| **Settings** | Toggle app preferences ((Future Implementation) 2FA, overspend alerts, subscription reminders, transaction alerts, savings milestones, dark mode, currency, collabrative access, google login); manage profile and session |
+| **Settings** | Toggle app preferences ((Future Implementation) 2FA, overspend alerts, subscription reminders, transaction alerts, savings milestones, dark mode, currency, collabrative access); manage profile and session |
 | **Manage Categories** | Create and manage custom expense categories |
  
 ---
@@ -289,6 +291,7 @@ Camera hardware is declared as **not required** (`android:required="false"`), so
      Available: https://developer.android.com/training/testing/espresso.
  
 ## DECLARATION OF AI USAGE:
+
 ### Sections where AI was used:
 AI was used in small sections of the code to aid in troubleshooting on the login page.
 ### AI Tool Used:  
@@ -303,7 +306,7 @@ https://claude.ai/share/dd1caa85-5884-4b9d-b899-88d3234fc2d8
 ### Action taken:
 The generated code was not used at all for the login functionality as we found another a similar way to code it. Similarly, the ai tool’s code was not used to fix the error as it was redone again to avoid the issue.
 
-## DECLARATION OF AI USAGE:
+--- 
 ### Sections where AI was used:
 AI was used in the create account page 
 ### AI Tool Used:
@@ -317,7 +320,7 @@ https://claude.ai/share/88a5d0cb-a044-414b-be2e-2aaac0ca8a9c
 ### Action taken:
 The generated code was used to fix the error in the layout only, but the rest was all done manually by us.
 
-## DECLARATION OF AI USAGE:
+--- 
 ### Sections where AI was used:
 AI was used for the image upload feature
 ### AI Tool Used: 
@@ -331,7 +334,7 @@ https://claude.ai/share/40b1dbf3-4c4f-4ff2-b609-a29acc39e7c0
 ### Action taken:
 The action taken was to just understand the response the ai tool provided and determine if the feature worked or not.
 
-## DECLARATION OF AI USAGE:
+--- 
 ### Sections where AI was used:
 AI was used for a filter issue
 ### AI Tool Used:  
@@ -346,7 +349,7 @@ https://claude.ai/share/353e3527-cce5-4e5c-a5ab-ae4d3d0fca40
 ### Action taken:
 The code was tested to see if the minor formatting change worked or not for the week filter.
  
-## DECLARATION OF AI USAGE:
+--- 
 ### Sections where AI was used:
 AI was used for the Github CI workflow
 ### AI Tool Used:  
