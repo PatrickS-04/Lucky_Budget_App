@@ -6,4 +6,6 @@ plugins {
 
     //  REQUIRED for room { }
     id("androidx.room") version "2.7.2" apply false
+    // The dependency for the Google services Gradle plugin
+    id("com.google.gms.google-services") version "4.4.4" apply false
 }

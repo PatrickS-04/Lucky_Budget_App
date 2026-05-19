@@ -14,7 +14,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import com.example.pulserds_prog7313.DonutChartView
 import com.example.pulserds_prog7313.R
-import com.example.pulserds_prog7313.data.AppDatabase
 import com.example.pulserds_prog7313.data.BankAccount
 import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.utils.SessionManager

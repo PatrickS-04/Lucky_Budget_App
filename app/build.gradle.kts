@@ -1,8 +1,9 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp")
-    id("androidx.room")
+    // Removed: id("com.google.devtools.ksp")  -- was only needed for Room's code generation
+    // Removed: id("androidx.room")             -- Room Gradle plugin no longer needed
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -42,9 +43,7 @@ android {
         viewBinding = true
     }
 
-    room {
-        schemaDirectory("$projectDir/schemas")
-    }
+    // Removed: room { schemaDirectory(...) } -- Room schema exports no longer needed
 }
 
 dependencies {
@@ -56,14 +55,28 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
     implementation(libs.androidx.activity)
 
-    // Room
-    val room = "2.7.0-alpha11"
-    implementation("androidx.room:room-ktx:$room")
-    ksp("androidx.room:room-compiler:$room")
+    // Firebase BoM -- manages all Firebase library versions automatically
+    implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
 
-    // ViewModel + Coroutines
+    // Firebase Authentication -- handles login, registration, and password reset
+    implementation("com.google.firebase:firebase-auth")
+
+    // Firebase Firestore -- replaces Room as the database layer
+    implementation("com.google.firebase:firebase-firestore")
+
+    // Firebase Analytics (was already present)
+    implementation("com.google.firebase:firebase-analytics")
+
+    // Removed: Room dependencies
+    // implementation("androidx.room:room-ktx:$room")
+    // ksp("androidx.room:room-compiler:$room")
+
+    // ViewModel + Coroutines (keep as-is)
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // Coroutine support for Firebase Tasks (lets you use .await() on Firebase calls)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
     // Tests
     testImplementation("junit:junit:4.13.2")

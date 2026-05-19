@@ -1,45 +1,24 @@
 package com.example.pulserds_prog7313.data
 
-import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.Index
-import androidx.room.PrimaryKey
-
-/**
- * Room entity → table name: bank_accounts
- *
- * Each account belongs to a [User] (via [userId]).
- * Cascading delete: removing a user also removes all their accounts.
- */
-@Entity(
-    tableName = "bank_accounts",
-    foreignKeys = [
-        ForeignKey(
-            entity = User::class,
-            parentColumns = ["id"],
-            childColumns = ["userId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
-    indices = [Index(value = ["userId"])]
-)
+// 'id' and 'userId' are now Strings (Firestore document ID / Firebase Auth UID).
+// All fields have default values for Firestore deserialisation.
 data class BankAccount(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val id: String = "",
 
-    /** FK → users.id — set from SessionManager */
-    val userId: Int,
+    /** Firebase Auth UID of the owning user */
+    val userId: String = "",
 
     /** One of: Cheque, Savings, Credit, Crypto, Invest, Wallet */
-    val accountType: String,
+    val accountType: String = "",
 
     /** One of: Standard, FNB, Absa, Nedbank, Capitec, Investec, Binance, Other */
-    val bankName: String,
+    val bankName: String = "",
 
-    /** User-provided label, e.g. "My Cheque Account" (max 30 chars) */
-    val nickname: String,
+    /** User-provided label, e.g. "My Cheque Account" */
+    val nickname: String = "",
 
     /** Stored as String to preserve leading zeros and formatting */
-    val accountNumber: String,
+    val accountNumber: String = "",
 
     /** Opening / current balance in Rand */
     val balance: Double = 0.0,

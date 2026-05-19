@@ -1,29 +1,92 @@
 package com.example.pulserds_prog7313.repository
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.example.pulserds_prog7313.data.SavingsGoal
-import com.example.pulserds_prog7313.data.SavingsGoalDao
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
-// Repository pattern as recommended by the Android Guide to App Architecture.
-// [5] Google, "Guide to app architecture," Android Developers, 2024.
-class SavingsGoalRepository(private val dao: SavingsGoalDao) {
+// SavingsGoalRepository now reads/writes to Firestore collection "savings_goals".
+class SavingsGoalRepository {
 
-    fun getAllGoalsLive(userId: Int): LiveData<List<SavingsGoal>> = dao.getAllGoalsLive(userId)
+    private val db  = FirebaseFirestore.getInstance()
+    private val col get() = db.collection("savings_goals")
 
-    suspend fun getAllGoalsOnce(userId: Int): List<SavingsGoal> = dao.getAllGoalsOnce(userId)
+    // -- LiveData stream -------------------------------------------------------
 
-    suspend fun insert(goal: SavingsGoal): Long = dao.insert(goal)
+    // Observes all goals for a user (active first, then completed, newest first).
+    fun getAllGoalsLive(userId: String): LiveData<List<SavingsGoal>> {
+        val liveData = MutableLiveData<List<SavingsGoal>>()
+        col.whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    val list = snapshot.documents
+                        .mapNotNull { doc -> doc.toObject(SavingsGoal::class.java)?.copy(id = doc.id) }
+                        .sortedWith(
+                            compareBy<SavingsGoal> { it.isCompleted }
+                                .thenByDescending { it.createdAt }
+                        )
+                    liveData.postValue(list)
+                }
+            }
+        return liveData
+    }
 
-    suspend fun update(goal: SavingsGoal) = dao.update(goal)
+    // -- One-shot fetches ------------------------------------------------------
 
-    suspend fun delete(goal: SavingsGoal) = dao.delete(goal)
+    suspend fun getAllGoalsOnce(userId: String): List<SavingsGoal> {
+        val snapshot = col.whereEqualTo("userId", userId).get().await()
+        return snapshot.documents
+            .mapNotNull { doc -> doc.toObject(SavingsGoal::class.java)?.copy(id = doc.id) }
+            .sortedWith(
+                compareBy<SavingsGoal> { it.isCompleted }
+                    .thenByDescending { it.createdAt }
+            )
+    }
 
-    suspend fun getById(goalId: Int): SavingsGoal? = dao.getById(goalId)
+    suspend fun getById(goalId: String): SavingsGoal? {
+        val doc = col.document(goalId).get().await()
+        return doc.toObject(SavingsGoal::class.java)?.copy(id = doc.id)
+    }
 
-    suspend fun addFunds(goalId: Int, delta: Double, completedDate: String) =
-        dao.addFunds(goalId, delta, completedDate)
+    // -- Write operations ------------------------------------------------------
 
-    suspend fun getTotalSaved(userId: Int): Double = dao.getTotalSaved(userId)
+    // Inserts a new goal and returns the Firestore-generated document ID.
+    suspend fun insert(goal: SavingsGoal): String {
+        val ref = col.add(goal).await()
+        col.document(ref.id).update("id", ref.id).await()
+        return ref.id
+    }
 
-    suspend fun getTotalTarget(userId: Int): Double = dao.getTotalTarget(userId)
+    suspend fun update(goal: SavingsGoal) {
+        col.document(goal.id).set(goal).await()
+    }
+
+    suspend fun delete(goal: SavingsGoal) {
+        col.document(goal.id).delete().await()
+    }
+
+    // Atomically adds [delta] to savedAmount and marks the goal complete if reached.
+    suspend fun addFunds(goalId: String, delta: Double, completedDate: String) {
+        val ref = col.document(goalId)
+        db.runTransaction { transaction ->
+            val snapshot    = transaction.get(ref)
+            val goal        = snapshot.toObject(SavingsGoal::class.java) ?: return@runTransaction
+            val newSaved    = minOf(goal.savedAmount + delta, goal.targetAmount)
+            val nowComplete = newSaved >= goal.targetAmount
+            transaction.update(ref, mapOf(
+                "savedAmount"   to newSaved,
+                "isCompleted"   to nowComplete,
+                "completedDate" to if (nowComplete) completedDate else goal.completedDate
+            ))
+        }.await()
+    }
+
+    // -- Aggregates ------------------------------------------------------------
+
+    suspend fun getTotalSaved(userId: String): Double =
+        getAllGoalsOnce(userId).filter { !it.isCompleted }.sumOf { it.savedAmount }
+
+    suspend fun getTotalTarget(userId: String): Double =
+        getAllGoalsOnce(userId).filter { !it.isCompleted }.sumOf { it.targetAmount }
 }

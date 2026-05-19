@@ -1,12 +1,14 @@
 package com.example.pulserds_prog7313.data
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+// Firestore maps document fields to these properties by name automatically.
+// 'id' stores the Firestore document ID (a String UID from Firebase Auth).
+// All fields have default values so Firestore can deserialise documents
+// using the no-argument constructor it requires.
 
-@Entity(tableName = "users")
 data class User(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val fullName: String,
-    val email: String,
-    val passwordHash: String
+    val id: String = "",
+    val fullName: String = "",
+    val email: String = ""
+    // passwordHash removed -- Firebase Auth owns password management entirely.
+    // Storing Passwords is frowned upon
 )
