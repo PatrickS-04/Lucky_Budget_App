@@ -64,13 +64,17 @@ jobs:
           fi
           echo "Gradle wrapper checksum verified."
 
-      # Step 8: Check the project compiles successfully (catches syntax/import errors)
+      # Step 8: Write google-services.json from secret
+      - name: Write google-services.json
+        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+
+      # Step 9: Check the project compiles successfully (catches syntax/import errors)
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
 
-      # Step 9: Run Room schema validation (ensures DB migrations are not broken)
+      # Step 10: Run Room schema validation (ensures DB migrations are not broken)
       - name: Verify Room Schema
         run: ./gradlew kspDebugKotlin --stacktrace
         env:
