@@ -40,20 +40,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # Step 5: Cache KSP generated files (used by Room)
-      - name: Cache KSP Generated Files
-        uses: actions/cache@v4
-        with:
-          path: app/build/generated/ksp
-          key: ${{ runner.os }}-ksp-${{ hashFiles('**/*.gradle.kts') }}
-          restore-keys: |
-            ${{ runner.os }}-ksp-
-
-      # Step 6: Grant execute permission for gradlew
+      # Step 5: Grant execute permission for gradlew
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
-      # Step 7: Verify Gradle wrapper checksum locally (no network needed)
+      # Step 6: Verify Gradle wrapper checksum locally (no network needed)
       - name: Verify Gradle Wrapper Checksum
         run: |
           EXPECTED="76805e32c009c0cf0dd5d206bddc9fb22ea42e84db904b764f3047de095493f3"
@@ -64,33 +55,27 @@ jobs:
           fi
           echo "Gradle wrapper checksum verified."
 
-      # Step 8: Write google-services.json from secret
+      # Step 7: Write google-services.json from secret
       - name: Write google-services.json
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
 
-      # Step 9: Check the project compiles successfully (catches syntax/import errors)
+      # Step 8: Build debug APK
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
 
-      # Step 10: Run Room schema validation (ensures DB migrations are not broken)
-      - name: Verify Room Schema
-        run: ./gradlew kspDebugKotlin --stacktrace
-        env:
-          GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-
-      # Step 10: Run JUnit unit tests (junit:4.13.2)
+      # Step 9: Run JUnit unit tests
       - name: Run Unit Tests
         run: ./gradlew testDebugUnitTest --stacktrace
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false"
 
-      # Step 11: Run Android Lint (catches ViewBinding issues, bad practices, etc.)
+      # Step 10: Run Android Lint
       - name: Run Lint
         run: ./gradlew lintDebug --stacktrace
 
-      # Step 12: Upload Lint HTML report as artifact for review
+      # Step 11: Upload Lint HTML report as artifact for review
       - name: Upload Lint Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -98,7 +83,7 @@ jobs:
           name: lint-report
           path: app/build/reports/lint-results-debug.html
 
-      # Step 13: Upload Unit Test results as artifact for review
+      # Step 12: Upload Unit Test results as artifact for review
       - name: Upload Unit Test Results
         uses: actions/upload-artifact@v4
         if: always()
@@ -106,7 +91,7 @@ jobs:
           name: unit-test-results
           path: app/build/reports/tests/testDebugUnitTest/
 
-      # Step 14: Upload the Debug APK so teammates can download and test it
+      # Step 13: Upload the Debug APK so teammates can download and test it
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         if: success()
