@@ -17,7 +17,7 @@ import com.example.pulserds_prog7313.data.BankAccount
  * Displays per-[BankAccount] expense totals in the Spending by Account card.
  *
  * Call [submitData] with the full account list and the per-account spending map
- * (bankAccountId → absolute spend amount) whenever either changes.
+ * (bankAccountId -> absolute spend amount) whenever either changes.
  */
 class AccountSpendingAdapter :
     ListAdapter<BankAccount, AccountSpendingAdapter.AccountViewHolder>(DIFF_CALLBACK) {
@@ -25,7 +25,7 @@ class AccountSpendingAdapter :
     // -- State -----------------------------------------------------------------
 
     /** bankAccountId -> absolute amount spent this period */
-    private var spending: Map<Int, Double> = emptyMap()
+    private var spending: Map<String, Double> = emptyMap()
     private var grandTotal: Double = 1.0
 
     // -- Data submission -------------------------------------------------------

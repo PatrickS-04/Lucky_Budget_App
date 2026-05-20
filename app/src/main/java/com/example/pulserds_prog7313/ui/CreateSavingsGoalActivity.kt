@@ -26,9 +26,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * CreateSavingsGoalActivity — Provides a form for creating a new savings goal.
+ * CreateSavingsGoalActivity - Provides a form for creating a new savings goal.
  *
- * Fully self-contained — does NOT use SavingsGoalViewModel or any LiveData
+ * Fully self-contained - does NOT use SavingsGoalViewModel or any LiveData
  * for its create flow. Validation + DB insert + navigation all happen inside
  * a single lifecycleScope.launch block, so there is no shared observer state
  * that can fire finish() unexpectedly when the keyboard appears.
@@ -49,21 +49,21 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
     /** ViewModel for loading and observing the user's linked bank accounts. */
     private lateinit var bankVm: BankAccountViewModel
 
-    /** Direct DAO reference used for the fire-and-forget goal insert in attemptCreate(). */
-    private lateinit var dao: com.example.pulserds_prog7313.data.SavingsGoalDao
+    /** Repository used for the fire-and-forget goal insert in attemptCreate(). */
+    private lateinit var goalRepo: com.example.pulserds_prog7313.repository.SavingsGoalRepository
 
     // -------------------------------------------------------------------------
     // State
     // -------------------------------------------------------------------------
 
     /** The ID of the currently signed-in user; -1 indicates no active session. */
-    private var userId = -1
+    private var userId = ""
 
     /** The emoji character currently selected in the icon picker. Defaults to a bank. */
     private var selectedIcon = "🏦"
 
     /** The ID of the bank account selected in the dropdown; 0 means no linked account. */
-    private var selectedAccountId = 0
+    private var selectedAccountId = ""
 
     /** The auto-save recurrence interval selected by the user. Defaults to monthly. */
     private var selectedFrequency = "MONTHLY"
@@ -72,7 +72,7 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
     private var accountsList: List<BankAccount> = emptyList()
 
     // -------------------------------------------------------------------------
-    // Icon picker mapping — maps each icon container view ID to its emoji string
+    // Icon picker mapping - maps each icon container view ID to its emoji string
     // -------------------------------------------------------------------------
 
     /**
@@ -94,7 +94,7 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
     )
 
     // -------------------------------------------------------------------------
-    // View references — bound in bindViews() after setContentView()
+    // View references - bound in bindViews() after setContentView()
     // -------------------------------------------------------------------------
 
     /** EditText for the user to enter the name of their savings goal. */
@@ -172,12 +172,10 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
 
         // Resolve the signed-in user and obtain a direct DAO reference for inserts
         userId = SessionManager(this).getUserId()
-        val db = AppDatabase.getDatabase(this)
-        dao    = db.savingsGoalDao()
+        goalRepo = com.example.pulserds_prog7313.repository.SavingsGoalRepository()
 
-        // Build the bank account ViewModel and load accounts for the current user
         bankVm = ViewModelProvider(
-            this, ViewModelFactory { BankAccountViewModel(BankAccountRepository(db.bankAccountDao())) }
+            this, ViewModelFactory { BankAccountViewModel(BankAccountRepository()) }
         )[BankAccountViewModel::class.java]
         bankVm.init(userId)
 
@@ -277,10 +275,10 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
             val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, labels)
             accountDropdown.setAdapter(adapter)
             accountDropdown.setText("No linked account", false)
-            selectedAccountId = 0
+            selectedAccountId = ""
             accountDropdown.setOnItemClickListener { _, _, position, _ ->
                 // Position 0 is the "no account" sentinel; offset by 1 for real accounts
-                selectedAccountId = if (position == 0) 0 else accounts[position - 1].id
+                selectedAccountId = if (position == 0) "" else accounts[position - 1].id
             }
         }
         // Ensure the dropdown opens on a direct tap of the field (not just the arrow)
@@ -364,12 +362,12 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         selectedFrequency = freq
         listOf(freqWeekly, freqMonthly, freqYearly).forEach { c ->
             if (c == chip) {
-                // Active chip — green background, dark text, bold typeface
+                // Active chip - green background, dark text, bold typeface
                 c.setBackgroundColor(android.graphics.Color.parseColor("#4ADE80"))
                 c.setTextColor(android.graphics.Color.parseColor("#0D1B2A"))
                 c.typeface = android.graphics.Typeface.DEFAULT_BOLD
             } else {
-                // Inactive chip — dark background, muted text, regular typeface
+                // Inactive chip - dark background, muted text, regular typeface
                 c.setBackgroundColor(android.graphics.Color.parseColor("#0D1B2A"))
                 c.setTextColor(android.graphics.Color.parseColor("#7A99B0"))
                 c.typeface = android.graphics.Typeface.DEFAULT
@@ -399,7 +397,7 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
 
     /**
      * Reads the current form values and updates all elements of the live preview
-     * card — icon, name, target/date details, progress bar, and progress label.
+     * card - icon, name, target/date details, progress bar, and progress label.
      * Parsing errors are swallowed silently so incomplete input never crashes the UI.
      */
     private fun updatePreview() {
@@ -445,7 +443,7 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
     /**
      * Validates the form input on the main thread, then inserts the new goal
      * directly via the DAO inside a lifecycleScope coroutine and calls finish()
-     * on success — all in one self-contained block with zero LiveData observers
+     * on success - all in one self-contained block with zero LiveData observers
      * involved to avoid unexpected lifecycle interactions.
      *
      * Validation rules (checked in order, first failure shown as a Toast):
@@ -506,15 +504,14 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         )
 
         lifecycleScope.launch {
-            val id = dao.insert(goal)
-            // Switch back to the main thread to update UI after the suspend insert
+            val id = goalRepo.insert(goal)
             runOnUiThread {
-                if (id > 0) {
+                if (id.isNotBlank()) {
                     // Positive row ID confirms a successful insert
                     Toast.makeText(this@CreateSavingsGoalActivity, "Goal created! 🎯", Toast.LENGTH_SHORT).show()
                     finish()
                 } else {
-                    // Insert failed — re-enable the button so the user can retry
+                    // Insert failed - re-enable the button so the user can retry
                     createGoalButton.isEnabled = true
                     Toast.makeText(this@CreateSavingsGoalActivity, "Could not save goal. Please try again.", Toast.LENGTH_LONG).show()
                 }

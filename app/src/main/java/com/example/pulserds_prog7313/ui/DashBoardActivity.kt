@@ -49,7 +49,7 @@ class DashBoardActivity : BaseActivity() {
 
     private var latestCategories: List<Category>    = emptyList()
     private var latestAccounts:   List<BankAccount> = emptyList()
-    private var latestEntries:    List<ExpenseEntry>= emptyList()
+    private var latestEntries:    List<ExpenseEntry> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

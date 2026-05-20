@@ -95,7 +95,7 @@ class CategoryTotalsActivity : BaseActivity() {
     private var cachedCategories: List<Category> = emptyList()
 
     /** Map of categoryId -> total spend amount for the current period. */
-    private var cachedTotals: Map<Int, Double>   = emptyMap()
+    private var cachedTotals: Map<String, Double> = emptyMap()
 
     // -- Swappable LiveData observers -----------------------------------------
     // References are kept so old observers can be removed before new ones are
@@ -170,14 +170,12 @@ class CategoryTotalsActivity : BaseActivity() {
     // -------------------------------------------------------------------------
 
     private fun setupViewModels() {
-        val db = AppDatabase.getDatabase(applicationContext)
-
         categoryViewModel = ViewModelProvider(
-            this, ViewModelFactory { CategoryViewModel(CategoryRepository(db.categoryDao())) }
+            this, ViewModelFactory { CategoryViewModel(CategoryRepository()) }
         )[CategoryViewModel::class.java]
 
         expenseViewModel = ViewModelProvider(
-            this, ViewModelFactory { ExpenseEntryViewModel(ExpenseEntryRepository(db.expenseEntryDao())) }
+            this, ViewModelFactory { ExpenseEntryViewModel(ExpenseEntryRepository()) }
         )[ExpenseEntryViewModel::class.java]
     }
 
@@ -373,7 +371,7 @@ class CategoryTotalsActivity : BaseActivity() {
      */
     private fun reloadData() {
         val userId = SessionManager(this).getUserId()
-        if (userId == -1) return // No active session — bail out early.
+        if (userId.isBlank()) return // No active session — bail out early.
 
         val startStr = dbDateFmt.format(periodStart)
         val endStr   = dbDateFmt.format(periodEnd)

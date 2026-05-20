@@ -19,6 +19,7 @@ import com.example.pulserds_prog7313.utils.SessionManager
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class SettingsActivity : BaseActivity() {
 
@@ -250,7 +251,7 @@ class SettingsActivity : BaseActivity() {
 
         if (completedGoals.isEmpty()) {
             nameView?.text   = "No completed goals yet"
-            detailView?.text = "Keep saving — you're almost there!"
+            detailView?.text = "Keep saving - you're almost there!"
         } else {
             val latest = completedGoals.sortedByDescending { it.completedDate }.first()
             val emojiView = goalCard.getChildAt(0)?.let { cl ->
@@ -316,8 +317,8 @@ class SettingsActivity : BaseActivity() {
                                 // Re-authenticate first (Firebase requires recent sign-in for password changes)
                                 val credential = com.google.firebase.auth.EmailAuthProvider
                                     .getCredential(email, currentPw)
-                                user.reauthenticate(credential).kotlinx.coroutines.tasks.await()
-                                user.updatePassword(newPw).kotlinx.coroutines.tasks.await()
+                                user.reauthenticate(credential).await()
+                                user.updatePassword(newPw).await()
                                 runOnUiThread {
                                     Toast.makeText(this@SettingsActivity, "Password updated successfully", Toast.LENGTH_SHORT).show()
                                 }
