@@ -24,8 +24,8 @@ import kotlin.math.abs
 class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHolder>(DIFF) {
 
     // -- State -----------------------------------------------------------------
-    private var categories: Map<Int, Category> = emptyMap()
-    private var accounts: Map<Int, BankAccount> = emptyMap()
+    private var categories: Map<String, Category> = emptyMap()
+    private var accounts: Map<String, BankAccount> = emptyMap()
 
     // -- Data submission -------------------------------------------------------
     fun submitData(
@@ -61,8 +61,8 @@ class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHo
 
         fun bind(
             entry: ExpenseEntry,
-            categories: Map<Int, Category>,
-            accounts: Map<Int, BankAccount>
+            categories: Map<String, Category>,
+            accounts: Map<String, BankAccount>
         ) {
             val cat     = categories[entry.categoryId]
             val account = accounts[entry.bankAccountId]

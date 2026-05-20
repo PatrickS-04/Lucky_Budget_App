@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 
 // SharedPreferences used to persist login session between app launches.
-// [18] Google, "SharedPreferences -- save key-value data," Android Developers, 2024.
+// userId is now a String (Firebase Auth UID) instead of an Int.
 class SessionManager(context: Context) {
 
     private val prefs: SharedPreferences =
@@ -12,10 +12,11 @@ class SessionManager(context: Context) {
 
     // -- Save session ----------------------------------------------------------
 
-    // Called after a successful login - saves user data AND marks the session as active
-    fun saveSession(userId: Int, fullName: String, email: String) {
+    // Called after a successful login or registration.
+    // userId is the Firebase Auth UID (e.g. "abc123xyz").
+    fun saveSession(userId: String, fullName: String, email: String) {
         prefs.edit()
-            .putInt("USER_ID", userId)
+            .putString("USER_ID", userId)       // String, not Int
             .putString("FULL_NAME", fullName)
             .putString("EMAIL", email)
             .putBoolean("IS_LOGGED_IN", true)
@@ -23,7 +24,9 @@ class SessionManager(context: Context) {
     }
 
     // -- Getters ---------------------------------------------------------------
-    fun getUserId(): Int = prefs.getInt("USER_ID", -1)
+
+    // Returns the Firebase Auth UID, or "" if no session exists.
+    fun getUserId(): String = prefs.getString("USER_ID", "") ?: ""
 
     fun getFullName(): String? = prefs.getString("FULL_NAME", null)
 

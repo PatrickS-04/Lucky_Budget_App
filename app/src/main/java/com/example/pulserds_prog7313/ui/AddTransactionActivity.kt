@@ -22,7 +22,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.pulserds_prog7313.R
-import com.example.pulserds_prog7313.data.AppDatabase
 import com.example.pulserds_prog7313.data.BankAccount
 import com.example.pulserds_prog7313.data.Category
 import com.example.pulserds_prog7313.data.ExpenseEntry
@@ -42,20 +41,18 @@ import java.util.*
 
 class AddTransactionActivity : AppCompatActivity() {
 
-    // -- State -----------------------------------------------------------------
     private var isExpense = true
-    private var selectedCategoryId: Int? = null
+    private var selectedCategoryId: String? = null   // String ID
     private var uriOfCameraImage: Uri? = null
     private var uriOfSelectedReceipt: Uri? = null
     private lateinit var viewModel: ExpenseEntryViewModel
     private lateinit var bankAccountViewModel: BankAccountViewModel
     private lateinit var categoryViewModel: CategoryViewModel
-    private var loggedInUserId: Int = -1
+    private var loggedInUserId: String = ""           // String UID
     private var accountsList: List<BankAccount> = emptyList()
-    private var selectedAccountId: Int? = null
+    private var selectedAccountId: String? = null     // String ID
     private var categoriesList: List<Category> = emptyList()
 
-    // -- View references -------------------------------------------------------
     private lateinit var amountInput: EditText
     private lateinit var merchantInput: EditText
     private lateinit var accountDropdown: AutoCompleteTextView
@@ -65,7 +62,6 @@ class AddTransactionActivity : AppCompatActivity() {
     private lateinit var expenseToggle: TextView
     private lateinit var incomeToggle: TextView
 
-    // -- Activity result launchers ---------------------------------------------
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success && uriOfCameraImage != null) handleSelectedReceipt(uriOfCameraImage!!)
     }
@@ -80,46 +76,32 @@ class AddTransactionActivity : AppCompatActivity() {
         else Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show()
     }
 
-    // -- Lifecycle -------------------------------------------------------------
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_add_transaction)
 
-        loggedInUserId = intent.getIntExtra("USER_ID", -1)
-        if (loggedInUserId == -1) loggedInUserId = SessionManager(this).getUserId()
+        // userId is now a String -- get from SessionManager (String)
+        loggedInUserId = SessionManager(this).getUserId()
 
-        val db = AppDatabase.getDatabase(applicationContext)
+        // No AppDatabase -- repositories use Firebase directly
+        viewModel = ViewModelProvider(this, ExpenseEntryViewModelFactory(ExpenseEntryRepository()))[ExpenseEntryViewModel::class.java]
 
-        // ExpenseEntry ViewModel
-        val expenseRepo = ExpenseEntryRepository(db.expenseEntryDao())
-        viewModel = ViewModelProvider(this, ExpenseEntryViewModelFactory(expenseRepo))[ExpenseEntryViewModel::class.java]
-
-        // BankAccount ViewModel
-        val bankRepo = BankAccountRepository(db.bankAccountDao())
-        bankAccountViewModel = ViewModelProvider(this, BankAccountViewModelFactory(bankRepo))[BankAccountViewModel::class.java]
+        bankAccountViewModel = ViewModelProvider(this, BankAccountViewModelFactory(BankAccountRepository()))[BankAccountViewModel::class.java]
         bankAccountViewModel.init(loggedInUserId)
 
-        // Category ViewModel
-        val catRepo = CategoryRepository(db.categoryDao())
         val catFactory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return CategoryViewModel(catRepo) as T
+                return CategoryViewModel(CategoryRepository()) as T
             }
         }
         categoryViewModel = ViewModelProvider(this, catFactory)[CategoryViewModel::class.java]
 
-        // FIX: seedDefaultCategories is suspend -- must be called inside a coroutine
-        // [4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024.
-        // [8] JetBrains, kotlinx-coroutines-android, ver. 1.8.1. [Software]. JetBrains, 2024.
-        if (loggedInUserId != -1) {
-            lifecycleScope.launch {
-                categoryViewModel.seedDefaultCategories(loggedInUserId)
-            }
+        if (loggedInUserId.isNotBlank()) {
+            lifecycleScope.launch { categoryViewModel.seedDefaultCategories(loggedInUserId) }
         }
 
-        // -- Receipt buttons ---------------------------------------------------
         findViewById<View>(R.id.receiptEmptyState).setOnClickListener { openPhoneGallery() }
         findViewById<View>(R.id.receiptCameraBtn).setOnClickListener { checkCameraPermission() }
         findViewById<View>(R.id.receiptGalleryBtn).setOnClickListener { openPhoneGallery() }
@@ -144,11 +126,8 @@ class AddTransactionActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // FIX: seedDefaultCategories is suspend -- must be called inside a coroutine
-        if (loggedInUserId != -1) {
-            lifecycleScope.launch {
-                categoryViewModel.seedDefaultCategories(loggedInUserId)
-            }
+        if (loggedInUserId.isNotBlank()) {
+            lifecycleScope.launch { categoryViewModel.seedDefaultCategories(loggedInUserId) }
         }
     }
 
@@ -163,7 +142,6 @@ class AddTransactionActivity : AppCompatActivity() {
         incomeToggle     = findViewById(R.id.incomeToggle)
     }
 
-    // -- Toggle Expense / Income -----------------------------------------------
     private fun setupToggle() {
         updateToggleUI()
         expenseToggle.setOnClickListener { isExpense = true; updateToggleUI(); refreshCategoryDropdown() }
@@ -175,7 +153,6 @@ class AddTransactionActivity : AppCompatActivity() {
         incomeToggle.alpha  = if (isExpense) 0.45f else 1f
     }
 
-    // -- Category dropdown -----------------------------------------------------
     private fun setupCategoryDropdown() {
         categoryViewModel.getCategoriesLive(loggedInUserId).observe(this) { all ->
             categoriesList = all
@@ -183,8 +160,7 @@ class AddTransactionActivity : AppCompatActivity() {
         }
         categoryDropdown.setOnClickListener { categoryDropdown.showDropDown() }
         categoryDropdown.setOnItemClickListener { _, _, position, _ ->
-            val filtered = filteredCategories()
-            selectedCategoryId = filtered[position].id
+            selectedCategoryId = filteredCategories()[position].id
         }
     }
 
@@ -195,27 +171,23 @@ class AddTransactionActivity : AppCompatActivity() {
 
     private fun refreshCategoryDropdown() {
         val filtered = filteredCategories()
-        val labels = filtered.map { it.name }
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, labels)
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, filtered.map { it.name })
         categoryDropdown.setAdapter(adapter)
         categoryDropdown.setText("", false)
         selectedCategoryId = null
     }
 
-    // -- Account dropdown ------------------------------------------------------
     private fun setupAccountDropdown() {
         bankAccountViewModel.accounts.observe(this) { accounts ->
             accountsList = accounts
             val labels = accounts.map { "${it.nickname} (${it.bankName})" }
             val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, labels)
             accountDropdown.setAdapter(adapter)
-
             val primaryIndex = accounts.indexOfFirst { it.isPrimary }
             if (primaryIndex >= 0) {
                 accountDropdown.setText(labels[primaryIndex], false)
                 selectedAccountId = accounts[primaryIndex].id
             }
-
             accountDropdown.setOnItemClickListener { _, _, position, _ ->
                 selectedAccountId = accounts[position].id
             }
@@ -223,7 +195,6 @@ class AddTransactionActivity : AppCompatActivity() {
         accountDropdown.setOnClickListener { accountDropdown.showDropDown() }
     }
 
-    // -- Date picker -----------------------------------------------------------
     private var datePickerDialog: DatePickerDialog? = null
 
     private fun setupDatePicker() {
@@ -237,18 +208,12 @@ class AddTransactionActivity : AppCompatActivity() {
         dateInput.setOnClickListener(openPicker)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        datePickerDialog?.dismiss()
-    }
+    override fun onDestroy() { super.onDestroy(); datePickerDialog?.dismiss() }
 
-    // -- Navigation ------------------------------------------------------------
     private fun setupNavigation() {
         findViewById<TextView>(R.id.backArrow)?.setOnClickListener { finish() }
         findViewById<TextView>(R.id.manageCategoriesLink)?.setOnClickListener {
-            val intent = Intent(this, ManageCategoriesActivity::class.java)
-            intent.putExtra("USER_ID", loggedInUserId)
-            startActivity(intent)
+            startActivity(Intent(this, ManageCategoriesActivity::class.java))
         }
     }
 
@@ -257,15 +222,13 @@ class AddTransactionActivity : AppCompatActivity() {
         findViewById<View>(R.id.cancelButton).setOnClickListener { finish() }
     }
 
-    // -- Receipt helpers -------------------------------------------------------
     private fun openPhoneGallery()       { galleryLauncher.launch("image/*") }
     private fun openPhoneFilesExplorer() { fileLauncher.launch("*/*") }
 
     private fun checkCameraPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
             openPhoneCamera()
-        else
-            permissionLauncher.launch(Manifest.permission.CAMERA)
+        else permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
     private fun openPhoneCamera() {
@@ -283,13 +246,11 @@ class AddTransactionActivity : AppCompatActivity() {
     private fun handleSelectedReceipt(uri: Uri) {
         val mimeType = contentResolver.getType(uri)
         if (mimeType !in listOf("image/jpeg", "image/png", "application/pdf")) {
-            Toast.makeText(this, "Only JPG, PNG or PDF files allowed", Toast.LENGTH_SHORT).show()
-            return
+            Toast.makeText(this, "Only JPG, PNG or PDF files allowed", Toast.LENGTH_SHORT).show(); return
         }
         val size = getSizeOfFile(uri)
         if (size > 10 * 1024 * 1024L) {
-            Toast.makeText(this, "File exceeds the 10 MB limit", Toast.LENGTH_SHORT).show()
-            return
+            Toast.makeText(this, "File exceeds the 10 MB limit", Toast.LENGTH_SHORT).show(); return
         }
         uriOfSelectedReceipt = uri
         showAttachedReceiptState(uri, mimeType, size)
@@ -305,17 +266,10 @@ class AddTransactionActivity : AppCompatActivity() {
         val sizeStr = formatSizeOfFile(size)
         val typeStr = if (mimeType == "application/pdf") "PDF" else "JPG"
         findViewById<TextView>(R.id.receiptFileSize).text = "$sizeStr $typeStr"
-
         val thumbnail = findViewById<ImageView>(R.id.receiptThumbnail)
         val pdfIcon   = findViewById<TextView>(R.id.receiptPdfIcon)
-        if (mimeType == "application/pdf") {
-            thumbnail.visibility = View.GONE
-            pdfIcon.visibility   = View.VISIBLE
-        } else {
-            thumbnail.visibility = View.VISIBLE
-            pdfIcon.visibility   = View.GONE
-            thumbnail.setImageURI(uri)
-        }
+        if (mimeType == "application/pdf") { thumbnail.visibility = View.GONE; pdfIcon.visibility = View.VISIBLE }
+        else { thumbnail.visibility = View.VISIBLE; pdfIcon.visibility = View.GONE; thumbnail.setImageURI(uri) }
     }
 
     private fun getFileName(uri: Uri): String {
@@ -340,13 +294,11 @@ class AddTransactionActivity : AppCompatActivity() {
     }
 
     private fun removeReceipt() {
-        uriOfSelectedReceipt = null
-        uriOfCameraImage     = null
+        uriOfSelectedReceipt = null; uriOfCameraImage = null
         findViewById<View>(R.id.receiptEmptyState).visibility    = View.VISIBLE
         findViewById<View>(R.id.receiptAttachedState).visibility = View.GONE
     }
 
-    // -- Save transaction ------------------------------------------------------
     private fun saveTransaction() {
         val amountStr   = amountInput.text.toString().trim()
         val description = merchantInput.text.toString().trim()
@@ -362,21 +314,18 @@ class AddTransactionActivity : AppCompatActivity() {
         if (accountText.isEmpty()) { accountDropdown.error = "Please select an account"; accountDropdown.requestFocus(); return }
         if (selectedAccountId == null) { accountDropdown.error = "Please select a valid account"; accountDropdown.requestFocus(); return }
         if (selectedCategoryId == null) { categoryDropdown.error = "Please select a category"; categoryDropdown.requestFocus(); return }
-        if (loggedInUserId == -1) { Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show(); return }
+        if (loggedInUserId.isBlank()) { Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show(); return }
 
         val finalAmount = if (isExpense) -abs(rawAmount) else abs(rawAmount)
-
         val fullDescription = buildString {
             append(description)
             if (note.isNotEmpty()) { append("\n"); append(note) }
         }
 
-        val accountId = selectedAccountId!!
-
         val entry = ExpenseEntry(
             userId        = loggedInUserId,
             categoryId    = selectedCategoryId!!,
-            bankAccountId = accountId,
+            bankAccountId = selectedAccountId!!,
             amount        = finalAmount,
             date          = date,
             startTime     = "",
@@ -385,10 +334,12 @@ class AddTransactionActivity : AppCompatActivity() {
             photoPath     = uriOfSelectedReceipt?.toString()
         )
 
+        // Use repository directly for the insert + balance adjust
         CoroutineScope(Dispatchers.IO).launch {
-            val db = AppDatabase.getDatabase(applicationContext)
-            db.expenseEntryDao().insert(entry)
-            db.bankAccountDao().adjustBalance(accountId, finalAmount)
+            val repo        = ExpenseEntryRepository()
+            val bankRepo    = BankAccountRepository()
+            repo.addEntry(entry)
+            bankRepo.adjustBalance(selectedAccountId!!, finalAmount)
         }
 
         Toast.makeText(this, if (isExpense) "Expense saved!" else "Income saved!", Toast.LENGTH_SHORT).show()
@@ -396,12 +347,11 @@ class AddTransactionActivity : AppCompatActivity() {
     }
 }
 
-// -- ViewModel factories -------------------------------------------------------
+// ViewModel factories (kept local to this file, same as before)
 class ExpenseEntryViewModelFactory(private val repository: ExpenseEntryRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ExpenseEntryViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return ExpenseEntryViewModel(repository) as T
+            @Suppress("UNCHECKED_CAST") return ExpenseEntryViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
@@ -410,8 +360,7 @@ class ExpenseEntryViewModelFactory(private val repository: ExpenseEntryRepositor
 class BankAccountViewModelFactory(private val repository: BankAccountRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(BankAccountViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return BankAccountViewModel(repository) as T
+            @Suppress("UNCHECKED_CAST") return BankAccountViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

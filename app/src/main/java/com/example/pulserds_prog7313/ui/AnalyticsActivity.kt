@@ -16,10 +16,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pulserds_prog7313.DonutChartView
 import com.example.pulserds_prog7313.R
-import com.example.pulserds_prog7313.data.AppDatabase
 import com.example.pulserds_prog7313.data.Category
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
+import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.ui.adapters.AccountSpendingAdapter
 import com.example.pulserds_prog7313.ui.adapters.CategoryTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.SpendingRowAdapter
@@ -115,7 +115,7 @@ class AnalyticsActivity : BaseActivity() {
     private var cachedCategories: List<Category> = emptyList()
 
     /** Map of categoryId -> total spend amount for the current period. */
-    private var cachedTotals: Map<Int, Double> = emptyMap()
+    private var cachedTotals: Map<String, Double> = emptyMap()
 
     // -- Swappable LiveData observers -----------------------------------------
     // References are kept so old observers can be removed before new ones are
@@ -169,7 +169,7 @@ class AnalyticsActivity : BaseActivity() {
         setupPeriodChips()
         selectPeriod(Period.MONTH) // Default to Month view on first launch.
 
-        // Export button — feature placeholder; shows a coming-soon toast for now.
+        // Export button - feature placeholder; shows a coming-soon toast for now.
         findViewById<MaterialButton>(R.id.exportButton)?.setOnClickListener {
             Toast.makeText(this, "Export coming soon", Toast.LENGTH_SHORT).show()
         }
@@ -262,7 +262,7 @@ class AnalyticsActivity : BaseActivity() {
     /**
      * Sets [periodStart], [periodEnd], and [periodLabel] for the given [period].
      * All non-CUSTOM periods compute their boundaries relative to today's date.
-     * CUSTOM is a no-op here — its dates are set directly by [showCustomDatePicker].
+     * CUSTOM is a no-op here - its dates are set directly by [showCustomDatePicker].
      */
     private fun computeDateRange(period: Period) {
         val cal      = Calendar.getInstance()
@@ -317,7 +317,7 @@ class AnalyticsActivity : BaseActivity() {
                 periodLabel = yearFmt.format(periodStart)
             }
 
-            Period.CUSTOM -> { /* Dates set directly by showCustomDatePicker — nothing to compute here. */ }
+            Period.CUSTOM -> { /* Dates set directly by showCustomDatePicker - nothing to compute here. */ }
         }
     }
 
@@ -359,24 +359,20 @@ class AnalyticsActivity : BaseActivity() {
     // -------------------------------------------------------------------------
 
     private fun setupViewModels() {
-        val db = AppDatabase.getDatabase(applicationContext)
-
         categoryViewModel = ViewModelProvider(
-            this, ViewModelFactory { CategoryViewModel(CategoryRepository(db.categoryDao())) }
+            this, ViewModelFactory { CategoryViewModel(CategoryRepository()) }
         )[CategoryViewModel::class.java]
 
         expenseViewModel = ViewModelProvider(
-            this, ViewModelFactory { ExpenseEntryViewModel(ExpenseEntryRepository(db.expenseEntryDao())) }
+            this, ViewModelFactory { ExpenseEntryViewModel(ExpenseEntryRepository()) }
         )[ExpenseEntryViewModel::class.java]
 
         bankAccountViewModel = ViewModelProvider(
-            this, ViewModelFactory { BankAccountViewModel(com.example.pulserds_prog7313.repository.BankAccountRepository(db.bankAccountDao())) }
+            this, ViewModelFactory { BankAccountViewModel(BankAccountRepository()) }
         )[BankAccountViewModel::class.java]
 
-        // Initialise the bank account ViewModel with the current user's ID so it
-        // loads only accounts that belong to the logged-in user.
         val userId = SessionManager(this).getUserId()
-        if (userId != -1) bankAccountViewModel.init(userId)
+        if (userId.isNotBlank()) bankAccountViewModel.init(userId)
     }
 
     // -------------------------------------------------------------------------
@@ -425,7 +421,7 @@ class AnalyticsActivity : BaseActivity() {
      */
     private fun reloadData() {
         val userId = SessionManager(this).getUserId()
-        if (userId == -1) return // No active session — bail out early.
+        if (userId.isBlank()) return
 
         val startStr = dbDateFmt.format(periodStart)
         val endStr   = dbDateFmt.format(periodEnd)
@@ -467,7 +463,7 @@ class AnalyticsActivity : BaseActivity() {
     /**
      * Permanent observer on the period-filtered expense entries.
      * Computes per-category spend totals (absolute value of negative amounts),
-     * caches them, and delegates to [pushAdapterUpdates] — eliminating the race
+     * caches them, and delegates to [pushAdapterUpdates] - eliminating the race
      * condition where cachedCategories was still empty when entries arrived first.
      */
     private fun observeEntries() {
@@ -490,8 +486,8 @@ class AnalyticsActivity : BaseActivity() {
      * Always reads [cachedCategories] + [cachedTotals] so the result is
      * consistent regardless of which LiveData observer fires first.
      *
-     *  - Category Tiles  — every category (EXPENSE, INCOME, BOTH).
-     *  - Spending Rows   — EXPENSE/BOTH categories only; falls back to showing
+     *  - Category Tiles  - every category (EXPENSE, INCOME, BOTH).
+     *  - Spending Rows   - EXPENSE/BOTH categories only; falls back to showing
      *                      all expense categories with R 0 if none have spend yet.
      */
     private fun pushAdapterUpdates() {
@@ -567,7 +563,7 @@ class AnalyticsActivity : BaseActivity() {
                 "Saved"
             )
         } else {
-            // No income recorded — clear the chart and show a placeholder message.
+            // No income recorded - clear the chart and show a placeholder message.
             heroChangeBadge.text = "No income recorded this period"
             summaryPieChart.setSegments(emptyList())
             summaryPieChart.setCenterLabel("-", "No data")

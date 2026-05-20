@@ -12,7 +12,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import com.example.pulserds_prog7313.R
-import com.example.pulserds_prog7313.data.AppDatabase
 import com.example.pulserds_prog7313.data.SavingsGoal
 import com.example.pulserds_prog7313.repository.SavingsGoalRepository
 import com.example.pulserds_prog7313.utils.SessionManager
@@ -32,7 +31,7 @@ import kotlin.math.roundToInt
  *  - A scrollable list of active goal cards (each with an "Add Funds" button).
  *  - A scrollable list of completed goal cards.
  *
- * Architecture: MVVM — all data operations go through [SavingsGoalViewModel];
+ * Architecture: MVVM - all data operations go through [SavingsGoalViewModel];
  * the activity only observes LiveData and updates the UI.
  */
 class SavingsGoalsActivity : BaseActivity() {
@@ -41,7 +40,7 @@ class SavingsGoalsActivity : BaseActivity() {
     private lateinit var vm: SavingsGoalViewModel
 
     // ID of the currently logged-in user, resolved from SessionManager.
-    private var userId = -1
+    private var userId = ""
 
     // Overview card views
 
@@ -106,9 +105,8 @@ class SavingsGoalsActivity : BaseActivity() {
         userId = SessionManager(this).getUserId()
 
         // Build the ViewModel backed by a Room DAO via the repository layer.
-        val db = AppDatabase.getDatabase(this)
         vm = ViewModelProvider(
-            this, ViewModelFactory { SavingsGoalViewModel(SavingsGoalRepository(db.savingsGoalDao())) }
+            this, ViewModelFactory { SavingsGoalViewModel(SavingsGoalRepository()) }
         )[SavingsGoalViewModel::class.java]
 
         bindViews()          // Wire XML views to Kotlin properties.
@@ -121,7 +119,7 @@ class SavingsGoalsActivity : BaseActivity() {
     /**
      * Refresh totals every time the activity returns to the foreground.
      * This handles cases where the user navigates to [CreateSavingsGoalActivity],
-     * adds a goal, and then presses back — the overview card will reflect the
+     * adds a goal, and then presses back - the overview card will reflect the
      * latest DB state without needing a full re-create.
      */
     override fun onResume() {
@@ -173,9 +171,9 @@ class SavingsGoalsActivity : BaseActivity() {
 
     /**
      * Subscribes to the three main LiveData streams exposed by the ViewModel:
-     *  1. The full list of goals — drives [renderGoals].
-     *  2. [SavingsGoalViewModel.totalSaved] — updates the overview "amount saved" label.
-     *  3. [SavingsGoalViewModel.totalTarget] — updates the overview target label and
+     *  1. The full list of goals - drives [renderGoals].
+     *  2. [SavingsGoalViewModel.totalSaved] - updates the overview "amount saved" label.
+     *  3. [SavingsGoalViewModel.totalTarget] - updates the overview target label and
      *     calculates the overall progress percentage.
      *
      * Also triggers an initial totals refresh so the overview card is populated
@@ -193,7 +191,7 @@ class SavingsGoalsActivity : BaseActivity() {
         vm.totalTarget.observe(this) { target ->
             val saved = vm.totalSaved.value ?: 0.0
             overallTarget.text = "of R %,.0f total target".format(target)
-            // Clamp to 0–100 so the ProgressBar never overflows.
+            // Clamp to 0-100 so the ProgressBar never overflows.
             val pct = if (target > 0) ((saved / target) * 100).roundToInt().coerceIn(0, 100) else 0
             overallProgressBar.progress = pct
             overallPercent.text = "$pct% of your total goal achieved 🍀"
@@ -207,7 +205,7 @@ class SavingsGoalsActivity : BaseActivity() {
      *
      * WHY THIS IS IMPORTANT:
      * Previously this observer was registered inside [showAddFundsDialog]. Every time
-     * the dialog was opened a NEW observer was added to the same LiveData — causing:
+     * the dialog was opened a NEW observer was added to the same LiveData - causing:
      *  - Multiple simultaneous Toast messages per save operation.
      *  - An ANR-level event flood as stacked observers fired together.
      *  - Unpredictable navigation side-effects.
@@ -284,9 +282,9 @@ class SavingsGoalsActivity : BaseActivity() {
      * Inflates and populates an active goal card (item_savings_goal layout).
      *
      * The card's accent colour is chosen dynamically based on progress:
-     *  - < 40 % → green  (#4ADE80) — encouragement to keep going.
-     *  - 40–74 % → blue  (#60A5FA) — steady progress.
-     *  - ≥ 75 % → amber  (#FBBF24) — almost there!
+     *  - < 40 % -> green  (#4ADE80) - encouragement to keep going.
+     *  - 40-74 % -> blue  (#60A5FA) - steady progress.
+     *  - ≥ 75 % -> amber  (#FBBF24) - almost there!
      *
      * An "Almost There" badge is shown when progress reaches 80 % or above.
      *
@@ -296,15 +294,15 @@ class SavingsGoalsActivity : BaseActivity() {
     private fun buildGoalCard(goal: SavingsGoal): View {
         val card = LayoutInflater.from(this).inflate(R.layout.item_savings_goal, null, false)
 
-        // Calculate percentage saved, clamped to 0–100, and the remaining amount.
+        // Calculate percentage saved, clamped to 0-100, and the remaining amount.
         val pct  = if (goal.targetAmount > 0) ((goal.savedAmount / goal.targetAmount) * 100).roundToInt().coerceIn(0, 100) else 0
         val left = goal.targetAmount - goal.savedAmount
 
         // Choose accent colour based on progress bracket.
         val tintHex = when {
-            pct >= 75 -> "#FBBF24" // Amber — nearing completion.
-            pct >= 40 -> "#60A5FA" // Blue  — good progress.
-            else       -> "#4ADE80" // Green — early stage.
+            pct >= 75 -> "#FBBF24" // Amber - nearing completion.
+            pct >= 40 -> "#60A5FA" // Blue  - good progress.
+            else       -> "#4ADE80" // Green - early stage.
         }
         val tintColor = Color.parseColor(tintHex)
 
@@ -316,13 +314,13 @@ class SavingsGoalsActivity : BaseActivity() {
         card.findViewById<TextView>(R.id.goalCardSaved).text =
             "R ${"%.2f".format(goal.savedAmount)} saved"
 
-        // Progress summary line — shows percentage and remaining amount in the accent colour.
+        // Progress summary line - shows percentage and remaining amount in the accent colour.
         card.findViewById<TextView>(R.id.goalCardProgress).also {
             it.text = "$pct%  •  R ${"%.2f".format(abs(left))} to go"
             it.setTextColor(tintColor)
         }
 
-        // "Almost There" badge — only visible when ≥ 80 % complete and goal is still active.
+        // "Almost There" badge - only visible when ≥ 80 % complete and goal is still active.
         card.findViewById<View>(R.id.almostThereBadge).visibility =
             if (pct >= 80 && !goal.isCompleted) View.VISIBLE else View.GONE
 
@@ -332,7 +330,7 @@ class SavingsGoalsActivity : BaseActivity() {
             it.progressTintList = android.content.res.ColorStateList.valueOf(tintColor)
         }
 
-        // "Add Funds" button — tinted to match the accent colour; opens the funds dialog.
+        // "Add Funds" button - tinted to match the accent colour; opens the funds dialog.
         card.findViewById<MaterialButton>(R.id.goalCardAddFunds).also {
             it.backgroundTintList = android.content.res.ColorStateList.valueOf(tintColor)
             it.setOnClickListener { showAddFundsDialog(goal) }
@@ -369,7 +367,7 @@ class SavingsGoalsActivity : BaseActivity() {
         }
         card.findViewById<TextView>(R.id.completedGoalSubtitle).text = subtitle
 
-        // Three-dot overflow menu — same delete action as active goal cards.
+        // Three-dot overflow menu - same delete action as active goal cards.
         card.findViewById<TextView>(R.id.completedGoalMenu).setOnClickListener {
             showGoalMenu(goal, card)
         }
@@ -384,7 +382,7 @@ class SavingsGoalsActivity : BaseActivity() {
      *
      * Validation rules enforced before the dialog is dismissed:
      *  1. Amount must be a valid positive number.
-     *  2. Amount must not exceed the remaining balance (targetAmount − savedAmount).
+     *  2. Amount must not exceed the remaining balance (targetAmount - savedAmount).
      *
      * The dialog is intentionally prevented from auto-dismissing on the positive
      * button press so validation errors can be shown inline via [EditText.setError].
@@ -395,7 +393,7 @@ class SavingsGoalsActivity : BaseActivity() {
     private fun showAddFundsDialog(goal: SavingsGoal) {
         val remaining = goal.targetAmount - goal.savedAmount
 
-        // Custom EditText for amount entry — decimal numeric keyboard.
+        // Custom EditText for amount entry - decimal numeric keyboard.
         val editText = EditText(this).apply {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
             hint = "Amount (max R %,.2f)".format(remaining)
@@ -411,7 +409,7 @@ class SavingsGoalsActivity : BaseActivity() {
             .setNegativeButton("Cancel", null)
             .create()
 
-        // Register the "Add" button with an empty lambda — real logic is applied below
+        // Register the "Add" button with an empty lambda - real logic is applied below
         // via setOnClickListener AFTER show(), which overrides AlertDialog's auto-dismiss.
         dialog.setButton(AlertDialog.BUTTON_POSITIVE, "Add") { _, _ -> }
 
@@ -426,7 +424,7 @@ class SavingsGoalsActivity : BaseActivity() {
                     editText.error = "Please enter a valid amount"
                 }
                 amount > remaining -> {
-                    // Prevent over-funding — cap at the remaining balance.
+                    // Prevent over-funding - cap at the remaining balance.
                     editText.error = "Max R %,.2f".format(remaining)
                 }
                 else -> {

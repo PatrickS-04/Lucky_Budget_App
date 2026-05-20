@@ -11,57 +11,51 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-// MVVM ViewModel -- based off the official google documents
-// [2] Google, "ViewModel overview," Android Developers, 2024.
-// [7] Google, AndroidX Lifecycle ViewModel KTX, ver. 2.8.4. [Software]. Android Developers, 2024.
+// Changes from the Room version:
+//   - userId, goalId, linkedAccountId are now String.
+//   - insert() returns a String (Firestore document ID); check isNotBlank() instead of > 0.
+// All business logic and validation is identical.
 class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel() {
 
-    // -- Result sealed class ---------------------------------------------------
     sealed class GoalResult {
         object Success    : GoalResult()
         object FundsAdded : GoalResult()
         data class Error(val message: String) : GoalResult()
     }
 
-    // -- LiveData --------------------------------------------------------------
     private val _totalSaved  = MutableLiveData(0.0)
     val totalSaved: LiveData<Double> get() = _totalSaved
 
     private val _totalTarget = MutableLiveData(0.0)
     val totalTarget: LiveData<Double> get() = _totalTarget
 
-    // SingleLiveEvent: each posted value is delivered exactly once to one observer.
-    // Eliminates stale-result replays that caused instant finish() on screen open.
     private val _saveResult = SingleLiveEvent<GoalResult>()
     val saveResult: LiveData<GoalResult> get() = _saveResult
 
     fun consumeResult() { /* no-op -- SingleLiveEvent self-consumes */ }
 
-    // -- Data access -----------------------------------------------------------
-    fun getAllGoalsLive(userId: Int): LiveData<List<SavingsGoal>> =
+    fun getAllGoalsLive(userId: String): LiveData<List<SavingsGoal>> =
         repo.getAllGoalsLive(userId)
 
-    fun refreshTotals(userId: Int) {
+    fun refreshTotals(userId: String) {
         viewModelScope.launch {
             _totalSaved.postValue(repo.getTotalSaved(userId))
             _totalTarget.postValue(repo.getTotalTarget(userId))
         }
     }
 
-    // -- Create goal -----------------------------------------------------------
     fun createGoal(
-        userId         : Int,
+        userId         : String,
         name           : String,
         icon           : String,
         targetAmount   : Double,
         initialDeposit : Double,
         targetDate     : String,
-        linkedAccountId: Int,
+        linkedAccountId: String,
         autoSaveEnabled: Boolean,
         autoSaveAmount : Double,
         autoSaveFreq   : String
     ) {
-        // Validation runs on main thread -- use setValue() directly as a method call
         when {
             name.isBlank() -> {
                 _saveResult.setValue(GoalResult.Error("Please enter a goal name."))
@@ -103,10 +97,9 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
             completedDate     = if (completed) now else ""
         )
 
-        // DB insert runs on a background thread -- use postValue()
         viewModelScope.launch {
-            val id = repo.insert(goal)
-            if (id > 0) {
+            val id = repo.insert(goal)   // Returns Firestore document ID
+            if (id.isNotBlank()) {
                 refreshTotals(userId)
                 _saveResult.postValue(GoalResult.Success)
             } else {
@@ -115,8 +108,7 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
         }
     }
 
-    // -- Add funds -------------------------------------------------------------
-    fun addFunds(goalId: Int, amount: Double, userId: Int) {
+    fun addFunds(goalId: String, amount: Double, userId: String) {
         if (amount <= 0) {
             _saveResult.setValue(GoalResult.Error("Please enter a valid amount."))
             return
@@ -129,8 +121,7 @@ class SavingsGoalViewModel(private val repo: SavingsGoalRepository) : ViewModel(
         }
     }
 
-    // -- Delete goal -----------------------------------------------------------
-    fun deleteGoal(goal: SavingsGoal, userId: Int) {
+    fun deleteGoal(goal: SavingsGoal, userId: String) {
         viewModelScope.launch {
             repo.delete(goal)
             refreshTotals(userId)

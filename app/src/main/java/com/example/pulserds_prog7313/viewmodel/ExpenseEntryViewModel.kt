@@ -4,42 +4,37 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pulserds_prog7313.data.AccountSpending
 import com.example.pulserds_prog7313.data.ExpenseEntry
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
 import kotlinx.coroutines.launch
 
-// MVVM ViewModel -- based off the official google documents
-// [2] Google, "ViewModel overview," Android Developers, 2024.
-// [7] Google, AndroidX Lifecycle ViewModel KTX, ver. 2.8.4. [Software]. Android Developers, 2024.
+// Only change from the Room version: userId/categoryId/accountId parameters
+// are now String instead of Int. All business logic is identical.
 class ExpenseEntryViewModel(private val expenseEntryRepository: ExpenseEntryRepository) : ViewModel() {
 
-    // -- LiveData --------------------------------------------------------------
     private val _entries = MutableLiveData<List<ExpenseEntry>>()
     val entries: LiveData<List<ExpenseEntry>> get() = _entries
 
     private val _categoryTotal = MutableLiveData<Double>()
     val categoryTotal: LiveData<Double> get() = _categoryTotal
 
-    // -- LiveData streams ------------------------------------------------------
+    private val _accountSpending = MutableLiveData<List<AccountSpending>>()
+    val accountSpending: LiveData<List<AccountSpending>> get() = _accountSpending
 
-    /** Observe all entries for a user as a LiveData stream */
-    fun getAllEntriesLive(userId: Int): LiveData<List<ExpenseEntry>> =
+    fun getAllEntriesLive(userId: String): LiveData<List<ExpenseEntry>> =
         expenseEntryRepository.getAllEntriesLive(userId)
 
-    /** Observe entries filtered by date range as LiveData */
-    fun getEntriesForPeriodLive(userId: Int, startDate: String, endDate: String): LiveData<List<ExpenseEntry>> =
+    fun getEntriesForPeriodLive(userId: String, startDate: String, endDate: String): LiveData<List<ExpenseEntry>> =
         expenseEntryRepository.getEntriesForPeriodLive(userId, startDate, endDate)
 
-    /** LiveData income total for a period */
-    fun getIncomeLive(userId: Int, startDate: String, endDate: String): LiveData<Double> =
+    fun getIncomeLive(userId: String, startDate: String, endDate: String): LiveData<Double> =
         expenseEntryRepository.getIncomeLive(userId, startDate, endDate)
 
-    /** LiveData expenses total for a period */
-    fun getExpensesLive(userId: Int, startDate: String, endDate: String): LiveData<Double> =
+    fun getExpensesLive(userId: String, startDate: String, endDate: String): LiveData<Double> =
         expenseEntryRepository.getExpensesLive(userId, startDate, endDate)
 
-    // -- Data operations -------------------------------------------------------
-    fun loadEntriesForPeriod(userId: Int, startDate: String, endDate: String) {
+    fun loadEntriesForPeriod(userId: String, startDate: String, endDate: String) {
         viewModelScope.launch {
             _entries.value = expenseEntryRepository.getEntriesForPeriod(userId, startDate, endDate)
         }
@@ -52,24 +47,20 @@ class ExpenseEntryViewModel(private val expenseEntryRepository: ExpenseEntryRepo
         }
     }
 
-    fun deleteEntry(entry: ExpenseEntry, userId: Int, startDate: String, endDate: String) {
+    fun deleteEntry(entry: ExpenseEntry, userId: String, startDate: String, endDate: String) {
         viewModelScope.launch {
             expenseEntryRepository.deleteEntry(entry)
             loadEntriesForPeriod(userId, startDate, endDate)
         }
     }
 
-    fun loadTotalForCategory(userId: Int, categoryId: Int, startDate: String, endDate: String) {
+    fun loadTotalForCategory(userId: String, categoryId: String, startDate: String, endDate: String) {
         viewModelScope.launch {
             _categoryTotal.value = expenseEntryRepository.getTotalForCategory(userId, categoryId, startDate, endDate)
         }
     }
 
-    // -- Account spending ------------------------------------------------------
-    private val _accountSpending = MutableLiveData<List<com.example.pulserds_prog7313.data.AccountSpending>>()
-    val accountSpending: LiveData<List<com.example.pulserds_prog7313.data.AccountSpending>> get() = _accountSpending
-
-    fun loadExpensesByAccount(userId: Int, startDate: String, endDate: String) {
+    fun loadExpensesByAccount(userId: String, startDate: String, endDate: String) {
         viewModelScope.launch {
             _accountSpending.value = expenseEntryRepository.getExpensesByAccount(userId, startDate, endDate)
         }

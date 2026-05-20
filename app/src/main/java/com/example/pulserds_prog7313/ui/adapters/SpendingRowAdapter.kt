@@ -24,7 +24,7 @@ import com.example.pulserds_prog7313.data.Category
 class SpendingRowAdapter : ListAdapter<Category, SpendingRowAdapter.RowViewHolder>(DIFF_CALLBACK) {
 
     // categoryId -> total amount spent; updated together with the category list
-    private var totals: Map<Int, Double> = emptyMap()
+    private var totals: Map<String, Double> = emptyMap()
 
     // Cached so the adapter can compute percentage in onBindViewHolder without re-summing each time
     private var grandTotal: Double = 0.0
@@ -36,7 +36,7 @@ class SpendingRowAdapter : ListAdapter<Category, SpendingRowAdapter.RowViewHolde
      * Call this instead of [submitList] when you have both new categories and new totals.
      * Triggers a single DiffUtil pass and a single grand-total recomputation.
      */
-    fun submitData(categories: List<Category>, totals: Map<Int, Double>) {
+    fun submitData(categories: List<Category>, totals: Map<String, Double>) {
         this.totals = totals
         this.grandTotal = totals.values.sumOf { it }.takeIf { it > 0.0 } ?: 1.0
         submitList(categories)

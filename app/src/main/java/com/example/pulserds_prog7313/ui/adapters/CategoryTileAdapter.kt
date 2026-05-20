@@ -17,20 +17,20 @@ import com.example.pulserds_prog7313.data.Category
  * hard-coded layout so the visual design is preserved regardless of how many categories
  * the user has created.
  *
- * Once ExpenseEntry totals are wired up, pass a Map<Int, Double> (categoryId -> total)
+ * Once ExpenseEntry totals are wired up, pass a Map<String, Double> (categoryId -> total)
  * into [submitCategories] and the tile amount will update automatically.
  */
 class CategoryTileAdapter(
-    initialTotals: Map<Int, Double> = emptyMap()
+    initialTotals: Map<String, Double> = emptyMap()
 ) : ListAdapter<Category, CategoryTileAdapter.TileViewHolder>(DIFF_CALLBACK) {
 
-    private var totals: Map<Int, Double> = initialTotals
+    private var totals: Map<String, Double> = initialTotals
 
     /**
      * Submit both new categories and updated spending totals at once.
      * Triggers a single DiffUtil pass.
      */
-    fun submitCategories(categories: List<Category>, newTotals: Map<Int, Double>) {
+    fun submitCategories(categories: List<Category>, newTotals: Map<String, Double>) {
         totals = newTotals
         submitList(categories)
     }

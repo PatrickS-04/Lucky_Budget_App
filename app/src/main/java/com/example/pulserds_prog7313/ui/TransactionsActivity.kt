@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pulserds_prog7313.R
-import com.example.pulserds_prog7313.data.AppDatabase
 import com.example.pulserds_prog7313.data.BankAccount
 import com.example.pulserds_prog7313.data.Category
 import com.example.pulserds_prog7313.data.ExpenseEntry
@@ -38,7 +37,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 
 /**
- * TransactionsActivity — The main transaction ledger screen.
+ * TransactionsActivity - The main transaction ledger screen.
  *
  * Features:
  *  - Observes Room LiveData so the list refreshes automatically after every add/delete
@@ -52,7 +51,7 @@ import kotlinx.coroutines.launch
 class TransactionsActivity : BaseActivity() {
 
     // -------------------------------------------------------------------------
-    // View references — lateinit because they are resolved after setContentView()
+    // View references - lateinit because they are resolved after setContentView()
     // -------------------------------------------------------------------------
 
     /** RecyclerView that displays the transaction rows */
@@ -63,10 +62,10 @@ class TransactionsActivity : BaseActivity() {
     private lateinit var summaryIncome     : TextView
     private lateinit var summaryExpenses   : TextView
     private lateinit var summaryNet        : TextView
-    /** Real-time search field — filters the visible list as the user types */
+    /** Real-time search field - filters the visible list as the user types */
     private lateinit var searchInput       : TextInputEditText
 
-    /** Period-filter chip TextViews — one active at a time */
+    /** Period-filter chip TextViews - one active at a time */
     private lateinit var chipAll           : TextView
     private lateinit var chipToday         : TextView
     private lateinit var chipWeek          : TextView
@@ -74,23 +73,23 @@ class TransactionsActivity : BaseActivity() {
     private lateinit var chipYear          : TextView
 
     // -------------------------------------------------------------------------
-    // Data layer — adapter and the three ViewModels that feed it
+    // Data layer - adapter and the three ViewModels that feed it
     // -------------------------------------------------------------------------
 
     /** RecyclerView adapter that maps ExpenseEntry rows to card views */
     private lateinit var adapter           : TransactionAdapter
-    /** ViewModel for expense entries — primary data source for this screen */
+    /** ViewModel for expense entries - primary data source for this screen */
     private lateinit var entryViewModel    : ExpenseEntryViewModel
-    /** ViewModel for bank accounts — needed to resolve account labels for search */
+    /** ViewModel for bank accounts - needed to resolve account labels for search */
     private lateinit var bankViewModel     : BankAccountViewModel
-    /** ViewModel for categories — needed to resolve category names for search */
+    /** ViewModel for categories - needed to resolve category names for search */
     private lateinit var categoryViewModel : CategoryViewModel
 
     /** ID of the currently logged-in user; -1 if no session exists */
-    private var userId = -1
+    private var userId = ""
 
     // -------------------------------------------------------------------------
-    // In-memory caches — kept in sync with the latest LiveData emissions so
+    // In-memory caches - kept in sync with the latest LiveData emissions so
     // that search filtering can be applied without an additional DB query.
     // -------------------------------------------------------------------------
 
@@ -102,7 +101,7 @@ class TransactionsActivity : BaseActivity() {
     private var allAccounts   : List<BankAccount>  = emptyList()
 
     // -------------------------------------------------------------------------
-    // Active filter state — updated whenever a period chip is tapped
+    // Active filter state - updated whenever a period chip is tapped
     // -------------------------------------------------------------------------
 
     /** Inclusive start date of the active period filter; null means "All time" */
@@ -196,42 +195,36 @@ class TransactionsActivity : BaseActivity() {
     // LiveData so the in-memory caches stay current.
     // -------------------------------------------------------------------------
     private fun setupViewModels() {
-        val db = AppDatabase.getDatabase(this)
-
-        // ExpenseEntryViewModel — drives the main transaction list
         entryViewModel = ViewModelProvider(
             this,
-            ViewModelFactory { ExpenseEntryViewModel(ExpenseEntryRepository(db.expenseEntryDao())) }
+            ViewModelFactory { ExpenseEntryViewModel(ExpenseEntryRepository()) }
         )[ExpenseEntryViewModel::class.java]
 
-        // BankAccountViewModel — provides account data for display and search
         bankViewModel = ViewModelProvider(
             this,
-            ViewModelFactory { BankAccountViewModel(BankAccountRepository(db.bankAccountDao())) }
+            ViewModelFactory { BankAccountViewModel(BankAccountRepository()) }
         )[BankAccountViewModel::class.java]
         bankViewModel.init(userId)
 
-        // CategoryViewModel — provides category data for display and search
         categoryViewModel = ViewModelProvider(
             this,
-            ViewModelFactory { CategoryViewModel(CategoryRepository(db.categoryDao())) }
+            ViewModelFactory { CategoryViewModel(CategoryRepository()) }
         )[CategoryViewModel::class.java]
 
-        // Seed built-in categories the first time a new user opens this screen
-        if (userId != -1) {
+        if (userId.isNotBlank()) {
             lifecycleScope.launch {
                 categoryViewModel.seedDefaultCategories(userId)
             }
         }
 
-        // Keep allAccounts in sync — triggers adapter resubmit so account labels
+        // Keep allAccounts in sync - triggers adapter resubmit so account labels
         // appear correctly without waiting for a full list refresh
         bankViewModel.accounts.observe(this) { accounts ->
             allAccounts = accounts
             resubmitAdapter()
         }
 
-        // Keep allCategories in sync — same rationale as accounts above
+        // Keep allCategories in sync - same rationale as accounts above
         categoryViewModel.getCategoriesLive(userId).observe(this) { cats ->
             allCategories = cats
             resubmitAdapter()
@@ -259,7 +252,7 @@ class TransactionsActivity : BaseActivity() {
      * @param chip The chip that was just tapped and should appear active.
      */
     private fun selectChip(chip: TextView) {
-        val activeColour   = "#4ADE80"   // Green — matches the app's income colour
+        val activeColour   = "#4ADE80"   // Green - matches the app's income colour
         val inactiveColour = resources.getColor(R.color.backgroundOrange, theme)
         val activeText     = "#0D1B2A"   // Near-black for contrast on green
         val inactiveText   = resources.getColor(R.color.very_darkGreen, theme)
@@ -388,12 +381,12 @@ class TransactionsActivity : BaseActivity() {
      * Matching is case-insensitive and checks:
      *  1. Entry description
      *  2. Resolved category name (looked up from [allCategories])
-     *  3. Resolved account label — nickname + bank name (from [allAccounts])
+     *  3. Resolved account label - nickname + bank name (from [allAccounts])
      */
     private fun applySearchFilter() {
         val query = searchInput.text?.toString()?.trim()?.lowercase() ?: ""
         val filtered = if (query.isEmpty()) {
-            allEntries   // No search active — show everything
+            allEntries   // No search active - show everything
         } else {
             allEntries.filter { entry ->
                 // Resolve the human-readable category name for this entry

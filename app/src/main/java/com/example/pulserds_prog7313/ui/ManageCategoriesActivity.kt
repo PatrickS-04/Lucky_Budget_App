@@ -11,7 +11,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pulserds_prog7313.R
-import com.example.pulserds_prog7313.data.AppDatabase
 import com.example.pulserds_prog7313.data.Category
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.ui.adapters.CategoryRowAdapter
@@ -27,10 +26,10 @@ import kotlinx.coroutines.launch
  * spending/income categories.
  *
  * Categories are split into two groups:
- *  - **Default categories** — seeded automatically for every new user; cannot be deleted.
- *  - **Custom categories**  — created by the user; can be deleted individually.
+ *  - **Default categories** - seeded automatically for every new user; cannot be deleted.
+ *  - **Custom categories**  - created by the user; can be deleted individually.
  *
- * Architecture: MVVM — all data operations are delegated to [CategoryViewModel];
+ * Architecture: MVVM - all data operations are delegated to [CategoryViewModel];
  * the activity only observes LiveData and updates the UI in response.
  */
 class ManageCategoriesActivity : AppCompatActivity() {
@@ -45,7 +44,7 @@ class ManageCategoriesActivity : AppCompatActivity() {
     private lateinit var customAdapter: CategoryRowAdapter
 
     // ID of the currently logged-in user, used to scope all DB queries.
-    private var loggedInUserId: Int = -1
+    private var loggedInUserId: String = ""
 
     // Lifecycle
 
@@ -55,14 +54,10 @@ class ManageCategoriesActivity : AppCompatActivity() {
 
         // Prefer the user ID passed via Intent extras (e.g. from a parent activity).
         // Fall back to SessionManager if the Intent did not include it.
-        loggedInUserId = intent.getIntExtra("USER_ID", -1)
-        if (loggedInUserId == -1) {
-            loggedInUserId = SessionManager(this).getUserId()
-        }
+        loggedInUserId = SessionManager(this).getUserId()
 
         // Build the ViewModel backed by a Room DAO through the repository layer.
-        val db   = AppDatabase.getDatabase(applicationContext)
-        val repo = CategoryRepository(db.categoryDao())
+        val repo = CategoryRepository()
         val factory = object : ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
@@ -73,9 +68,9 @@ class ManageCategoriesActivity : AppCompatActivity() {
 
         // Seed default categories for this user if they don't already exist.
         // NOTE: seedDefaultCategories is a suspend function and must be called
-        // inside a coroutine — lifecycleScope is used here so the coroutine is
+        // inside a coroutine - lifecycleScope is used here so the coroutine is
         // automatically cancelled if the activity is destroyed before it completes.
-        if (loggedInUserId != -1) {
+        if (loggedInUserId.isNotBlank()) {
             lifecycleScope.launch {
                 categoryViewModel.seedDefaultCategories(loggedInUserId)
             }
@@ -103,10 +98,10 @@ class ManageCategoriesActivity : AppCompatActivity() {
      * inside their parent ScrollView without conflicting scroll gestures.
      */
     private fun setupRecyclerViews() {
-        // Default categories — no delete action needed, so the lambda is a no-op.
+        // Default categories - no delete action needed, so the lambda is a no-op.
         defaultAdapter = CategoryRowAdapter(showDelete = false) { }
 
-        // Custom categories — delete action removes the category from Room and
+        // Custom categories - delete action removes the category from Room and
         // shows a brief confirmation Toast to the user.
         customAdapter = CategoryRowAdapter(showDelete = true) { cat ->
             categoryViewModel.deleteCategory(cat)
@@ -135,7 +130,7 @@ class ManageCategoriesActivity : AppCompatActivity() {
      * Observes the combined list of all categories for the logged-in user and
      * routes them into the correct adapter based on the [Category.isDefault] flag.
      *
-     * Also controls the visibility of [R.id.emptyCustomLabel] — a placeholder
+     * Also controls the visibility of [R.id.emptyCustomLabel] - a placeholder
      * message shown when the user has not yet created any custom categories.
      */
     private fun observeCategories() {
@@ -165,9 +160,9 @@ class ManageCategoriesActivity : AppCompatActivity() {
      *  2. Name must be 30 characters or fewer.
      *
      * The category type is resolved from the [RadioGroup] selection:
-     *  - "INCOME"  — income-only category.
-     *  - "EXPENSE" — expense-only category (default when nothing is selected).
-     *  - "BOTH"    — applies to both income and expense transactions.
+     *  - "INCOME"  - income-only category.
+     *  - "EXPENSE" - expense-only category (default when nothing is selected).
+     *  - "BOTH"    - applies to both income and expense transactions.
      *
      * On success the name field is cleared and a confirmation Toast is shown.
      */
@@ -200,7 +195,7 @@ class ManageCategoriesActivity : AppCompatActivity() {
                 else             -> "EXPENSE" // Default fallback when no radio is selected.
             }
 
-            // Construct the new Category entity — isDefault is always false for
+            // Construct the new Category entity - isDefault is always false for
             // user-created categories so they appear in the deletable custom list.
             val newCategory = Category(
                 userId    = loggedInUserId,

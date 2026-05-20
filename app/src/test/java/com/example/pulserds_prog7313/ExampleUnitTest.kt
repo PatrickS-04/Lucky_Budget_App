@@ -15,23 +15,23 @@ class UserModelTest {
 
     // Verifies that the default id assigned to a new User is 0
     @Test
-    fun `user has correct default id of zero`() {
-        val user = User(fullName = "Jane Doe", email = "jane@example.com", passwordHash = "hashed123")
-        assertEquals(0, user.id)
+    fun `user has correct default id of empty string`() {
+        val user = User(fullName = "Jane Doe", email = "jane@example.com")
+        assertEquals("", user.id)
     }
 
     // Two users with identical fields but different ids must not be considered equal
     @Test
     fun `two users with same data but different ids are not equal`() {
-        val user1 = User(id = 1, fullName = "Jane Doe", email = "jane@example.com", passwordHash = "hashed123")
-        val user2 = User(id = 2, fullName = "Jane Doe", email = "jane@example.com", passwordHash = "hashed123")
+        val user1 = User(id = "uid_1", fullName = "Jane Doe", email = "jane@example.com")
+        val user2 = User(id = "uid_2", fullName = "Jane Doe", email = "jane@example.com")
         assertNotEquals(user1, user2)
     }
 
     // copy() must return a new instance with the changed field while leaving the original intact
     @Test
     fun `user copy produces independent instance with updated field`() {
-        val original = User(id = 1, fullName = "Jane Doe", email = "jane@example.com", passwordHash = "hash")
+        val original = User(id = "uid_1", fullName = "Jane Doe", email = "jane@example.com")
         val updated = original.copy(email = "newemail@example.com")
         assertEquals("newemail@example.com", updated.email)
         assertEquals("jane@example.com", original.email) // original unchanged
@@ -49,7 +49,7 @@ class BankAccountModelTest {
         includeInTotal: Boolean = true,
         isPrimary: Boolean = false
     ) = BankAccount(
-        userId = 1,
+        userId = "uid_1",
         accountType = "Cheque",
         bankName = "FNB",
         nickname = "My Cheque",
@@ -64,7 +64,7 @@ class BankAccountModelTest {
     @Test
     fun `default balance is zero when not provided`() {
         val account = BankAccount(
-            userId = 1, accountType = "Savings", bankName = "Absa",
+            userId = "uid_1", accountType = "Savings", bankName = "Absa",
             nickname = "Savings", accountNumber = "0000000001"
         )
         assertEquals(0.0, account.balance, 0.001)
@@ -126,7 +126,7 @@ class SavingsGoalModelTest {
         savedAmount: Double = 0.0,
         isCompleted: Boolean = false
     ) = SavingsGoal(
-        userId = 1,
+        userId = "uid_1",
         name = "Emergency Fund",
         targetAmount = targetAmount,
         savedAmount = savedAmount,
@@ -191,8 +191,8 @@ class SavingsGoalModelTest {
 class ExpenseEntryModelTest {
 
     // -- Helper ---------------------------------------------------------------
-    private fun makeEntry(amount: Double = 150.0, categoryId: Int = 1) = ExpenseEntry(
-        userId = 1,
+    private fun makeEntry(amount: Double = 150.0, categoryId: String = "cat_1") = ExpenseEntry(
+        userId = "uid_1",
         categoryId = categoryId,
         amount = amount,
         date = "01/06/2025",
@@ -200,6 +200,7 @@ class ExpenseEntryModelTest {
         endTime = "09:00",
         description = "Test expense"
     )
+
 
     // -- Default value tests --------------------------------------------------
 
@@ -210,9 +211,9 @@ class ExpenseEntryModelTest {
     }
 
     @Test
-    fun `default bankAccountId is zero (unknown)`() {
+    fun `default bankAccountId is empty string when not provided`() {
         val entry = makeEntry()
-        assertEquals(0, entry.bankAccountId)
+        assertEquals("", entry.bankAccountId)
     }
 
     // -- Aggregation tests ----------------------------------------------------
@@ -228,11 +229,11 @@ class ExpenseEntryModelTest {
     @Test
     fun `filtering entries by category returns correct subset`() {
         val entries = listOf(
-            makeEntry(amount = 100.0, categoryId = 1),
-            makeEntry(amount = 200.0, categoryId = 2),
-            makeEntry(amount = 300.0, categoryId = 1)
+            makeEntry(amount = 100.0, categoryId = "cat_1"),
+            makeEntry(amount = 200.0, categoryId = "cat_2"),
+            makeEntry(amount = 300.0, categoryId = "cat_1")
         )
-        val cat1Total = entries.filter { it.categoryId == 1 }.sumOf { it.amount }
+        val cat1Total = entries.filter { it.categoryId == "cat_1" }.sumOf { it.amount }
         assertEquals(400.0, cat1Total, 0.001)
     }
 }
@@ -246,13 +247,13 @@ class CategoryModelTest {
 
     @Test
     fun `default category type is BOTH`() {
-        val cat = Category(userId = 1, name = "General")
+        val cat = Category(userId = "uid_1", name = "General")
         assertEquals("BOTH", cat.type)
     }
 
     @Test
     fun `isDefault is false for user-created categories`() {
-        val cat = Category(userId = 1, name = "Side Hustle", type = "INCOME")
+        val cat = Category(userId = "uid_1", name = "Side Hustle", type = "INCOME")
         assertFalse(cat.isDefault)
     }
 
@@ -262,9 +263,9 @@ class CategoryModelTest {
     @Test
     fun `only default categories are filtered correctly`() {
         val categories = listOf(
-            Category(userId = 1, name = "Food", isDefault = true),
-            Category(userId = 1, name = "Transport", isDefault = true),
-            Category(userId = 1, name = "My Custom Cat", isDefault = false)
+            Category(userId = "uid_1", name = "Food", isDefault = true),
+            Category(userId = "uid_1", name = "Transport", isDefault = true),
+            Category(userId = "uid_1", name = "My Custom Cat", isDefault = false)
         )
         val defaultCats = categories.filter { it.isDefault }
         assertEquals(2, defaultCats.size)
@@ -274,9 +275,9 @@ class CategoryModelTest {
     @Test
     fun `expense categories are filtered correctly`() {
         val categories = listOf(
-            Category(userId = 1, name = "Groceries", type = "EXPENSE"),
-            Category(userId = 1, name = "Salary", type = "INCOME"),
-            Category(userId = 1, name = "Mixed", type = "BOTH")
+            Category(userId = "uid_1", name = "Groceries", type = "EXPENSE"),
+            Category(userId = "uid_1", name = "Salary", type = "INCOME"),
+            Category(userId = "uid_1", name = "Mixed", type = "BOTH")
         )
         val expenseCats = categories.filter { it.type == "EXPENSE" || it.type == "BOTH" }
         assertEquals(2, expenseCats.size)
