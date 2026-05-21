@@ -20,6 +20,9 @@ import com.example.pulserds_prog7313.viewmodel.UserViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import kotlinx.coroutines.launch
 
 class CreateAccActivity : AppCompatActivity() {
@@ -147,35 +150,31 @@ class CreateAccActivity : AppCompatActivity() {
                 // Pass plain-text password directly to Firebase Auth via the ViewModel.
                 // No manual SHA-256 hashing -- Firebase Auth handles credential security.
                 lifecycleScope.launch {
-                    // Check for duplicate email before attempting registration
-                    val existing = userViewModel.getUserByEmail(email)
-                    if (existing != null) {
-                        tilEmail.error = "An account with this email already exists"
-                        return@launch
-                    }
-
-                    val savedUser = userViewModel.register(email, password, fullName)
-                    if (savedUser == null) {
+                    try {
+                        val savedUser = userViewModel.register(email, password, fullName)
+                        sessionManager.saveSession(savedUser.id, savedUser.fullName, savedUser.email)
                         Toast.makeText(
                             this@CreateAccActivity,
-                            "Registration failed. Please try again.",
+                            "Account created successfully!",
                             Toast.LENGTH_SHORT
                         ).show()
-                        return@launch
+                        startActivity(Intent(this@CreateAccActivity, DashBoardActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                        })
+                        finish()
+                    } catch (e: FirebaseAuthUserCollisionException) {
+                        tilEmail.error = "An account with this email already exists"
+                    } catch (e: FirebaseAuthWeakPasswordException) {
+                        tilPassword.error = e.reason ?: "Password is too weak"
+                    } catch (e: FirebaseAuthInvalidCredentialsException) {
+                        tilEmail.error = "Invalid email address"
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            this@CreateAccActivity,
+                            "Registration failed: ${e.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
-
-                    sessionManager.saveSession(savedUser.id, savedUser.fullName, savedUser.email)
-
-                    Toast.makeText(
-                        this@CreateAccActivity,
-                        "Account created successfully!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                    startActivity(Intent(this@CreateAccActivity, DashBoardActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                    })
-                    finish()
                 }
             }
         }

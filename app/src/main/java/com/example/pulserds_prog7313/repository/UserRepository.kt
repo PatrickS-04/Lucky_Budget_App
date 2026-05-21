@@ -16,10 +16,10 @@ class UserRepository {
     // -- Register --------------------------------------------------------------
 
     // Creates a new Firebase Auth account, then stores the user's profile in
-    // Firestore under /users/{uid}. Returns the saved User on success, null on failure.
-    suspend fun register(email: String, password: String, fullName: String): User? {
+    // Firestore under /users/{uid}. Throws on failure so callers can show specific errors.
+    suspend fun register(email: String, password: String, fullName: String): User {
         val result = auth.createUserWithEmailAndPassword(email, password).await()
-        val uid    = result.user?.uid ?: return null
+        val uid    = result.user?.uid ?: throw Exception("Auth succeeded but no UID returned")
         val user   = User(id = uid, fullName = fullName, email = email)
         db.collection("users").document(uid).set(user).await()
         return user
@@ -30,10 +30,14 @@ class UserRepository {
     // Signs the user in with Firebase Auth and returns the matching User profile
     // from Firestore. Returns null if credentials are wrong or the profile is missing.
     suspend fun login(email: String, password: String): User? {
-        val result = auth.signInWithEmailAndPassword(email, password).await()
-        val uid    = result.user?.uid ?: return null
-        val doc    = db.collection("users").document(uid).get().await()
-        return doc.toObject(User::class.java)?.copy(id = uid)
+        return try {
+            val result = auth.signInWithEmailAndPassword(email, password).await()
+            val uid    = result.user?.uid ?: return null
+            val doc    = db.collection("users").document(uid).get().await()
+            doc.toObject(User::class.java)?.copy(id = uid)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     // -- Get user by email -----------------------------------------------------
@@ -41,14 +45,18 @@ class UserRepository {
     // Queries Firestore for a user document matching the given email.
     // Used after register() to confirm the insert and retrieve the generated UID.
     suspend fun getUserByEmail(email: String): User? {
-        val snapshot = db.collection("users")
-            .whereEqualTo("email", email)
-            .limit(1)
-            .get()
-            .await()
-        if (snapshot.isEmpty) return null
-        val doc = snapshot.documents[0]
-        return doc.toObject(User::class.java)?.copy(id = doc.id)
+        return try {
+            val snapshot = db.collection("users")
+                .whereEqualTo("email", email)
+                .limit(1)
+                .get()
+                .await()
+            if (snapshot.isEmpty) return null
+            val doc = snapshot.documents[0]
+            doc.toObject(User::class.java)?.copy(id = doc.id)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     // -- Update user -----------------------------------------------------------

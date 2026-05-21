@@ -34,14 +34,18 @@ class CategoryRepository {
     // -- Read operations -------------------------------------------------------
 
     // One-shot fetch -- returns the current list and returns immediately.
+    // Sorting is done in-memory to avoid requiring a composite Firestore index.
     suspend fun getCategoriesForUser(userId: String): List<Category> {
-        val snapshot = col
-            .whereEqualTo("userId", userId)
-            .orderBy("isDefault", com.google.firebase.firestore.Query.Direction.DESCENDING)
-            .get()
-            .await()
-        return snapshot.documents.mapNotNull { doc ->
-            doc.toObject(Category::class.java)?.copy(id = doc.id)
+        return try {
+            val snapshot = col
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+            snapshot.documents
+                .mapNotNull { doc -> doc.toObject(Category::class.java)?.copy(id = doc.id) }
+                .sortedByDescending { it.isDefault }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
