@@ -13,8 +13,8 @@ import com.example.pulserds_prog7313.repository.UserRepository
 class UserViewModel(private val userRepository: UserRepository) : ViewModel() {
 
     // Registers a new user via Firebase Auth and stores the profile in Firestore.
-    // Returns the saved User (with its UID) on success, or null on failure.
-    suspend fun register(email: String, password: String, fullName: String): User? {
+    // Throws on failure (FirebaseAuthUserCollisionException, network errors, etc.).
+    suspend fun register(email: String, password: String, fullName: String): User {
         return userRepository.register(email, password, fullName)
     }
 

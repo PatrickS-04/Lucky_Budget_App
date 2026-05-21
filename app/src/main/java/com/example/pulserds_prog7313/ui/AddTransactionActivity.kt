@@ -32,7 +32,6 @@ import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
 import com.example.pulserds_prog7313.viewmodel.ExpenseEntryViewModel
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -334,16 +333,22 @@ class AddTransactionActivity : AppCompatActivity() {
             photoPath     = uriOfSelectedReceipt?.toString()
         )
 
-        // Use repository directly for the insert + balance adjust
-        CoroutineScope(Dispatchers.IO).launch {
-            val repo        = ExpenseEntryRepository()
-            val bankRepo    = BankAccountRepository()
-            repo.addEntry(entry)
-            bankRepo.adjustBalance(selectedAccountId!!, finalAmount)
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val repo     = ExpenseEntryRepository()
+                val bankRepo = BankAccountRepository()
+                repo.addEntry(entry)
+                bankRepo.adjustBalance(selectedAccountId!!, finalAmount)
+                launch(Dispatchers.Main) {
+                    Toast.makeText(this@AddTransactionActivity, if (isExpense) "Expense saved!" else "Income saved!", Toast.LENGTH_SHORT).show()
+                    finish()
+                }
+            } catch (e: Exception) {
+                launch(Dispatchers.Main) {
+                    Toast.makeText(this@AddTransactionActivity, "Failed to save transaction. Please try again.", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
-
-        Toast.makeText(this, if (isExpense) "Expense saved!" else "Income saved!", Toast.LENGTH_SHORT).show()
-        finish()
     }
 }
 

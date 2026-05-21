@@ -191,36 +191,39 @@ class DashBoardActivity : BaseActivity() {
         if (userId.isBlank()) return
 
         lifecycleScope.launch {
-            // Use repository directly for aggregate queries (same as before, just no DAO)
-            val repo = ExpenseEntryRepository()
+            try {
+                val repo = ExpenseEntryRepository()
 
-            val totalIncome   = repo.getTotalIncome(userId)
-            val totalExpenses = repo.getTotalExpenses(userId)
-            showIncomeAmount(totalIncome)
-            showExpenseAmount(abs(totalExpenses))
+                val totalIncome   = repo.getTotalIncome(userId)
+                val totalExpenses = repo.getTotalExpenses(userId)
+                showIncomeAmount(totalIncome)
+                showExpenseAmount(abs(totalExpenses))
 
-            val (curStart, curEnd)   = currentMonthRange()
-            val (prevStart, prevEnd) = lastMonthRange()
+                val (curStart, curEnd)   = currentMonthRange()
+                val (prevStart, prevEnd) = lastMonthRange()
 
-            val curEntries = repo.getEntriesForPeriod(userId, curStart, curEnd)
-            val curIncome  = curEntries.filter { it.amount > 0 }.sumOf { it.amount }
-            val curExpense = curEntries.filter { it.amount < 0 }.sumOf { abs(it.amount) }
-            val curNet     = curIncome - curExpense
+                val curEntries = repo.getEntriesForPeriod(userId, curStart, curEnd)
+                val curIncome  = curEntries.filter { it.amount > 0 }.sumOf { it.amount }
+                val curExpense = curEntries.filter { it.amount < 0 }.sumOf { abs(it.amount) }
+                val curNet     = curIncome - curExpense
 
-            val prevEntries = repo.getEntriesForPeriod(userId, prevStart, prevEnd)
-            val prevIncome  = prevEntries.filter { it.amount > 0 }.sumOf { it.amount }
-            val prevExpense = prevEntries.filter { it.amount < 0 }.sumOf { abs(it.amount) }
-            val prevNet     = prevIncome - prevExpense
+                val prevEntries = repo.getEntriesForPeriod(userId, prevStart, prevEnd)
+                val prevIncome  = prevEntries.filter { it.amount > 0 }.sumOf { it.amount }
+                val prevExpense = prevEntries.filter { it.amount < 0 }.sumOf { abs(it.amount) }
+                val prevNet     = prevIncome - prevExpense
 
-            showBalanceChange(curNet, prevNet)
-            showOverspendingAlert(curIncome, curExpense, curEntries)
+                showBalanceChange(curNet, prevNet)
+                showOverspendingAlert(curIncome, curExpense, curEntries)
 
-            val monthlyTotals = curEntries
-                .filter { it.amount < 0 }
-                .groupBy { it.categoryId }
-                .mapValues { (_, es) -> es.sumOf { abs(it.amount) } }
+                val monthlyTotals = curEntries
+                    .filter { it.amount < 0 }
+                    .groupBy { it.categoryId }
+                    .mapValues { (_, es) -> es.sumOf { abs(it.amount) } }
 
-            tileAdapter.submitCategories(latestCategories, monthlyTotals)
+                tileAdapter.submitCategories(latestCategories, monthlyTotals)
+            } catch (_: Exception) {
+                // Firestore unavailable — leave existing UI state as-is
+            }
         }
     }
 
