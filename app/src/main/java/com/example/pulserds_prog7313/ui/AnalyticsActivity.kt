@@ -3,6 +3,7 @@ package com.example.pulserds_prog7313.ui
 import android.app.DatePickerDialog
 import android.graphics.Color
 import android.os.Bundle
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -152,9 +153,12 @@ class AnalyticsActivity : BaseActivity() {
 
         // Adjust root layout padding so content is not obscured by system bars
         // (status bar, navigation bar) on edge-to-edge displays.
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+        val navBarContainer = findViewById<LinearLayout>(R.id.containerForBottomNavBar)
+
+        ViewCompat.setOnApplyWindowInsetsListener(navBarContainer) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val basePadding = (16 * resources.displayMetrics.density).toInt()
+            v.setPadding(bars.left, bars.top, bars.right, basePadding + bars.bottom)
             insets
         }
 
