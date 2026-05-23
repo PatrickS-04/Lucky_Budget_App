@@ -50,7 +50,7 @@ class AddTransactionActivity : AppCompatActivity() {
     private var loggedInUserId: String = ""           // String UID
     private var accountsList: List<BankAccount> = emptyList()
     private var selectedAccountId: String? = null     // String ID
-    private var categoriesList: List<Category> = emptyList()
+    private var categoriesList = mutableListOf<Category>()
 
     private lateinit var amountInput: EditText
     private lateinit var merchantInput: EditText
@@ -154,8 +154,28 @@ class AddTransactionActivity : AppCompatActivity() {
 
     private fun setupCategoryDropdown() {
         categoryViewModel.getCategoriesLive(loggedInUserId).observe(this) { all ->
-            categoriesList = all
-            refreshCategoryDropdown()
+            if (all != null) {
+                categoriesList.clear()
+
+                val defaultCategories = setOf(
+                    "groceries", "dining out", "transport", "entertainment",
+                    "subscriptions", "utilities", "healthcare", "shopping",
+                    "salary", "investment", "freelance", "gift"
+                )
+
+                val fixedCategories = all.map { category ->
+                    val cleanName = category.name.lowercase().trim()
+                    if (defaultCategories.contains(cleanName)) {
+                        category.copy(isDefault = true)
+                    } else {
+                        category
+                    }
+                }
+
+                val differentCategories = fixedCategories.distinctBy { it.name.lowercase().trim() }
+                categoriesList.addAll(differentCategories)
+                refreshCategoryDropdown()
+            }
         }
         categoryDropdown.setOnClickListener { categoryDropdown.showDropDown() }
         categoryDropdown.setOnItemClickListener { _, _, position, _ ->

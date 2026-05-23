@@ -41,8 +41,9 @@ class CategoryViewModel(private val categoryRepository: CategoryRepository) : Vi
     suspend fun seedDefaultCategories(userId: String) {
         if (userId.isBlank()) return
 
-        val existingDefaults = categoryRepository.countDefaultsForUser(userId)
-        if (existingDefaults > 0) return
+        val currentCategories = categoryRepository.getCategoriesForUser(userId)
+
+        val existingDefaults = currentCategories.map { it.name.lowercase().trim() }.toSet()
 
         val defaults = listOf(
             Category(userId = userId, name = "Groceries",     type = "EXPENSE", isDefault = true),
@@ -58,6 +59,13 @@ class CategoryViewModel(private val categoryRepository: CategoryRepository) : Vi
             Category(userId = userId, name = "Freelance",     type = "INCOME",  isDefault = true),
             Category(userId = userId, name = "Gift",          type = "BOTH",    isDefault = true)
         )
-        defaults.forEach { categoryRepository.addCategory(it) }
+        defaults.forEach { defaultCategory ->
+            if (!existingDefaults.contains(defaultCategory.name.lowercase().trim()))
+            {
+                categoryRepository.addCategory(defaultCategory)
+            }
+        }
+
+        loadCategoriesForUser(userId)
     }
 }

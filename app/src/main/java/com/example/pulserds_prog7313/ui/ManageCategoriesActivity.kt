@@ -136,17 +136,36 @@ class ManageCategoriesActivity : AppCompatActivity() {
     private fun observeCategories() {
         categoryViewModel.getCategoriesLive(loggedInUserId).observe(this) { all ->
             // Split the full list into default and user-created categories.
-            val defaults = all.filter { it.isDefault }
-            val custom   = all.filter { !it.isDefault }
+            if (all != null) {
+                val defaultCategories = setOf(
+                    "groceries", "dining out", "transport", "entertainment",
+                    "subscriptions", "utilities", "healthcare", "shopping",
+                    "salary", "investment", "freelance", "gift"
+                )
 
-            // Push the filtered lists to their respective adapters.
-            // DiffUtil inside ListAdapter handles efficient incremental updates.
-            defaultAdapter.submitList(defaults)
-            customAdapter.submitList(custom)
+                val fixedCategories = all.map { category ->
+                    val cleanName = category.name.lowercase().trim()
+                    if (defaultCategories.contains(cleanName)) {
+                        category.copy(isDefault = true)
+                    } else {
+                        category
+                    }
+                }
 
-            // Show the empty-state label only when the custom list is empty.
-            val emptyLabel = findViewById<TextView>(R.id.emptyCustomLabel)
-            emptyLabel.visibility = if (custom.isEmpty()) View.VISIBLE else View.GONE
+                val differentCategories = fixedCategories.distinctBy { it.name.lowercase().trim() }
+
+                val defaults = differentCategories.filter { it.isDefault }
+                val custom = differentCategories.filter { !it.isDefault }
+
+                // Push the filtered lists to their respective adapters.
+                // DiffUtil inside ListAdapter handles efficient incremental updates.
+                defaultAdapter.submitList(defaults)
+                customAdapter.submitList(custom)
+
+                // Show the empty-state label only when the custom list is empty.
+                val emptyLabel = findViewById<TextView>(R.id.emptyCustomLabel)
+                emptyLabel.visibility = if (custom.isEmpty()) View.VISIBLE else View.GONE
+            }
         }
     }
 
