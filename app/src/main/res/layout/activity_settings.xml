@@ -1396,6 +1396,7 @@
         app:cardElevation="12dp">
 
         <LinearLayout
+            android:id="@+id/containerForBottomNavBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"

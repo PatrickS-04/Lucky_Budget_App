@@ -36,9 +36,12 @@ class AccountsActivity : BaseActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_accounts)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+        val navBarContainer = findViewById<LinearLayout>(R.id.containerForBottomNavBar)
+
+        ViewCompat.setOnApplyWindowInsetsListener(navBarContainer) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val basePadding = (16 * resources.displayMetrics.density).toInt()
+            v.setPadding(bars.left, bars.top, bars.right, basePadding + bars.bottom)
             insets
         }
 

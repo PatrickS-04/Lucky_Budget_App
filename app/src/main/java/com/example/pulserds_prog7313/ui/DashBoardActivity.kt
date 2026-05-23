@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
@@ -56,9 +57,12 @@ class DashBoardActivity : BaseActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_dash_board)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+        val navBarContainer = findViewById<LinearLayout>(R.id.containerForBottomNavBar)
+
+        ViewCompat.setOnApplyWindowInsetsListener(navBarContainer) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            val basePadding = (16 * resources.displayMetrics.density).toInt()
+            v.setPadding(bars.left, bars.top, bars.right, basePadding + bars.bottom)
             insets
         }
 
