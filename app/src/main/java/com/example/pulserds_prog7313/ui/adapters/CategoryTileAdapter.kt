@@ -32,7 +32,7 @@ class CategoryTileAdapter(
      */
     fun submitCategories(categories: List<Category>, newTotals: Map<String, Double>) {
         totals = newTotals
-        submitList(categories)
+        submitList(categories.toList())
     }
 
     // Palette matches the original XML tile colours (dark-green, dark-maroon, dark-navy, dark-brown)

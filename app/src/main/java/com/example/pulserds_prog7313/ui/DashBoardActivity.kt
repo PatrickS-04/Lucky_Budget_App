@@ -48,7 +48,7 @@ class DashBoardActivity : BaseActivity() {
     // userId is now a String (Firebase Auth UID). "" means no session.
     private var userId = ""
 
-    private var latestCategories: List<Category>    = emptyList()
+    private var latestCategories = mutableListOf<Category>()
     private var latestAccounts:   List<BankAccount> = emptyList()
     private var latestEntries:    List<ExpenseEntry> = emptyList()
 
@@ -89,7 +89,7 @@ class DashBoardActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         if (userId.isNotBlank()) {
-            loadAggregateData()
+            loadAggregateData(latestCategories)
             bankAccountVM.refreshTotal(userId)
         }
     }
@@ -128,6 +128,7 @@ class DashBoardActivity : BaseActivity() {
     private fun setupRecyclers() {
         tileAdapter = CategoryTileAdapter()
         findViewById<RecyclerView>(R.id.dashCategoryTilesRecycler).apply {
+            layoutManager = androidx.recyclerview.widget.GridLayoutManager(this@DashBoardActivity, 2)
             adapter = tileAdapter
             isNestedScrollingEnabled = false
         }
@@ -157,15 +158,37 @@ class DashBoardActivity : BaseActivity() {
             refreshTransactionsAdapter()
         }
 
-        categoryVM.getCategoriesLive(userId).observe(this) { categories ->
-            latestCategories = categories
-            loadAggregateData()
+        categoryVM.getCategoriesLive(userId).observe(this) { newCategory ->
+            if (newCategory != null)
+            {
+                latestCategories.clear()
+
+                val defaultCategories = setOf(
+                    "groceries", "dining out", "transport", "entertainment",
+                    "subscriptions", "utilities", "healthcare", "shopping",
+                    "salary", "investment", "freelance", "gift"
+                )
+
+                val fixedCategories = newCategory.map { category ->
+                    val cleanName = category.name.lowercase().trim()
+                    if (defaultCategories.contains(cleanName)) {
+                        category.copy(name = cleanName, isDefault = true)
+                    } else {
+                        category.copy(name = cleanName)
+                    }
+                }
+
+                val differentCategories = fixedCategories.distinctBy { it.name.lowercase().trim() }
+                latestCategories.addAll(differentCategories)
+                refreshTransactionsAdapter()
+                loadAggregateData(differentCategories.toList())
+            }
         }
 
         expenseVM.getAllEntriesLive(userId).observe(this) { entries ->
             latestEntries = entries
             refreshTransactionsAdapter()
-            loadAggregateData()
+            loadAggregateData(latestCategories)
         }
 
         savingsVM.getAllGoalsLive(userId).observe(this) { goals ->
@@ -191,7 +214,7 @@ class DashBoardActivity : BaseActivity() {
             if (hasData) View.GONE else View.VISIBLE
     }
 
-    private fun loadAggregateData() {
+    private fun loadAggregateData(renderCategories: List<Category>) {
         if (userId.isBlank()) return
 
         lifecycleScope.launch {
@@ -224,7 +247,7 @@ class DashBoardActivity : BaseActivity() {
                     .groupBy { it.categoryId }
                     .mapValues { (_, es) -> es.sumOf { abs(it.amount) } }
 
-                tileAdapter.submitCategories(latestCategories, monthlyTotals)
+                tileAdapter.submitCategories(renderCategories, monthlyTotals)
             } catch (_: Exception) {
                 // Firestore unavailable — leave existing UI state as-is
             }
