@@ -4,13 +4,17 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.widget.Button
+import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.pulserds_prog7313.R
@@ -18,6 +22,10 @@ import com.example.pulserds_prog7313.repository.UserRepository
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.UserViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
@@ -38,11 +46,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tilPassword: TextInputLayout
     private lateinit var etEmail: TextInputEditText
     private lateinit var etPassword: TextInputEditText
-    private lateinit var btnLogin: Button
+    private lateinit var btnLogin: MaterialButton
+    private lateinit var btnGoogleSignIn: MaterialButton  // maps to R.id.googleSignInButton
     private lateinit var tvSignUp: TextView
     private lateinit var tvForgotPassword: TextView
     private lateinit var userViewModel: UserViewModel
     private lateinit var sessionManager: SessionManager
+    private lateinit var credentialManager: CredentialManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,12 +65,12 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // Firebase-backed repository -- no database instance needed
         val repository = UserRepository()
-        userViewModel  = ViewModelProvider(this, ViewModelFactory { UserViewModel(repository) })
+        userViewModel = ViewModelProvider(this, ViewModelFactory { UserViewModel(repository) })
             .get(UserViewModel::class.java)
 
         sessionManager = SessionManager(this)
+        credentialManager = CredentialManager.create(this)
 
         if (sessionManager.isLoggedIn()) {
             goToDashboard()
@@ -77,6 +87,7 @@ class MainActivity : AppCompatActivity() {
         etEmail          = findViewById(R.id.etEmail)
         etPassword       = findViewById(R.id.etPassword)
         btnLogin         = findViewById(R.id.btnLogin)
+        btnGoogleSignIn  = findViewById(R.id.googleSignInButton)  // matches your XML id
         tvSignUp         = findViewById(R.id.tvSignUp)
         tvForgotPassword = findViewById(R.id.forgotPasswordText)
     }
@@ -103,8 +114,6 @@ class MainActivity : AppCompatActivity() {
                 val email    = etEmail.text?.toString()?.trim() ?: ""
                 val password = etPassword.text?.toString() ?: ""
 
-                // Pass the plain-text password -- Firebase Auth handles verification.
-                // No SHA-256 hashing needed here anymore.
                 lifecycleScope.launch {
                     val user = userViewModel.login(email, password)
                     if (user != null) {
@@ -122,12 +131,68 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        btnGoogleSignIn.setOnClickListener {
+            launchGoogleSignIn()
+        }
+
         tvSignUp.setOnClickListener {
             startActivity(Intent(this, CreateAccActivity::class.java))
         }
 
         tvForgotPassword.setOnClickListener {
             startActivity(Intent(this, ForgotPasswordActivity::class.java))
+        }
+    }
+
+    private fun launchGoogleSignIn() {
+        val googleIdOption = GetGoogleIdOption.Builder()
+            .setServerClientId("1094146633756-bki1015ktnhnafcjberjc2n5hgabijte.apps.googleusercontent.com")
+            .setFilterByAuthorizedAccounts(false)
+            .build()
+
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
+
+        lifecycleScope.launch {
+            try {
+                val result = credentialManager.getCredential(
+                    request = request,
+                    context = this@MainActivity
+                )
+                handleGoogleCredential(result.credential)
+            } catch (e: GetCredentialException) {
+                Log.e("GoogleSignIn", "GetCred@entialException", e)
+                Toast.makeText(
+                    this@MainActivity,
+                    "Google sign-in failed: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private suspend fun handleGoogleCredential(credential: androidx.credentials.Credential) {
+        if (credential is CustomCredential &&
+            credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+
+            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+            val idToken = googleIdTokenCredential.idToken
+
+            val user = userViewModel.loginWithGoogle(idToken)
+            if (user != null) {
+                sessionManager.saveSession(user.id, user.fullName, user.email)
+                goToDashboard()
+            } else {
+                Toast.makeText(
+                    this,
+                    "Google sign-in failed. Please try again.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        } else {
+            Log.w("GoogleSignIn", "Credential is not of type Google ID!")
+            Toast.makeText(this, "Unexpected credential type.", Toast.LENGTH_SHORT).show()
         }
     }
 

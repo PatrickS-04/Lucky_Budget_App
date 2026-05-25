@@ -4,6 +4,7 @@ import com.example.pulserds_prog7313.data.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.auth.GoogleAuthProvider
 
 // UserRepository now uses Firebase Authentication for login/register/password reset,
 // and Firestore to store the user's profile (name, email).
@@ -35,6 +36,35 @@ class UserRepository {
             val uid    = result.user?.uid ?: return null
             val doc    = db.collection("users").document(uid).get().await()
             doc.toObject(User::class.java)?.copy(id = uid)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // -- Login with Google-----------------------------------------------------------------
+
+    suspend fun loginWithGoogle(idToken: String): User? {
+        return try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val result = auth.signInWithCredential(credential).await()
+            val firebaseUser = result.user ?: return null
+            val uid = firebaseUser.uid
+
+            // Check if a Firestore profile already exists for this Google user
+            val doc = db.collection("users").document(uid).get().await()
+            if (doc.exists()) {
+                // Returning Google user — load their profile
+                doc.toObject(User::class.java)?.copy(id = uid)
+            } else {
+                // First-time Google user — create a Firestore profile automatically
+                val user = User(
+                    id = uid,
+                    fullName = firebaseUser.displayName ?: "",
+                    email = firebaseUser.email ?: ""
+                )
+                db.collection("users").document(uid).set(user).await()
+                user
+            }
         } catch (e: Exception) {
             null
         }

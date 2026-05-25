@@ -24,6 +24,10 @@ class UserViewModel(private val userRepository: UserRepository) : ViewModel() {
         return userRepository.login(email, password)
     }
 
+    suspend fun loginWithGoogle(idToken: String): User? {
+        return userRepository.loginWithGoogle(idToken)
+    }
+
     // Looks up a user by email address in Firestore.
     suspend fun getUserByEmail(email: String): User? {
         return userRepository.getUserByEmail(email)
