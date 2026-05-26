@@ -15,6 +15,7 @@ import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.SavingsGoal
 import com.example.pulserds_prog7313.repository.SavingsGoalRepository
 import com.example.pulserds_prog7313.repository.UserRepository
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
@@ -51,7 +52,6 @@ class SettingsActivity : BaseActivity() {
             insets
         }
 
-        // No AppDatabase needed -- repositories use Firebase directly
         sessionManager  = SessionManager(this)
         savingsGoalRepo = SavingsGoalRepository()
         userRepo        = UserRepository()
@@ -82,7 +82,6 @@ class SettingsActivity : BaseActivity() {
             startActivity(Intent(this, CreateAccActivity::class.java))
         }
 
-        // userId is now a String
         val userId = sessionManager.getUserId()
         loadCompletedGoals(userId)
 
@@ -108,15 +107,6 @@ class SettingsActivity : BaseActivity() {
 
         findViewById<LinearLayout>(R.id.changePasswordRow).setOnClickListener {
             showChangePasswordDialog()
-        }
-
-        val twoFactorSwitch = findViewById<Switch>(R.id.twoFactorSwitch)
-        twoFactorSwitch.isChecked = settingsPrefs.getBoolean(KEY_2FA, false)
-        twoFactorSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean(KEY_2FA, isChecked).apply()
-            val msg = if (isChecked) "Two-factor authentication enabled"
-            else "Two-factor authentication disabled"
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         }
 
         val overspendSwitch        = findViewById<Switch>(R.id.overspendSwitch)
@@ -153,6 +143,7 @@ class SettingsActivity : BaseActivity() {
             Toast.makeText(this, if (isChecked) "Dark mode enabled" else "Dark mode disabled", Toast.LENGTH_SHORT).show()
         }
 
+        // ↓ CHANGED: showCurrencyDialog() now handles rate refresh (see below)
         findViewById<LinearLayout>(R.id.currencyRow).setOnClickListener { showCurrencyDialog() }
         findViewById<LinearLayout>(R.id.languageRow).setOnClickListener {
             Toast.makeText(this, "Language: English (South Africa)", Toast.LENGTH_SHORT).show()
@@ -179,7 +170,6 @@ class SettingsActivity : BaseActivity() {
                 .setPositiveButton("OK", null).show()
         }
 
-        // Sign Out: clears session, signs out of Firebase Auth, returns to login
         findViewById<LinearLayout>(R.id.signOutRow).setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle("Sign Out")
@@ -196,7 +186,6 @@ class SettingsActivity : BaseActivity() {
                 .show()
         }
 
-        // Delete Account: deletes Firestore profile + Firebase Auth account
         findViewById<LinearLayout>(R.id.deleteAccountRow).setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle("Delete Account")
@@ -206,7 +195,6 @@ class SettingsActivity : BaseActivity() {
                     lifecycleScope.launch {
                         if (currentUserId.isNotBlank()) {
                             userRepo.deleteUserById(currentUserId)
-                            // Also delete the Firebase Auth account itself
                             FirebaseAuth.getInstance().currentUser?.delete()
                         }
                         sessionManager.logout()
@@ -266,12 +254,10 @@ class SettingsActivity : BaseActivity() {
             emojiView?.text  = latest.icon
             nameView?.text   = latest.name
             val dateLabel = if (latest.completedDate.isNotBlank()) "Completed ${latest.completedDate}" else "Completed"
-            detailView?.text = "$dateLabel · R ${String.format("%,.2f", latest.targetAmount)}"
+            detailView?.text = "$dateLabel · ${CurrencyManager.format(this, latest.savedAmount)} / ${CurrencyManager.format(this, latest.targetAmount)}"
         }
     }
 
-    // Change password now uses Firebase Auth's updatePassword() method.
-    // The user must have signed in recently for this to work (Firebase requirement).
     private fun showChangePasswordDialog() {
         val layout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
@@ -317,7 +303,6 @@ class SettingsActivity : BaseActivity() {
                         }
                         lifecycleScope.launch {
                             try {
-                                // Re-authenticate first (Firebase requires recent sign-in for password changes)
                                 val credential = com.google.firebase.auth.EmailAuthProvider
                                     .getCredential(email, currentPw)
                                 user.reauthenticate(credential).await()
@@ -339,7 +324,8 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun showCurrencyDialog() {
-        val currencies   = arrayOf("South African Rand (ZAR)", "US Dollar (USD)", "Euro (EUR)", "British Pound (GBP)", "Botswana Pula (BWP)")
+        // Matches the order of CurrencyManager.CURRENCIES exactly
+        val currencies    = CurrencyManager.CURRENCIES.map { "${it.label} (${it.code})" }.toTypedArray()
         val settingsPrefs = getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE)
         val currentIndex  = settingsPrefs.getInt("currency_index", 0)
 
@@ -347,6 +333,19 @@ class SettingsActivity : BaseActivity() {
             .setTitle("Select Currency")
             .setSingleChoiceItems(currencies, currentIndex) { dialog, which ->
                 settingsPrefs.edit().putInt("currency_index", which).apply()
+
+                // ↓ CHANGED: invalidate the cached rate so the next fetch
+                //   retrieves a rate for the newly selected currency
+                settingsPrefs.edit()
+                    .remove("cached_exchange_rate")
+                    .remove("cached_exchange_time")
+                    .apply()
+
+                // ↓ CHANGED: kick off a background fetch for the new rate
+                lifecycleScope.launch {
+                    CurrencyManager.refreshRateIfNeeded(this@SettingsActivity)
+                }
+
                 Toast.makeText(this, "Currency set to: ${currencies[which]}", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             }
