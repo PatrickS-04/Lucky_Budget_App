@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.AccountSpending
 import com.example.pulserds_prog7313.data.BankAccount
+import com.example.pulserds_prog7313.utils.CurrencyManager
 
 /**
  * Displays per-[BankAccount] expense totals in the Spending by Account card.
@@ -68,7 +69,7 @@ class AccountSpendingAdapter :
             dot.setBackgroundColor(colour)
             name.text = if (account.nickname.isNotBlank()) "${account.bankName} · ${account.nickname}"
             else account.bankName
-            amount.text = "R ${ "%,.0f".format(spent) }"
+            amount.text = CurrencyManager.formatRounded(itemView.context, spent)
             bar.progress = pct
             bar.progressTintList = android.content.res.ColorStateList.valueOf(colour)
         }

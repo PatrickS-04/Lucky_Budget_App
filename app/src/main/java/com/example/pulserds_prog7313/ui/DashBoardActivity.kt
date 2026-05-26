@@ -33,6 +33,7 @@ import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import kotlin.math.abs
+import com.example.pulserds_prog7313.utils.CurrencyManager
 
 class DashBoardActivity : BaseActivity() {
 
@@ -255,15 +256,18 @@ class DashBoardActivity : BaseActivity() {
     }
 
     private fun showBalanceAmount(balance: Double) {
-        findViewById<TextView>(R.id.balanceAmount).text = "R %,.2f".format(balance)
+        findViewById<TextView>(R.id.balanceAmount).text =
+            CurrencyManager.format(this, balance)
     }
 
     private fun showIncomeAmount(income: Double) {
-        findViewById<TextView>(R.id.incomeAmount).text = "R %,.2f".format(income)
+        findViewById<TextView>(R.id.incomeAmount).text =
+            CurrencyManager.format(this, income)
     }
 
     private fun showExpenseAmount(expenses: Double) {
-        findViewById<TextView>(R.id.expenseAmount).text = "R %,.2f".format(expenses)
+        findViewById<TextView>(R.id.expenseAmount).text =
+            CurrencyManager.format(this, expenses)
     }
 
     private fun showBalanceChange(curNet: Double, prevNet: Double) {
@@ -307,8 +311,9 @@ class DashBoardActivity : BaseActivity() {
             ?.key
 
         val catName = latestCategories.find { it.id == topCategoryId }?.name ?: "a category"
-        body.text = "You've spent R ${"%.2f".format(over)} more than you earned " +
-                "this month. Your highest spend is in $catName."
+
+        body.text = "You've spent ${CurrencyManager.format(this, over)} more than " +
+                "you earned this month. Your highest spend is in $catName."
     }
 
     private fun currentMonthRange(): Pair<String, String> {

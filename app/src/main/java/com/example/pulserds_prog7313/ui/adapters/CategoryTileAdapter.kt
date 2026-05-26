@@ -9,6 +9,8 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.Category
+import com.example.pulserds_prog7313.utils.CurrencyManager
+
 
 /**
  * Displays [Category] objects from the database in the 2-column Budget Categories grid.
@@ -76,8 +78,11 @@ class CategoryTileAdapter(
 
             name.text = category.name
 
-            // Format amount -- shows "R 0" until expense totals are available
-            amount.text = if (total == 0.0) "R 0" else "R ${"%,.0f".format(total)}"
+            // Format amount -- shows "0" until expense totals are available
+            amount.text = if (total == 0.0)
+                "${CurrencyManager.getSelectedCurrency(itemView.context).symbol} 0"
+            else
+                CurrencyManager.formatRounded(itemView.context, total)
             amount.setTextColor(android.graphics.Color.parseColor(amountColor))
         }
     }

@@ -14,6 +14,7 @@ import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.SavingsGoal
 import kotlin.math.min
 import kotlin.math.roundToInt
+import com.example.pulserds_prog7313.utils.CurrencyManager
 
 // Displays a compact list of savings goals in the dashboard summary card.
 class DashSavingsAdapter :
@@ -50,14 +51,14 @@ class DashSavingsAdapter :
             val pct    = if (target > 0) min((saved / target * 100).roundToInt(), 100) else 0
             val toGo   = target - saved
 
-            amounts.text = "R %,.0f / R %,.0f".format(saved, target)
+            amounts.text = "${CurrencyManager.format(itemView.context, saved)} / ${CurrencyManager.format(itemView.context, target)}"
             progressBar.progress = pct
 
             // Colour-code the progress bar and label based on how close the goal is to completion
             val (barHex, labelHex, labelText) = when {
                 pct >= 90 -> Triple("#22C55E", "#22C55E", "$pct% — almost there! 🔥")
                 pct >= 50 -> Triple("#4ADE80", "#4ADE80", "$pct% reached")
-                else -> Triple("#60A5FA", "#60A5FA", "$pct% • R ${"%.0f".format(toGo)} to go")
+                else -> Triple("#60A5FA", "#60A5FA", "$pct% • ${CurrencyManager.format(itemView.context, toGo)} to go")
             }
             progressBar.progressTintList = ColorStateList.valueOf(Color.parseColor(barHex))
             percent.text = labelText

@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.Category
+import com.example.pulserds_prog7313.utils.CurrencyManager
 
 /**
  * Displays [Category] rows with spend amount and percentage bars in the
