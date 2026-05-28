@@ -31,6 +31,7 @@ import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
 import com.example.pulserds_prog7313.viewmodel.ExpenseEntryViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
+import com.example.pulserds_prog7313.utils.AnalyticsPdfExporter
 import com.google.android.material.button.MaterialButton
 import java.text.SimpleDateFormat
 import java.util.*
@@ -175,13 +176,8 @@ class AnalyticsActivity : BaseActivity() {
         setupPeriodChips()
         selectPeriod(Period.MONTH) // Default to Month view on first launch.
 
-        // Export button - feature placeholder; shows a coming-soon toast for now.
         findViewById<MaterialButton>(R.id.exportButton)?.setOnClickListener {
-            Toast.makeText(this, "Export coming soon", Toast.LENGTH_SHORT).show()
-        }
-
-        findViewById<MaterialButton>(R.id.exportButton)?.setOnClickListener {
-            launchAiInsights()
+            exportAnalyticsPdf()
         }
 
         // "See all categories" link navigates to the dedicated CategoryTotalsActivity.
@@ -585,6 +581,22 @@ class AnalyticsActivity : BaseActivity() {
             putExtra("periodLabel", periodLabel)
         }
         startActivity(intent)
+    }
+
+    private fun exportAnalyticsPdf() {
+        val accounts       = bankAccountViewModel.accounts.value ?: emptyList()
+        val accountSpend   = expenseViewModel.accountSpending.value ?: emptyList()
+        val shareIntent    = AnalyticsPdfExporter.export(
+            context        = this,
+            periodLabel    = periodLabel,
+            income         = lastIncome,
+            expenses       = lastExpenses,
+            categories     = cachedCategories,
+            totals         = cachedTotals,
+            accounts       = accounts,
+            accountSpending = accountSpend
+        )
+        startActivity(Intent.createChooser(shareIntent, "Share Analytics Report"))
     }
 
 }
