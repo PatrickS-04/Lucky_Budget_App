@@ -4,6 +4,8 @@ import android.app.DatePickerDialog
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.LinearLayout
+import kotlin.jvm.java
+import android.content.Intent
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -176,6 +178,10 @@ class AnalyticsActivity : BaseActivity() {
         // Export button - feature placeholder; shows a coming-soon toast for now.
         findViewById<MaterialButton>(R.id.exportButton)?.setOnClickListener {
             Toast.makeText(this, "Export coming soon", Toast.LENGTH_SHORT).show()
+        }
+
+        findViewById<MaterialButton>(R.id.exportButton)?.setOnClickListener {
+            launchAiInsights()
         }
 
         // "See all categories" link navigates to the dedicated CategoryTotalsActivity.
@@ -573,4 +579,12 @@ class AnalyticsActivity : BaseActivity() {
             summaryPieChart.setCenterLabel("-", "No data")
         }
     }
+
+    private fun launchAiInsights() {
+        val intent = Intent(this, SpendingInsightActivity::class.java).apply {
+            putExtra("periodLabel", periodLabel)
+        }
+        startActivity(intent)
+    }
+
 }

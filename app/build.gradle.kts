@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -6,9 +8,13 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+    val localProps = Properties()
+    localProps.load(rootProject.file("local.properties").inputStream())
+
 android {
     namespace = "com.example.pulserds_prog7313"
     compileSdk = 36
+
 
     defaultConfig {
         applicationId = "com.example.pulserds_prog7313"
@@ -16,9 +22,11 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "GEMINI_API_KEY", "\"${localProps["GEMINI_API_KEY"]}\"")
     }
+
 
     buildTypes {
         release {
@@ -41,6 +49,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     // Removed: room { schemaDirectory(...) } -- Room schema exports no longer needed
@@ -67,12 +76,20 @@ dependencies {
     // Firebase Analytics (was already present)
     implementation("com.google.firebase:firebase-analytics")
 
+    // Gemini / Google AI SDK
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
+    // OkHttp (only needed if you call the REST API directly instead of the SDK)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
     // Removed: Room dependencies
     // implementation("androidx.room:room-ktx:$room")
     // ksp("androidx.room:room-compiler:$room")
 
     // ViewModel + Coroutines (keep as-is)
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     // Coroutine support for Firebase Tasks (lets you use .await() on Firebase calls)
