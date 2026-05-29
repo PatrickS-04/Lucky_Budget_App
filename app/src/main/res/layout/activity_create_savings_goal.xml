@@ -752,6 +752,88 @@
         </androidx.cardview.widget.CardView>
 
         <!-- ═══════════════════════════════════════ -->
+        <!-- ═══════════════════════════════════════ -->
+        <!--    MONTHLY SPENDING GOAL BAND           -->
+        <!-- ═══════════════════════════════════════ -->
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/spendingBandCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginEnd="20dp"
+            app:cardBackgroundColor="#0D2A1A"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/autoSaveCard"
+            app:strokeColor="#1A4A2A"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="18dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:letterSpacing="0.08"
+                    android:text="MONTHLY SPENDING GOALS (optional)"
+                    android:textColor="#4ADE80"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="12dp"
+                    android:text="Set a min/max band to track on the Analytics chart"
+                    android:textColor="#6ADB8A"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/minSpendingLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:hint="Min monthly spending (R)"
+                    app:boxStrokeColor="#2EC4B6"
+                    app:hintTextColor="#6ADB8A">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/minSpendingEditText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal"
+                        android:textColor="#FFFFFF" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/maxSpendingLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Max monthly spending (R)"
+                    app:boxStrokeColor="#F87171"
+                    app:hintTextColor="#DB8A8A">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/maxSpendingEditText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal"
+                        android:textColor="#FFFFFF" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <!--         GOAL PREVIEW CARD               -->
         <!-- ═══════════════════════════════════════ -->
 
@@ -767,7 +849,7 @@
             app:cardElevation="4dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/autoSaveCard"
+            app:layout_constraintTop_toBottomOf="@id/spendingBandCard"
             app:strokeColor="#1A4A2A"
             app:strokeWidth="1dp">
 

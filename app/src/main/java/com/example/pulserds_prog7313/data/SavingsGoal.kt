@@ -40,5 +40,13 @@ data class SavingsGoal(
     val completedDate: String = "",
 
     /** Creation timestamp */
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+
+    // ---- Monthly spending-goal band (used by the Analytics spending-goals chart) ----
+
+    /** Minimum monthly spending target for this category (0 = not set) */
+    val minSpendingGoal: Double = 0.0,
+
+    /** Maximum monthly spending target for this category (0 = not set) */
+    val maxSpendingGoal: Double = 0.0
 )

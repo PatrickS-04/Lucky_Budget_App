@@ -108,6 +108,14 @@ class AnalyticsActivity : BaseActivity() {
     /** Formatter used to convert period boundaries into DB query strings. */
     private val dbDateFmt = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
+    // -- Spending goal chart views -------------------------------------------
+    private lateinit var spendingGoalChart: com.example.pulserds_prog7313.SpendingGoalChartView
+    private lateinit var spendingGoalStatus: TextView
+    private lateinit var spendingGoalSelectorLabel: TextView
+
+    /** ViewModel for loading savings goals (which carry min/maxSpendingGoal). */
+    private lateinit var savingsGoalViewModel: com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel
+
     // -- Cached income/expense values -----------------------------------------
     // Both values are kept so the hero balance can be recomputed from either
     // observer regardless of which one fires last.
@@ -209,6 +217,9 @@ class AnalyticsActivity : BaseActivity() {
         legendIncomeValue   = findViewById(R.id.legendIncomeValue)
         legendExpensesValue = findViewById(R.id.legendExpensesValue)
         legendSavedValue    = findViewById(R.id.legendSavedValue)
+        spendingGoalChart         = findViewById(R.id.spendingGoalChart)
+        spendingGoalStatus        = findViewById(R.id.spendingGoalStatus)
+        spendingGoalSelectorLabel = findViewById(R.id.spendingGoalSelectorLabel)
     }
 
     // -------------------------------------------------------------------------
@@ -379,6 +390,10 @@ class AnalyticsActivity : BaseActivity() {
 
         val userId = SessionManager(this).getUserId()
         if (userId.isNotBlank()) bankAccountViewModel.init(userId)
+
+        savingsGoalViewModel = ViewModelProvider(
+            this, ViewModelFactory { com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel(com.example.pulserds_prog7313.repository.SavingsGoalRepository()) }
+        )[com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel::class.java]
     }
 
     // -------------------------------------------------------------------------
@@ -452,6 +467,9 @@ class AnalyticsActivity : BaseActivity() {
         expensesLiveData = expenseViewModel.getExpensesLive(userId, startStr, endStr).also {
             it.observe(this, expensesObserver)
         }
+
+        // Spending-goals chart always shows the past calendar month
+        loadSpendingGoalChart(userId)
     }
 
     /**
@@ -599,4 +617,96 @@ class AnalyticsActivity : BaseActivity() {
         startActivity(Intent.createChooser(shareIntent, "Share Analytics Report"))
     }
 
+
+    // -------------------------------------------------------------------------
+    // Spending Goal Chart
+    // -------------------------------------------------------------------------
+
+    /**
+     * Loads per-day expense totals for the current calendar month and the
+     * aggregate min/max spending goals from SavingsGoals, then renders
+     * SpendingGoalChartView with a tinted goal band and a status summary.
+     *
+     * The chart is always month-scoped as required by the PoE spec.
+     */
+    private fun loadSpendingGoalChart(userId: String) {
+        if (userId.isBlank()) return
+
+        val cal      = java.util.Calendar.getInstance()
+        val lastDay  = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        val month    = cal.get(java.util.Calendar.MONTH) + 1
+        val year     = cal.get(java.util.Calendar.YEAR)
+        val startStr = "01/%02d/%d".format(month, year)
+        val endStr   = "%02d/%02d/%d".format(lastDay, month, year)
+
+        // LiveData stream: expense entries filtered to this calendar month
+        expenseViewModel.getEntriesForPeriodLive(userId, startStr, endStr)
+            .observe(this) { entries ->
+
+                // Bucket absolute expense amounts by day-of-month (0-indexed)
+                val dailyTotals = DoubleArray(lastDay) { 0.0 }
+                val fmt = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+                entries?.forEach { entry ->
+                    if (entry.amount < 0) {
+                        try {
+                            val d    = fmt.parse(entry.date) ?: return@forEach
+                            val cal2 = java.util.Calendar.getInstance().also { c -> c.time = d }
+                            val day  = cal2.get(java.util.Calendar.DAY_OF_MONTH) - 1
+                            if (day in 0 until lastDay)
+                                dailyTotals[day] += kotlin.math.abs(entry.amount)
+                        } catch (e: Exception) { /* skip malformed dates */ }
+                    }
+                }
+
+                // LiveData stream: savings goals that carry a min/max spending band
+                savingsGoalViewModel.getAllGoalsLive(userId)
+                    .observe(this) { goals ->
+
+                        val withBand = goals?.filter {
+                            it.minSpendingGoal > 0 || it.maxSpendingGoal > 0
+                        } ?: emptyList()
+
+                        // Convert monthly totals to per-day averages for chart lines
+                        val sumMin   = withBand.sumOf { it.minSpendingGoal }
+                        val sumMax   = withBand.sumOf { it.maxSpendingGoal }
+                        val dailyMin = if (lastDay > 0) sumMin / lastDay else 0.0
+                        val dailyMax = if (lastDay > 0) sumMax / lastDay else 0.0
+
+                        spendingGoalChart.setData(
+                            dailyAmounts = dailyTotals.toList(),
+                            minGoal      = dailyMin,
+                            maxGoal      = if (dailyMax > dailyMin) dailyMax else 0.0
+                        )
+
+                        // Goal selector label — lists the goals that have a band set
+                        val names = withBand.joinToString(", ") { it.name }
+                        spendingGoalSelectorLabel.text =
+                            if (names.isNotBlank()) "Goals: $names"
+                            else "Set min/max goals in a Savings Goal to see your band"
+
+                        // Status summary (days elapsed so far this month)
+                        val todayDay   = java.util.Calendar.getInstance()
+                            .get(java.util.Calendar.DAY_OF_MONTH)
+                        val elapsed    = minOf(todayDay, lastDay)
+                        val activeDays = dailyTotals.take(elapsed)
+
+                        spendingGoalStatus.text = when {
+                            activeDays.isEmpty() || activeDays.sum() == 0.0 ->
+                                "No spending recorded this month"
+                            dailyMax <= 0 ->
+                                "R ${"%.2f".format(activeDays.sum())} spent — add min/max goals to see your band"
+                            else -> {
+                                val within  = activeDays.count { it in dailyMin..dailyMax }
+                                val overMax = activeDays.count { it > dailyMax }
+                                val pct     = (within.toDouble() / elapsed * 100).toInt()
+                                when {
+                                    pct >= 80 -> "On track! $pct% of days within your spending goal band"
+                                    overMax > elapsed / 2 -> "$overMax day(s) over budget — consider cutting back"
+                                    else -> "$within/$elapsed days within goal band ($pct%)"
+                                }
+                            }
+                        }
+                    }
+            }
+    }
 }

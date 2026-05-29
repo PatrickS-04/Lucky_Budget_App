@@ -110,7 +110,7 @@ class SpendingInsightActivity : BaseActivity() {
 
     /**
      * Only fires the AI call once, and only after both entries and categories
-     * have loaded — whichever LiveData observer fires last wins.
+     * have loaded - whichever LiveData observer fires last wins.
      */
     private fun tryTriggerAI(periodLabel: String) {
         if (aiTriggered) return
