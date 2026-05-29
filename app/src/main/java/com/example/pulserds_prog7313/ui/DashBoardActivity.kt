@@ -52,6 +52,7 @@ class DashBoardActivity : BaseActivity() {
     private var latestCategories = mutableListOf<Category>()
     private var latestAccounts:   List<BankAccount> = emptyList()
     private var latestEntries:    List<ExpenseEntry> = emptyList()
+    private var latestGoals:      List<com.example.pulserds_prog7313.data.SavingsGoal> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -193,7 +194,8 @@ class DashBoardActivity : BaseActivity() {
         }
 
         savingsVM.getAllGoalsLive(userId).observe(this) { goals ->
-            val activeGoals = goals.filter { !it.isCompleted }.take(3)
+            latestGoals = goals.filter { !it.isCompleted }
+            val activeGoals = latestGoals.take(3)
             savingsAdapter.submitList(activeGoals)
 
             val hasGoals = activeGoals.isNotEmpty()
@@ -301,51 +303,62 @@ class DashBoardActivity : BaseActivity() {
             return
         }
 
-        val expensesByCategory = entries
+        val spentByCategory = entries
             .filter { it.amount < 0 }
             .groupBy { it.categoryId }
             .mapValues { (_, es) -> es.sumOf { abs(it.amount) } }
-            .entries
-            .sortedByDescending { it.value }
 
-        if (expensesByCategory.isEmpty()) {
+        if (spentByCategory.isEmpty()) {
             card.visibility = View.GONE
             return
         }
 
-        val expenseCategories = latestCategories.filter { cat ->
-            cat.type == "EXPENSE" || cat.type == "BOTH"
-        }
-        val numCats = expenseCategories.size.coerceAtLeast(1)
-        val softBudgetPerCat = if (income > 0) income / numCats else 0.0
+        // Match each savings goal to a category by name (case-insensitive)
+        data class BudgetBreach(val catName: String, val spent: Double, val budget: Double)
 
-        // Find the category most over its soft budget
-        val worstEntry = expensesByCategory.maxByOrNull { (catId, spent) ->
-            if (softBudgetPerCat > 0) spent - softBudgetPerCat else spent
-        }
-
-        val topEntry = expensesByCategory.first()
-        val secondEntry = expensesByCategory.getOrNull(1)
-
-        val topCatName = latestCategories.find { it.id == (worstEntry?.key ?: topEntry.key) }
-            ?.name?.replaceFirstChar { it.uppercase() } ?: "a category"
-        val secondCatName = secondEntry?.let { (id, _) ->
-            latestCategories.find { it.id == id }?.name?.replaceFirstChar { it.uppercase() }
+        val breaches = mutableListOf<BudgetBreach>()
+        for ((catId, spent) in spentByCategory) {
+            val catName = latestCategories.find { it.id == catId }?.name ?: continue
+            val goal = latestGoals.find { it.name.trim().lowercase() == catName.trim().lowercase() }
+            if (goal != null && goal.targetAmount > 0 && spent > goal.targetAmount) {
+                breaches.add(BudgetBreach(catName.replaceFirstChar { it.uppercase() }, spent, goal.targetAmount))
+            }
         }
 
         card.visibility = View.VISIBLE
 
-        val worstSpent = worstEntry?.value ?: topEntry.value
-        val overBudget = if (softBudgetPerCat > 0) worstSpent - softBudgetPerCat else 0.0
+        if (breaches.isNotEmpty()) {
+            // Show the worst breach first
+            val worst = breaches.maxByOrNull { it.spent - it.budget }!!
+            val overBy = worst.spent - worst.budget
 
-        body.text = if (overBudget > 0) {
-            val suggestion = if (secondCatName != null && secondCatName != topCatName)
-                " Consider shifting funds from $secondCatName." else ""
-            "You've exceeded your $topCatName budget by ${CurrencyManager.format(this, overBudget)}.$suggestion"
+            // Suggest the next-highest spending category as a place to cut back
+            val otherCatName = spentByCategory.entries
+                .sortedByDescending { it.value }
+                .map { (id, _) -> latestCategories.find { it.id == id }?.name }
+                .firstOrNull { it?.lowercase() != worst.catName.lowercase() }
+                ?.replaceFirstChar { it.uppercase() }
+
+            val suggestion = if (otherCatName != null)
+                " Consider shifting funds from $otherCatName." else ""
+            body.text = "You've exceeded your ${worst.catName} savings goal by " +
+                    "${CurrencyManager.format(this, overBy)}.$suggestion"
         } else {
+            // No goal breached — show top spending category as a general insight
+            val topCatId = spentByCategory.maxByOrNull { it.value }!!.key
+            val topCatName = latestCategories.find { it.id == topCatId }
+                ?.name?.replaceFirstChar { it.uppercase() } ?: "a category"
+            val topSpent = spentByCategory[topCatId] ?: 0.0
+
+            val secondCatName = spentByCategory.entries
+                .sortedByDescending { it.value }
+                .drop(1).firstOrNull()?.key
+                ?.let { id -> latestCategories.find { it.id == id }?.name?.replaceFirstChar { it.uppercase() } }
+
             val suggestion = if (secondCatName != null)
                 " Keep an eye on your $secondCatName spending too." else ""
-            "Your highest spend this month is $topCatName at ${CurrencyManager.format(this, worstSpent)}.$suggestion"
+            body.text = "Your highest spend this month is $topCatName at " +
+                    "${CurrencyManager.format(this, topSpent)}.$suggestion"
         }
     }
 
