@@ -27,6 +27,7 @@ class SettingsActivity : BaseActivity() {
     private lateinit var sessionManager:  SessionManager
     private lateinit var savingsGoalRepo: SavingsGoalRepository
     private lateinit var userRepo:        UserRepository
+    private var currencyDialog: AlertDialog? = null
 
     companion object {
         private const val PREFS_SETTINGS = "app_settings"
@@ -323,7 +324,15 @@ class SettingsActivity : BaseActivity() {
             .show()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        currencyDialog?.dismiss()
+        currencyDialog = null
+    }
+
     private fun showCurrencyDialog() {
+        currencyDialog?.dismiss()
+
         // Matches the order of CurrencyManager.CURRENCIES exactly
         val currencies    = CurrencyManager.CURRENCIES.map { "${it.label} (${it.code})" }.toTypedArray()
         val settingsPrefs = getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE)
@@ -350,6 +359,6 @@ class SettingsActivity : BaseActivity() {
                 dialog.dismiss()
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .also { currencyDialog = it.show() }
     }
 }
