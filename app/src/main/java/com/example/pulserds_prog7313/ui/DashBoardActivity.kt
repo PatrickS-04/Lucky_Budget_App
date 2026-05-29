@@ -296,24 +296,57 @@ class DashBoardActivity : BaseActivity() {
         val card = findViewById<View>(R.id.overspendingCard)
         val body = findViewById<TextView>(R.id.alertBody)
 
-        if (expenses == 0.0 || expenses <= income) {
+        if (expenses == 0.0) {
             card.visibility = View.GONE
             return
         }
 
-        card.visibility = View.VISIBLE
-        val over = expenses - income
-
-        val topCategoryId = entries
+        val expensesByCategory = entries
             .filter { it.amount < 0 }
             .groupBy { it.categoryId }
-            .maxByOrNull { (_, es) -> es.sumOf { abs(it.amount) } }
-            ?.key
+            .mapValues { (_, es) -> es.sumOf { abs(it.amount) } }
+            .entries
+            .sortedByDescending { it.value }
 
-        val catName = latestCategories.find { it.id == topCategoryId }?.name ?: "a category"
+        if (expensesByCategory.isEmpty()) {
+            card.visibility = View.GONE
+            return
+        }
 
-        body.text = "You've spent ${CurrencyManager.format(this, over)} more than " +
-                "you earned this month. Your highest spend is in $catName."
+        val expenseCategories = latestCategories.filter { cat ->
+            cat.type == "EXPENSE" || cat.type == "BOTH"
+        }
+        val numCats = expenseCategories.size.coerceAtLeast(1)
+        val softBudgetPerCat = if (income > 0) income / numCats else 0.0
+
+        // Find the category most over its soft budget
+        val worstEntry = expensesByCategory.maxByOrNull { (catId, spent) ->
+            if (softBudgetPerCat > 0) spent - softBudgetPerCat else spent
+        }
+
+        val topEntry = expensesByCategory.first()
+        val secondEntry = expensesByCategory.getOrNull(1)
+
+        val topCatName = latestCategories.find { it.id == (worstEntry?.key ?: topEntry.key) }
+            ?.name?.replaceFirstChar { it.uppercase() } ?: "a category"
+        val secondCatName = secondEntry?.let { (id, _) ->
+            latestCategories.find { it.id == id }?.name?.replaceFirstChar { it.uppercase() }
+        }
+
+        card.visibility = View.VISIBLE
+
+        val worstSpent = worstEntry?.value ?: topEntry.value
+        val overBudget = if (softBudgetPerCat > 0) worstSpent - softBudgetPerCat else 0.0
+
+        body.text = if (overBudget > 0) {
+            val suggestion = if (secondCatName != null && secondCatName != topCatName)
+                " Consider shifting funds from $secondCatName." else ""
+            "You've exceeded your $topCatName budget by ${CurrencyManager.format(this, overBudget)}.$suggestion"
+        } else {
+            val suggestion = if (secondCatName != null)
+                " Keep an eye on your $secondCatName spending too." else ""
+            "Your highest spend this month is $topCatName at ${CurrencyManager.format(this, worstSpent)}.$suggestion"
+        }
     }
 
     private fun currentMonthRange(): Pair<String, String> {
