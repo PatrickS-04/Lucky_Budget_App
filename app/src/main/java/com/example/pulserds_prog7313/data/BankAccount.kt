@@ -1,5 +1,7 @@
 package com.example.pulserds_prog7313.data
 
+import com.google.firebase.firestore.PropertyName
+
 // 'id' and 'userId' are now Strings (Firestore document ID / Firebase Auth UID).
 // All fields have default values for Firestore deserialisation.
 data class BankAccount(
@@ -30,5 +32,7 @@ data class BankAccount(
     val includeInTotal: Boolean = true,
 
     /** Whether this is the default account for new transactions */
-    val isPrimary: Boolean = false
+    // @PropertyName maps Kotlin's is-prefixed boolean to Firestore field "primary"
+    @get:PropertyName("primary") @set:PropertyName("primary")
+    var isPrimary: Boolean = false
 )
