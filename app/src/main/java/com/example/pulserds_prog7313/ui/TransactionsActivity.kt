@@ -24,6 +24,7 @@ import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
 import com.example.pulserds_prog7313.ui.adapters.TransactionAdapter
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
@@ -461,11 +462,11 @@ class TransactionsActivity : BaseActivity() {
         val expenses = entries.filter { it.amount < 0 }.sumOf { abs(it.amount) }
         val net      = income - expenses
 
-        summaryIncome.text   = "+ R %,.2f".format(income)
-        summaryExpenses.text = "- R %,.2f".format(expenses)
+        summaryIncome.text   = "+ ${CurrencyManager.format(this, income)}"
+        summaryExpenses.text = "- ${CurrencyManager.format(this, expenses)}"
 
         // Prefix negative net with a minus sign; positive net has no prefix
-        summaryNet.text = if (net >= 0) "R %,.2f".format(net) else "- R %,.2f".format(abs(net))
+        summaryNet.text = if (net >= 0) CurrencyManager.format(this, net) else "- ${CurrencyManager.format(this, abs(net))}"
         // Green for surplus, red for deficit
         summaryNet.setTextColor(
             if (net >= 0) Color.parseColor("#4ADE80") else Color.parseColor("#F87171")

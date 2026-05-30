@@ -28,6 +28,7 @@ import com.example.pulserds_prog7313.data.ExpenseEntry
 import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
@@ -150,6 +151,7 @@ class AddTransactionActivity : AppCompatActivity() {
         }
 
         initViews()
+        refreshCurrencySymbol()
         setupToggle()
         setupCategoryDropdown()
         setupAccountDropdown()
@@ -160,9 +162,15 @@ class AddTransactionActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        refreshCurrencySymbol()
         if (loggedInUserId.isNotBlank()) {
             lifecycleScope.launch { categoryViewModel.seedDefaultCategories(loggedInUserId) }
         }
+    }
+
+    private fun refreshCurrencySymbol() {
+        findViewById<TextView>(R.id.currencySymbolLabel)?.text =
+            CurrencyManager.getSelectedCurrency(this).symbol
     }
 
     private fun initViews() {

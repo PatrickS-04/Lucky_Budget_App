@@ -34,6 +34,8 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import kotlin.math.abs
 import com.example.pulserds_prog7313.utils.CurrencyManager
+import com.example.pulserds_prog7313.repository.SubscriptionRepository
+import com.example.pulserds_prog7313.viewmodel.SubscriptionViewModel
 
 //[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
 // Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
@@ -70,10 +72,12 @@ class DashBoardActivity : BaseActivity() {
 
     // userId is now a String (Firebase Auth UID). "" means no session.
     private var userId = ""
+    private lateinit var subscriptionVM: SubscriptionViewModel
 
     private var latestCategories = mutableListOf<Category>()
     private var latestAccounts:   List<BankAccount> = emptyList()
     private var latestEntries:    List<ExpenseEntry> = emptyList()
+    private var latestGoals:      List<com.example.pulserds_prog7313.data.SavingsGoal> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -104,6 +108,11 @@ class DashBoardActivity : BaseActivity() {
         }
         findViewById<TextView>(R.id.transactionsSeeAll)?.setOnClickListener {
             startActivity(Intent(this, TransactionsActivity::class.java))
+        }
+
+        // Subscriptions "Manage" button on dashboard
+        findViewById<android.widget.TextView>(R.id.subManageLink)?.setOnClickListener {
+            startActivity(Intent(this, ManageSubscriptionsActivity::class.java))
         }
 
         setupBottomNav(R.id.navHome)
@@ -146,6 +155,12 @@ class DashBoardActivity : BaseActivity() {
         }
 
         bankAccountVM.init(userId)
+
+        subscriptionVM = ViewModelProvider(
+            this,
+            ViewModelFactory { SubscriptionViewModel(SubscriptionRepository()) }
+        )[SubscriptionViewModel::class.java]
+        subscriptionVM.init(userId)
     }
 
     private fun setupRecyclers() {
@@ -173,6 +188,8 @@ class DashBoardActivity : BaseActivity() {
 
     private fun observeLiveData() {
         if (userId.isBlank()) return
+
+        observeSubscriptions()
 
         bankAccountVM.totalBalance.observe(this) { balance -> showBalanceAmount(balance) }
 
@@ -215,7 +232,8 @@ class DashBoardActivity : BaseActivity() {
         }
 
         savingsVM.getAllGoalsLive(userId).observe(this) { goals ->
-            val activeGoals = goals.filter { !it.isCompleted }.take(3)
+            latestGoals = goals.filter { !it.isCompleted }
+            val activeGoals = latestGoals.take(3)
             savingsAdapter.submitList(activeGoals)
 
             val hasGoals = activeGoals.isNotEmpty()
@@ -223,6 +241,57 @@ class DashBoardActivity : BaseActivity() {
                 if (hasGoals) View.VISIBLE else View.GONE
             findViewById<View>(R.id.dashSavingsEmpty).visibility =
                 if (hasGoals) View.GONE else View.VISIBLE
+        }
+    }
+
+    private fun observeSubscriptions() {
+        subscriptionVM.subscriptions.observe(this) { subs ->
+            val activeSubs = subs.filter { it.status == "Active" }.take(3)
+            val container = findViewById<android.widget.LinearLayout>(R.id.dashSubsContainer)
+                ?: return@observe
+            container.removeAllViews()
+            if (activeSubs.isEmpty()) {
+                val empty = android.widget.TextView(this).apply {
+                    text = "No active subscriptions."
+                    setTextColor(0xFF7A99B0.toInt())
+                    textSize = 13f
+                    setPadding(40, 24, 40, 24)
+                }
+                container.addView(empty)
+            } else {
+                activeSubs.forEach { sub ->
+                    val row = android.widget.LinearLayout(this).apply {
+                        orientation = android.widget.LinearLayout.HORIZONTAL
+                        gravity = android.view.Gravity.CENTER_VERTICAL
+                        setPadding(40, 20, 40, 20)
+                    }
+                    val icon = android.widget.TextView(this).apply {
+                        text = sub.icon; textSize = 20f; setPadding(0, 0, 20, 0)
+                    }
+                    val info = android.widget.LinearLayout(this).apply {
+                        orientation = android.widget.LinearLayout.VERTICAL
+                        layoutParams = android.widget.LinearLayout.LayoutParams(0,
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    }
+                    info.addView(android.widget.TextView(this).apply {
+                        text = sub.serviceName
+                        setTextColor(0xFFFFFFFF.toInt()); textSize = 14f
+                        setTypeface(null, android.graphics.Typeface.BOLD)
+                    })
+                    info.addView(android.widget.TextView(this).apply {
+                        text = "Renews ${sub.nextRenewal}"
+                        setTextColor(0xFF7A99B0.toInt()); textSize = 12f
+                    })
+                    val lbl = when(sub.billingCycle) { "Weekly"->"wk"; "Yearly"->"yr"; else->"mo" }
+                    val amt = android.widget.TextView(this).apply {
+                        text = "${CurrencyManager.format(this@DashBoardActivity, sub.amount)}/$lbl"
+                        setTextColor(0xFFF87171.toInt()); textSize = 13f
+                        setTypeface(null, android.graphics.Typeface.BOLD)
+                    }
+                    row.addView(icon); row.addView(info); row.addView(amt)
+                    container.addView(row)
+                }
+            }
         }
     }
 
@@ -318,24 +387,68 @@ class DashBoardActivity : BaseActivity() {
         val card = findViewById<View>(R.id.overspendingCard)
         val body = findViewById<TextView>(R.id.alertBody)
 
-        if (expenses == 0.0 || expenses <= income) {
+        if (expenses == 0.0) {
             card.visibility = View.GONE
             return
         }
 
-        card.visibility = View.VISIBLE
-        val over = expenses - income
-
-        val topCategoryId = entries
+        val spentByCategory = entries
             .filter { it.amount < 0 }
             .groupBy { it.categoryId }
-            .maxByOrNull { (_, es) -> es.sumOf { abs(it.amount) } }
-            ?.key
+            .mapValues { (_, es) -> es.sumOf { abs(it.amount) } }
 
-        val catName = latestCategories.find { it.id == topCategoryId }?.name ?: "a category"
+        if (spentByCategory.isEmpty()) {
+            card.visibility = View.GONE
+            return
+        }
 
-        body.text = "You've spent ${CurrencyManager.format(this, over)} more than " +
-                "you earned this month. Your highest spend is in $catName."
+        // Match each savings goal to a category by name (case-insensitive)
+        data class BudgetBreach(val catName: String, val spent: Double, val budget: Double)
+
+        val breaches = mutableListOf<BudgetBreach>()
+        for ((catId, spent) in spentByCategory) {
+            val catName = latestCategories.find { it.id == catId }?.name ?: continue
+            val goal = latestGoals.find { it.name.trim().lowercase() == catName.trim().lowercase() }
+            if (goal != null && goal.targetAmount > 0 && spent > goal.targetAmount) {
+                breaches.add(BudgetBreach(catName.replaceFirstChar { it.uppercase() }, spent, goal.targetAmount))
+            }
+        }
+
+        card.visibility = View.VISIBLE
+
+        if (breaches.isNotEmpty()) {
+            // Show the worst breach first
+            val worst = breaches.maxByOrNull { it.spent - it.budget }!!
+            val overBy = worst.spent - worst.budget
+
+            // Suggest the next-highest spending category as a place to cut back
+            val otherCatName = spentByCategory.entries
+                .sortedByDescending { it.value }
+                .map { (id, _) -> latestCategories.find { it.id == id }?.name }
+                .firstOrNull { it?.lowercase() != worst.catName.lowercase() }
+                ?.replaceFirstChar { it.uppercase() }
+
+            val suggestion = if (otherCatName != null)
+                " Consider shifting funds from $otherCatName." else ""
+            body.text = "You've exceeded your ${worst.catName} savings goal by " +
+                    "${CurrencyManager.format(this, overBy)}.$suggestion"
+        } else {
+            // No goal breached — show top spending category as a general insight
+            val topCatId = spentByCategory.maxByOrNull { it.value }!!.key
+            val topCatName = latestCategories.find { it.id == topCatId }
+                ?.name?.replaceFirstChar { it.uppercase() } ?: "a category"
+            val topSpent = spentByCategory[topCatId] ?: 0.0
+
+            val secondCatName = spentByCategory.entries
+                .sortedByDescending { it.value }
+                .drop(1).firstOrNull()?.key
+                ?.let { id -> latestCategories.find { it.id == id }?.name?.replaceFirstChar { it.uppercase() } }
+
+            val suggestion = if (secondCatName != null)
+                " Keep an eye on your $secondCatName spending too." else ""
+            body.text = "Your highest spend this month is $topCatName at " +
+                    "${CurrencyManager.format(this, topSpent)}.$suggestion"
+        }
     }
 
     private fun currentMonthRange(): Pair<String, String> {

@@ -146,6 +146,12 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
     /** EditText for the recurring auto-save amount when auto-save is enabled. */
     private lateinit var autoSaveAmountEdit: TextInputEditText
 
+    /** EditText for the minimum monthly spending goal (optional, used by Analytics chart). */
+    private lateinit var minSpendingEdit: TextInputEditText
+
+    /** EditText for the maximum monthly spending goal (optional, used by Analytics chart). */
+    private lateinit var maxSpendingEdit: TextInputEditText
+
     /** Chip/TextView for selecting a weekly auto-save frequency. */
     private lateinit var freqWeekly: TextView
 
@@ -240,6 +246,8 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         previewProgressBar  = findViewById(R.id.previewProgressBar)
         previewProgressText = findViewById(R.id.previewProgressText)
         createGoalButton    = findViewById(R.id.createGoalButton)
+        minSpendingEdit     = findViewById(R.id.minSpendingEditText)
+        maxSpendingEdit     = findViewById(R.id.maxSpendingEditText)
     }
 
     // -------------------------------------------------------------------------
@@ -490,6 +498,8 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         val date    = targetDateEdit.text.toString().trim()
         val autoOn  = autoSaveSwitch.isChecked
         val autoAmt = autoSaveAmountEdit.text.toString().toDoubleOrNull() ?: 0.0
+        val minSpend = minSpendingEdit.text.toString().toDoubleOrNull() ?: 0.0
+        val maxSpend = maxSpendingEdit.text.toString().toDoubleOrNull() ?: 0.0
 
         // Validate on the main thread before touching the DB; return early on the first error
         val error = when {
@@ -525,7 +535,9 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
             autoSaveAmount    = autoAmt,
             autoSaveFrequency = selectedFrequency,
             isCompleted       = completed,
-            completedDate     = if (completed) now else ""   // Only set if goal is already met
+            completedDate     = if (completed) now else "",   // Only set if goal is already met
+            minSpendingGoal   = minSpend,
+            maxSpendingGoal   = if (maxSpend > minSpend) maxSpend else 0.0
         )
 
         lifecycleScope.launch {

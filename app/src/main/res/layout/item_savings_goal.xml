@@ -108,7 +108,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="R 0.00 saved"
+                android:text="@string/savings_amount_zero_saved"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -117,7 +117,7 @@
                 android:id="@+id/goalCardProgress"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="0% • R 0.00 to go"
+                android:text="@string/savings_amount_zero_remaining"
                 android:textColor="#4ADE80"
                 android:textSize="13sp"
                 android:textStyle="bold" />
