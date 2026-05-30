@@ -28,6 +28,7 @@ import com.example.pulserds_prog7313.data.ExpenseEntry
 import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
@@ -37,6 +38,41 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import java.io.File
 import java.util.*
+
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[3] Google, "LiveData overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/livedata.
+// [Accessed: 28 Apr. 2026].
+//[4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024. [Online].
+// Available: https://kotlinlang.org/docs/coroutines-guide.html.
+// [Accessed: 28 Apr. 2026].
+//[8] JetBrains, kotlinx-coroutines-android, ver. 1.8.1. [Software]. JetBrains, 2024.
+// Available: https://github.com/Kotlin/kotlinx.coroutines.
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[11] Google, Material Design Components for Android, ver. 1.12.0. [Software]. Google, 2024.
+// Available: https://github.com/material-components/material-components-android.
+//[13] Google, AndroidX Activity KTX, ver. 1.9.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/activity.
+//[15] Google, "View Binding," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/view-binding.
+// [Accessed: 28 Apr. 2026].
+//[16] Google, "Requesting permissions at runtime," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/training/permissions/requesting.
+// [Accessed: 28 Apr. 2026].
+//[17] Google, "Share files with FileProvider," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/reference/androidx/core/content/FileProvider.
+// [Accessed: 28 Apr. 2026].
+//[25] 	F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online].
+// Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase.
+// [Accessed 30 May 2026].
+//[26] 	A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online].
+// Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application.
+// [Accessed 30 May 2026].
 
 class AddTransactionActivity : AppCompatActivity() {
 
@@ -50,7 +86,7 @@ class AddTransactionActivity : AppCompatActivity() {
     private var loggedInUserId: String = ""           // String UID
     private var accountsList: List<BankAccount> = emptyList()
     private var selectedAccountId: String? = null     // String ID
-    private var categoriesList: List<Category> = emptyList()
+    private var categoriesList = mutableListOf<Category>()
 
     private lateinit var amountInput: EditText
     private lateinit var merchantInput: EditText
@@ -115,6 +151,7 @@ class AddTransactionActivity : AppCompatActivity() {
         }
 
         initViews()
+        refreshCurrencySymbol()
         setupToggle()
         setupCategoryDropdown()
         setupAccountDropdown()
@@ -125,9 +162,15 @@ class AddTransactionActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        refreshCurrencySymbol()
         if (loggedInUserId.isNotBlank()) {
             lifecycleScope.launch { categoryViewModel.seedDefaultCategories(loggedInUserId) }
         }
+    }
+
+    private fun refreshCurrencySymbol() {
+        findViewById<TextView>(R.id.currencySymbolLabel)?.text =
+            CurrencyManager.getSelectedCurrency(this).symbol
     }
 
     private fun initViews() {
@@ -154,8 +197,28 @@ class AddTransactionActivity : AppCompatActivity() {
 
     private fun setupCategoryDropdown() {
         categoryViewModel.getCategoriesLive(loggedInUserId).observe(this) { all ->
-            categoriesList = all
-            refreshCategoryDropdown()
+            if (all != null) {
+                categoriesList.clear()
+
+                val defaultCategories = setOf(
+                    "groceries", "dining out", "transport", "entertainment",
+                    "subscriptions", "utilities", "healthcare", "shopping",
+                    "salary", "investment", "freelance", "gift"
+                )
+
+                val fixedCategories = all.map { category ->
+                    val cleanName = category.name.lowercase().trim()
+                    if (defaultCategories.contains(cleanName)) {
+                        category.copy(isDefault = true)
+                    } else {
+                        category
+                    }
+                }
+
+                val differentCategories = fixedCategories.distinctBy { it.name.lowercase().trim() }
+                categoriesList.addAll(differentCategories)
+                refreshCategoryDropdown()
+            }
         }
         categoryDropdown.setOnClickListener { categoryDropdown.showDropDown() }
         categoryDropdown.setOnItemClickListener { _, _, position, _ ->

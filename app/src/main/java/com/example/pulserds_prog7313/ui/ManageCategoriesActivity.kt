@@ -32,6 +32,29 @@ import kotlinx.coroutines.launch
  * Architecture: MVVM - all data operations are delegated to [CategoryViewModel];
  * the activity only observes LiveData and updates the UI in response.
  */
+
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[3] Google, "LiveData overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/livedata.
+// [Accessed: 28 Apr. 2026].
+//[4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024. [Online].
+// Available: https://kotlinlang.org/docs/coroutines-guide.html.
+// [Accessed: 28 Apr. 2026].
+//[8] JetBrains, kotlinx-coroutines-android, ver. 1.8.1. [Software]. JetBrains, 2024.
+// Available: https://github.com/Kotlin/kotlinx.coroutines.
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[25] 	F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online].
+// Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase.
+// [Accessed 30 May 2026].
+//[26] 	A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online].
+// Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application.
+// [Accessed 30 May 2026].
+
 class ManageCategoriesActivity : AppCompatActivity() {
 
     // ViewModel that owns all category business logic and Room interactions.
@@ -136,17 +159,36 @@ class ManageCategoriesActivity : AppCompatActivity() {
     private fun observeCategories() {
         categoryViewModel.getCategoriesLive(loggedInUserId).observe(this) { all ->
             // Split the full list into default and user-created categories.
-            val defaults = all.filter { it.isDefault }
-            val custom   = all.filter { !it.isDefault }
+            if (all != null) {
+                val defaultCategories = setOf(
+                    "groceries", "dining out", "transport", "entertainment",
+                    "subscriptions", "utilities", "healthcare", "shopping",
+                    "salary", "investment", "freelance", "gift"
+                )
 
-            // Push the filtered lists to their respective adapters.
-            // DiffUtil inside ListAdapter handles efficient incremental updates.
-            defaultAdapter.submitList(defaults)
-            customAdapter.submitList(custom)
+                val fixedCategories = all.map { category ->
+                    val cleanName = category.name.lowercase().trim()
+                    if (defaultCategories.contains(cleanName)) {
+                        category.copy(isDefault = true)
+                    } else {
+                        category
+                    }
+                }
 
-            // Show the empty-state label only when the custom list is empty.
-            val emptyLabel = findViewById<TextView>(R.id.emptyCustomLabel)
-            emptyLabel.visibility = if (custom.isEmpty()) View.VISIBLE else View.GONE
+                val differentCategories = fixedCategories.distinctBy { it.name.lowercase().trim() }
+
+                val defaults = differentCategories.filter { it.isDefault }
+                val custom = differentCategories.filter { !it.isDefault }
+
+                // Push the filtered lists to their respective adapters.
+                // DiffUtil inside ListAdapter handles efficient incremental updates.
+                defaultAdapter.submitList(defaults)
+                customAdapter.submitList(custom)
+
+                // Show the empty-state label only when the custom list is empty.
+                val emptyLabel = findViewById<TextView>(R.id.emptyCustomLabel)
+                emptyLabel.visibility = if (custom.isEmpty()) View.VISIBLE else View.GONE
+            }
         }
     }
 

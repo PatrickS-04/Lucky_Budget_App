@@ -19,7 +19,31 @@ import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.google.android.material.button.MaterialButton
+
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[3] Google, "LiveData overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/livedata.
+// [Accessed: 28 Apr. 2026].
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[15] Google, "View Binding," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/view-binding.
+// [Accessed: 28 Apr. 2026].
+//[20] Google, "Canvas and drawables," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/develop/ui/views/graphics/drawables.
+// [Accessed: 28 Apr. 2026].
+//[25] 	F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online].
+// Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase.
+// [Accessed 30 May 2026].
+//[26] 	A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online].
+// Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application.
+// [Accessed 30 May 2026].
 
 class AccountsActivity : BaseActivity() {
 
@@ -36,9 +60,12 @@ class AccountsActivity : BaseActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_accounts)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+        val navBarContainer = findViewById<LinearLayout>(R.id.containerForBottomNavBar)
+
+        ViewCompat.setOnApplyWindowInsetsListener(navBarContainer) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val basePadding = (16 * resources.displayMetrics.density).toInt()
+            v.setPadding(bars.left, bars.top, bars.right, basePadding + bars.bottom)
             insets
         }
 
@@ -75,7 +102,7 @@ class AccountsActivity : BaseActivity() {
             updateDonut(accounts)
         }
         viewModel.totalBalance.observe(this) { total ->
-            donutChart.setCenterLabel(formatRand(total), "ZAR *")
+            donutChart.setCenterLabel(CurrencyManager.format(this, total), "")
         }
     }
 
@@ -92,7 +119,7 @@ class AccountsActivity : BaseActivity() {
             val typeTag = row.findViewById<TextView>(R.id.accountTypeTag)
             typeTag.text = account.accountType
             typeTag.setTextColor(dotColour)
-            row.findViewById<TextView>(R.id.accountBalance).text = formatRand(account.balance)
+            row.findViewById<TextView>(R.id.accountBalance).text = CurrencyManager.format(this, account.balance)
             val last4 = account.accountNumber.takeLast(4).padStart(4, '*')
             row.findViewById<TextView>(R.id.accountMasked).text = "**** $last4"
             accountsContainer.addView(row)
@@ -140,7 +167,6 @@ class AccountsActivity : BaseActivity() {
         donutChart.setSegments(segments)
     }
 
-    private fun formatRand(amount: Double): String = "R %,.2f".format(amount)
     private fun safeParseColour(hex: String, fallback: String): Int =
         try { Color.parseColor(hex) } catch (_: Exception) { Color.parseColor(fallback) }
     private fun buildDivider(): View = View(this).apply {

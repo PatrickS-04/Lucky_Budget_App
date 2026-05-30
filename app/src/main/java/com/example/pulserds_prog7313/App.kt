@@ -4,6 +4,8 @@ import android.app.Application
 import android.app.Activity
 import android.os.Bundle
 import com.example.pulserds_prog7313.utils.SessionManager
+import kotlinx.coroutines.launch
+import com.example.pulserds_prog7313.utils.CurrencyManager
 
 // ActivityLifecycleCallbacks used to track foreground/background state for auto-logout.
 // [2] Google, "ViewModel overview," Android Developers, 2024.
@@ -15,6 +17,10 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        kotlinx.coroutines.GlobalScope.launch {
+            CurrencyManager.refreshRateIfNeeded(this@App)
+        }
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
 

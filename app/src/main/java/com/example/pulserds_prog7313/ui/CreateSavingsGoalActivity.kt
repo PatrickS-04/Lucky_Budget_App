@@ -40,6 +40,31 @@ import java.util.*
  * - An optional auto-save configuration section (amount + frequency).
  * - A live preview card that updates as the user types.
  */
+
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024. [Online].
+// Available: https://kotlinlang.org/docs/coroutines-guide.html.
+// [Accessed: 28 Apr. 2026].
+//[8] JetBrains, kotlinx-coroutines-android, ver. 1.8.1. [Software]. JetBrains, 2024.
+// Available: https://github.com/Kotlin/kotlinx.coroutines.
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[11] Google, Material Design Components for Android, ver. 1.12.0. [Software]. Google, 2024.
+// Available: https://github.com/material-components/material-components-android.
+//[15] Google, "View Binding," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/view-binding.
+// [Accessed: 28 Apr. 2026].
+//[25] 	F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online].
+// Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase.
+// [Accessed 30 May 2026].
+//[26] 	A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online].
+// Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application.
+// [Accessed 30 May 2026].
+
 class CreateSavingsGoalActivity : AppCompatActivity() {
 
     // -------------------------------------------------------------------------
@@ -120,6 +145,12 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
 
     /** EditText for the recurring auto-save amount when auto-save is enabled. */
     private lateinit var autoSaveAmountEdit: TextInputEditText
+
+    /** EditText for the minimum monthly spending goal (optional, used by Analytics chart). */
+    private lateinit var minSpendingEdit: TextInputEditText
+
+    /** EditText for the maximum monthly spending goal (optional, used by Analytics chart). */
+    private lateinit var maxSpendingEdit: TextInputEditText
 
     /** Chip/TextView for selecting a weekly auto-save frequency. */
     private lateinit var freqWeekly: TextView
@@ -215,6 +246,8 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         previewProgressBar  = findViewById(R.id.previewProgressBar)
         previewProgressText = findViewById(R.id.previewProgressText)
         createGoalButton    = findViewById(R.id.createGoalButton)
+        minSpendingEdit     = findViewById(R.id.minSpendingEditText)
+        maxSpendingEdit     = findViewById(R.id.maxSpendingEditText)
     }
 
     // -------------------------------------------------------------------------
@@ -465,6 +498,8 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
         val date    = targetDateEdit.text.toString().trim()
         val autoOn  = autoSaveSwitch.isChecked
         val autoAmt = autoSaveAmountEdit.text.toString().toDoubleOrNull() ?: 0.0
+        val minSpend = minSpendingEdit.text.toString().toDoubleOrNull() ?: 0.0
+        val maxSpend = maxSpendingEdit.text.toString().toDoubleOrNull() ?: 0.0
 
         // Validate on the main thread before touching the DB; return early on the first error
         val error = when {
@@ -500,7 +535,9 @@ class CreateSavingsGoalActivity : AppCompatActivity() {
             autoSaveAmount    = autoAmt,
             autoSaveFrequency = selectedFrequency,
             isCompleted       = completed,
-            completedDate     = if (completed) now else ""   // Only set if goal is already met
+            completedDate     = if (completed) now else "",   // Only set if goal is already met
+            minSpendingGoal   = minSpend,
+            maxSpendingGoal   = if (maxSpend > minSpend) maxSpend else 0.0
         )
 
         lifecycleScope.launch {

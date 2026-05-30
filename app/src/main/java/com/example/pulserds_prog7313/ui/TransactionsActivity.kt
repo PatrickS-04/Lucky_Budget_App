@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
@@ -23,6 +24,7 @@ import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
 import com.example.pulserds_prog7313.ui.adapters.TransactionAdapter
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
@@ -48,6 +50,32 @@ import kotlinx.coroutines.launch
  *
  * Extends BaseActivity to inherit shared bottom navigation bar behaviour.
  */
+
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[3] Google, "LiveData overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/livedata.
+// [Accessed: 28 Apr. 2026].
+//[4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024. [Online].
+// Available: https://kotlinlang.org/docs/coroutines-guide.html.
+// [Accessed: 28 Apr. 2026].
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[11] Google, Material Design Components for Android, ver. 1.12.0. [Software]. Google, 2024.
+// Available: https://github.com/material-components/material-components-android.
+//[15] Google, "View Binding," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/view-binding.
+// [Accessed: 28 Apr. 2026].
+//[25] 	F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online].
+// Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase.
+// [Accessed 30 May 2026].
+//[26] 	A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online].
+// Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application.
+// [Accessed 30 May 2026].
+
 class TransactionsActivity : BaseActivity() {
 
     // -------------------------------------------------------------------------
@@ -133,9 +161,12 @@ class TransactionsActivity : BaseActivity() {
         setContentView(R.layout.activity_transactions)
 
         // Offset content so it is not hidden behind system status/nav bars
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+        val navBarContainer = findViewById<LinearLayout>(R.id.containerForBottomNavBar)
+
+        ViewCompat.setOnApplyWindowInsetsListener(navBarContainer) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            val basePadding = (16 * resources.displayMetrics.density).toInt()
+            v.setPadding(bars.left, bars.top, bars.right, basePadding + bars.bottom)
             insets
         }
 
@@ -431,11 +462,11 @@ class TransactionsActivity : BaseActivity() {
         val expenses = entries.filter { it.amount < 0 }.sumOf { abs(it.amount) }
         val net      = income - expenses
 
-        summaryIncome.text   = "+ R %,.2f".format(income)
-        summaryExpenses.text = "- R %,.2f".format(expenses)
+        summaryIncome.text   = "+ ${CurrencyManager.format(this, income)}"
+        summaryExpenses.text = "- ${CurrencyManager.format(this, expenses)}"
 
         // Prefix negative net with a minus sign; positive net has no prefix
-        summaryNet.text = if (net >= 0) "R %,.2f".format(net) else "- R %,.2f".format(abs(net))
+        summaryNet.text = if (net >= 0) CurrencyManager.format(this, net) else "- ${CurrencyManager.format(this, abs(net))}"
         // Green for surplus, red for deficit
         summaryNet.setTextColor(
             if (net >= 0) Color.parseColor("#4ADE80") else Color.parseColor("#F87171")

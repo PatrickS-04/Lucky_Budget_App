@@ -1,5 +1,27 @@
 <resources>
     <string name="app_name">Lucky Budget</string>
+
+    <!-- Currency -->
+    <string name="currency_symbol">R</string>
+    <string name="currency_prefix">R </string>
+
+    <!-- Amount placeholders (currency symbol included — update currency_symbol above to change everywhere) -->
+    <string name="amount_default">R 0.00</string>
+    <string name="amount_zero_short">R 0</string>
+    <string name="amount_default_monthly">R 0.00/mo</string>
+    <string name="amount_default_yearly">R 0.00/yr</string>
+
+    <!-- Savings goal display strings -->
+    <string name="savings_amount_zero_saved">R 0.00 saved</string>
+    <string name="savings_amount_zero_remaining">0%% • R 0.00 to go</string>
+    <string name="savings_completed_zero">Completed • R 0.00</string>
+    <string name="savings_target_preview">Target: R 0.00  •  By: —</string>
+    <string name="savings_progress_preview">0%% saved  •  R 0.00 initial deposit</string>
+    <string name="savings_total_target_zero">of R 0 total target</string>
+
+    <!-- Input hints containing the currency symbol -->
+    <string name="hint_min_monthly_spending">Min monthly spending (R)</string>
+    <string name="hint_max_monthly_spending">Max monthly spending (R)</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>
     <string name="second_fragment_label">Second Fragment</string>

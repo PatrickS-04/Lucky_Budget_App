@@ -15,17 +15,40 @@ import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.SavingsGoal
 import com.example.pulserds_prog7313.repository.SavingsGoalRepository
 import com.example.pulserds_prog7313.repository.UserRepository
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024. [Online].
+// Available: https://kotlinlang.org/docs/coroutines-guide.html.
+// [Accessed: 28 Apr. 2026].
+//[8] JetBrains, kotlinx-coroutines-android, ver. 1.8.1. [Software]. JetBrains, 2024.
+// Available: https://github.com/Kotlin/kotlinx.coroutines.
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[12] Google, AndroidX ConstraintLayout, ver. 2.2.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/constraintlayout.
+//[18] Google, "SharedPreferences - save key-value data," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/training/data-storage/shared-preferences.
+// [Accessed: 28 Apr. 2026].
+//[27] 	Firebase, "Firebase Authentication," Google, 27 May 2026. [Online].
+// Available: https://firebase.google.com/docs/auth?authuser=0&_gl=1*10potxh*_ga*MTk4MDgwMzQ0MC4xNzcxODc3ODAz*_ga_CW55HF8NVT*czE3Nzk2NDE1OTIkbzExJGcxJHQxNzc5NjQyMzc2JGo1NCRsMCRoMA..#multi-factor.
+// [Accessed 30 May 2026].
+
 class SettingsActivity : BaseActivity() {
 
     private lateinit var sessionManager:  SessionManager
     private lateinit var savingsGoalRepo: SavingsGoalRepository
     private lateinit var userRepo:        UserRepository
+    private var currencyDialog: AlertDialog? = null
 
     companion object {
         private const val PREFS_SETTINGS = "app_settings"
@@ -37,18 +60,36 @@ class SettingsActivity : BaseActivity() {
         private const val KEY_DARK_MODE  = "dark_mode"
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** Updates the subtitle under "Currency" in the Preferences card. */
+    private fun refreshCurrencyLabel() {
+        val currency = CurrencyManager.getSelectedCurrency(this)
+        findViewById<TextView>(R.id.currencyValue)?.text =
+            "${currency.label} (${currency.code})"
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    override fun onResume() {
+        super.onResume()
+        refreshCurrencyLabel()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_settings)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+        val navBarContainer = findViewById<LinearLayout>(R.id.containerForBottomNavBar)
+
+        ViewCompat.setOnApplyWindowInsetsListener(navBarContainer) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val basePadding = (16 * resources.displayMetrics.density).toInt()
+            v.setPadding(bars.left, bars.top, bars.right, basePadding + bars.bottom)
             insets
         }
 
-        // No AppDatabase needed -- repositories use Firebase directly
         sessionManager  = SessionManager(this)
         savingsGoalRepo = SavingsGoalRepository()
         userRepo        = UserRepository()
@@ -79,7 +120,6 @@ class SettingsActivity : BaseActivity() {
             startActivity(Intent(this, CreateAccActivity::class.java))
         }
 
-        // userId is now a String
         val userId = sessionManager.getUserId()
         loadCompletedGoals(userId)
 
@@ -105,15 +145,6 @@ class SettingsActivity : BaseActivity() {
 
         findViewById<LinearLayout>(R.id.changePasswordRow).setOnClickListener {
             showChangePasswordDialog()
-        }
-
-        val twoFactorSwitch = findViewById<Switch>(R.id.twoFactorSwitch)
-        twoFactorSwitch.isChecked = settingsPrefs.getBoolean(KEY_2FA, false)
-        twoFactorSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean(KEY_2FA, isChecked).apply()
-            val msg = if (isChecked) "Two-factor authentication enabled"
-            else "Two-factor authentication disabled"
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         }
 
         val overspendSwitch        = findViewById<Switch>(R.id.overspendSwitch)
@@ -150,6 +181,7 @@ class SettingsActivity : BaseActivity() {
             Toast.makeText(this, if (isChecked) "Dark mode enabled" else "Dark mode disabled", Toast.LENGTH_SHORT).show()
         }
 
+        // ↓ CHANGED: showCurrencyDialog() now handles rate refresh (see below)
         findViewById<LinearLayout>(R.id.currencyRow).setOnClickListener { showCurrencyDialog() }
         findViewById<LinearLayout>(R.id.languageRow).setOnClickListener {
             Toast.makeText(this, "Language: English (South Africa)", Toast.LENGTH_SHORT).show()
@@ -176,7 +208,6 @@ class SettingsActivity : BaseActivity() {
                 .setPositiveButton("OK", null).show()
         }
 
-        // Sign Out: clears session, signs out of Firebase Auth, returns to login
         findViewById<LinearLayout>(R.id.signOutRow).setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle("Sign Out")
@@ -193,7 +224,6 @@ class SettingsActivity : BaseActivity() {
                 .show()
         }
 
-        // Delete Account: deletes Firestore profile + Firebase Auth account
         findViewById<LinearLayout>(R.id.deleteAccountRow).setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle("Delete Account")
@@ -203,7 +233,6 @@ class SettingsActivity : BaseActivity() {
                     lifecycleScope.launch {
                         if (currentUserId.isNotBlank()) {
                             userRepo.deleteUserById(currentUserId)
-                            // Also delete the Firebase Auth account itself
                             FirebaseAuth.getInstance().currentUser?.delete()
                         }
                         sessionManager.logout()
@@ -263,12 +292,10 @@ class SettingsActivity : BaseActivity() {
             emojiView?.text  = latest.icon
             nameView?.text   = latest.name
             val dateLabel = if (latest.completedDate.isNotBlank()) "Completed ${latest.completedDate}" else "Completed"
-            detailView?.text = "$dateLabel · R ${String.format("%,.2f", latest.targetAmount)}"
+            detailView?.text = "$dateLabel · ${CurrencyManager.format(this, latest.savedAmount)} / ${CurrencyManager.format(this, latest.targetAmount)}"
         }
     }
 
-    // Change password now uses Firebase Auth's updatePassword() method.
-    // The user must have signed in recently for this to work (Firebase requirement).
     private fun showChangePasswordDialog() {
         val layout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
@@ -314,7 +341,6 @@ class SettingsActivity : BaseActivity() {
                         }
                         lifecycleScope.launch {
                             try {
-                                // Re-authenticate first (Firebase requires recent sign-in for password changes)
                                 val credential = com.google.firebase.auth.EmailAuthProvider
                                     .getCredential(email, currentPw)
                                 user.reauthenticate(credential).await()
@@ -335,19 +361,52 @@ class SettingsActivity : BaseActivity() {
             .show()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        currencyDialog?.dismiss()
+        currencyDialog = null
+    }
+
     private fun showCurrencyDialog() {
-        val currencies   = arrayOf("South African Rand (ZAR)", "US Dollar (USD)", "Euro (EUR)", "British Pound (GBP)", "Botswana Pula (BWP)")
+        currencyDialog?.dismiss()
+
+        // Build list items showing symbol + label + code, e.g. "R  South African Rand (ZAR)"
+        val currencies    = CurrencyManager.CURRENCIES
+            .map { "${it.symbol}  ${it.label} (${it.code})" }
+            .toTypedArray()
         val settingsPrefs = getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE)
         val currentIndex  = settingsPrefs.getInt("currency_index", 0)
 
         AlertDialog.Builder(this)
             .setTitle("Select Currency")
             .setSingleChoiceItems(currencies, currentIndex) { dialog, which ->
+                // 1. Persist the new index
                 settingsPrefs.edit().putInt("currency_index", which).apply()
-                Toast.makeText(this, "Currency set to: ${currencies[which]}", Toast.LENGTH_SHORT).show()
+
+                // 2. Invalidate cached rate so the next refresh fetches a fresh
+                //    rate for the newly selected currency
+                settingsPrefs.edit()
+                    .remove("cached_exchange_rate")
+                    .remove("cached_exchange_time")
+                    .apply()
+
+                // 3. Background-fetch the new exchange rate
+                lifecycleScope.launch {
+                    CurrencyManager.refreshRateIfNeeded(this@SettingsActivity)
+                }
+
+                // 4. Update the subtitle label in the Preferences card immediately
+                refreshCurrencyLabel()
+
+                val selected = CurrencyManager.CURRENCIES[which]
+                Toast.makeText(
+                    this,
+                    "Currency changed to ${selected.label} (${selected.symbol})",
+                    Toast.LENGTH_SHORT
+                ).show()
                 dialog.dismiss()
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .also { currencyDialog = it.show() }
     }
 }

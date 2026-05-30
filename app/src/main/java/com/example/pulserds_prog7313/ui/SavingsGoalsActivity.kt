@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.SavingsGoal
 import com.example.pulserds_prog7313.repository.SavingsGoalRepository
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
@@ -34,6 +35,29 @@ import kotlin.math.roundToInt
  * Architecture: MVVM - all data operations go through [SavingsGoalViewModel];
  * the activity only observes LiveData and updates the UI.
  */
+
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[3] Google, "LiveData overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/livedata.
+// [Accessed: 28 Apr. 2026].
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[11] Google, Material Design Components for Android, ver. 1.12.0. [Software]. Google, 2024.
+// Available: https://github.com/material-components/material-components-android.
+//[15] Google, "View Binding," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/view-binding.
+// [Accessed: 28 Apr. 2026].
+//[25] 	F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online].
+// Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase.
+// [Accessed 30 May 2026].
+//[26] 	A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online].
+// Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application.
+// [Accessed 30 May 2026].
+
 class SavingsGoalsActivity : BaseActivity() {
 
     // ViewModel that owns all savings-goal business logic and Room interactions.
@@ -185,12 +209,12 @@ class SavingsGoalsActivity : BaseActivity() {
         }
 
         vm.totalSaved.observe(this) { saved ->
-            overallAmount.text = "R %,.0f".format(saved)
+            overallAmount.text = CurrencyManager.formatRounded(this, saved)
         }
 
         vm.totalTarget.observe(this) { target ->
             val saved = vm.totalSaved.value ?: 0.0
-            overallTarget.text = "of R %,.0f total target".format(target)
+            overallTarget.text = "of ${CurrencyManager.formatRounded(this, target)} total target"
             // Clamp to 0-100 so the ProgressBar never overflows.
             val pct = if (target > 0) ((saved / target) * 100).roundToInt().coerceIn(0, 100) else 0
             overallProgressBar.progress = pct
@@ -257,7 +281,7 @@ class SavingsGoalsActivity : BaseActivity() {
 
         // Sum savedAmount for active goals whose createdAt falls in the current month.
         val thisMonthSaved = active.filter { it.createdAt >= thisMonthMs }.sumOf { it.savedAmount }
-        statThisMonth.text = "R %,.0f".format(thisMonthSaved)
+        statThisMonth.text = CurrencyManager.formatRounded(this, thisMonthSaved)
 
         // Active goals section
         activeGoalsContainer.removeAllViews() // Clear stale cards before re-inflating.
@@ -312,11 +336,11 @@ class SavingsGoalsActivity : BaseActivity() {
         card.findViewById<TextView>(R.id.goalCardDate).text  =
             if (goal.targetDate.isNotBlank()) "Target: ${goal.targetDate}" else "No target date"
         card.findViewById<TextView>(R.id.goalCardSaved).text =
-            "R ${"%.2f".format(goal.savedAmount)} saved"
+            "${CurrencyManager.format(this, goal.savedAmount)} saved"
 
         // Progress summary line - shows percentage and remaining amount in the accent colour.
         card.findViewById<TextView>(R.id.goalCardProgress).also {
-            it.text = "$pct%  •  R ${"%.2f".format(abs(left))} to go"
+            it.text = "$pct%  •  ${CurrencyManager.format(this, abs(left))} to go"
             it.setTextColor(tintColor)
         }
 

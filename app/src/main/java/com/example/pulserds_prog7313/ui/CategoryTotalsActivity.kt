@@ -21,6 +21,7 @@ import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
 import com.example.pulserds_prog7313.ui.adapters.CategoryTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.SpendingRowAdapter
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
 import com.example.pulserds_prog7313.viewmodel.ExpenseEntryViewModel
@@ -45,6 +46,27 @@ import java.util.*
  *   - CategoryViewModel     -> all categories for the logged-in user
  *   - ExpenseEntryViewModel -> period-filtered entries, income total, expense total
  */
+
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[3] Google, "LiveData overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/livedata.
+// [Accessed: 28 Apr. 2026].
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[15] Google, "View Binding," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/view-binding.
+// [Accessed: 28 Apr. 2026].
+//[25] 	F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online].
+// Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase.
+// [Accessed 30 May 2026].
+//[26] 	A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online].
+// Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application.
+// [Accessed 30 May 2026].
+
 class CategoryTotalsActivity : BaseActivity() {
 
     // -- ViewModels -----------------------------------------------------------
@@ -106,13 +128,13 @@ class CategoryTotalsActivity : BaseActivity() {
     /** Updates the income total in the hero card whenever the LiveData emits. */
     private val incomeObserver = Observer<Double> { income ->
         val value = income ?: 0.0
-        totalIncomeView.text = "R ${"%,.2f".format(value)}"
+        totalIncomeView.text = CurrencyManager.format(this, value)
     }
 
     /** Updates the expense total in the hero card (stored as negatives, displayed positive). */
     private val expensesObserver = Observer<Double> { expenses ->
         val value = kotlin.math.abs(expenses ?: 0.0)
-        totalExpensesView.text = "R ${"%,.2f".format(value)}"
+        totalExpensesView.text = CurrencyManager.format(this, value)
     }
 
     // -------------------------------------------------------------------------

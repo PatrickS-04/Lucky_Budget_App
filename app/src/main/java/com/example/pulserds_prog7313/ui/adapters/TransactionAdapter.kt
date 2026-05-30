@@ -16,6 +16,7 @@ import com.example.pulserds_prog7313.data.BankAccount
 import com.example.pulserds_prog7313.data.Category
 import com.example.pulserds_prog7313.data.ExpenseEntry
 import kotlin.math.abs
+import com.example.pulserds_prog7313.utils.CurrencyManager
 
 /**
  * RecyclerView adapter that renders [ExpenseEntry] rows.
@@ -81,7 +82,7 @@ class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHo
 
             // Amount -- green for income, red for expense
             val isIncome = entry.amount >= 0
-            val formatted = "R %,.2f".format(abs(entry.amount))
+            val formatted = CurrencyManager.format(itemView.context, abs(entry.amount))
             amount.text = if (isIncome) "+ $formatted" else "- $formatted"
             amount.setTextColor(
                 if (isIncome) Color.parseColor("#4ADE80") else Color.parseColor("#F87171")

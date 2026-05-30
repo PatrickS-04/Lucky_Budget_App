@@ -3,6 +3,9 @@ package com.example.pulserds_prog7313.ui
 import android.app.DatePickerDialog
 import android.graphics.Color
 import android.os.Bundle
+import android.widget.LinearLayout
+import kotlin.jvm.java
+import android.content.Intent
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -23,11 +26,13 @@ import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.ui.adapters.AccountSpendingAdapter
 import com.example.pulserds_prog7313.ui.adapters.CategoryTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.SpendingRowAdapter
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
 import com.example.pulserds_prog7313.viewmodel.ExpenseEntryViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
+import com.example.pulserds_prog7313.utils.AnalyticsPdfExporter
 import com.google.android.material.button.MaterialButton
 import java.text.SimpleDateFormat
 import java.util.*
@@ -55,6 +60,32 @@ import java.util.*
  *   - ExpenseEntryViewModel    -> period-filtered entries, income/expense totals
  *   - BankAccountViewModel     -> bank accounts for per-account spending cross-ref
  */
+
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[3] Google, "LiveData overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/livedata.
+// [Accessed: 28 Apr. 2026].
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[11] Google, Material Design Components for Android, ver. 1.12.0. [Software]. Google, 2024.
+// Available: https://github.com/material-components/material-components-android.
+//[15] Google, "View Binding," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/view-binding.
+// [Accessed: 28 Apr. 2026].
+//[20] Google, "Canvas and drawables," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/develop/ui/views/graphics/drawables.
+// [Accessed: 28 Apr. 2026].
+//[25] 	F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online].
+// Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase.
+// [Accessed 30 May 2026].
+//[26] 	A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online].
+// Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application.
+// [Accessed 30 May 2026].
+
 class AnalyticsActivity : BaseActivity() {
 
     // -- ViewModels -----------------------------------------------------------
@@ -104,6 +135,14 @@ class AnalyticsActivity : BaseActivity() {
     /** Formatter used to convert period boundaries into DB query strings. */
     private val dbDateFmt = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
+    // -- Spending goal chart views -------------------------------------------
+    private lateinit var spendingGoalChart: com.example.pulserds_prog7313.SpendingGoalChartView
+    private lateinit var spendingGoalStatus: TextView
+    private lateinit var spendingGoalSelectorLabel: TextView
+
+    /** ViewModel for loading savings goals (which carry min/maxSpendingGoal). */
+    private lateinit var savingsGoalViewModel: com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel
+
     // -- Cached income/expense values -----------------------------------------
     // Both values are kept so the hero balance can be recomputed from either
     // observer regardless of which one fires last.
@@ -127,7 +166,7 @@ class AnalyticsActivity : BaseActivity() {
     /** Updates the income label and triggers a hero balance recalculation. */
     private val incomeObserver = Observer<Double> { income ->
         lastIncome = income ?: 0.0
-        totalIncomeView.text = "R ${ "%,.2f".format(lastIncome) }"
+        totalIncomeView.text = CurrencyManager.format(this, lastIncome)
         updateHeroBalance()
     }
 
@@ -137,7 +176,7 @@ class AnalyticsActivity : BaseActivity() {
      */
     private val expensesObserver = Observer<Double> { expenses ->
         lastExpenses = kotlin.math.abs(expenses ?: 0.0)
-        totalExpensesView.text = "R ${ "%,.2f".format(lastExpenses) }"
+        totalExpensesView.text = CurrencyManager.format(this, lastExpenses)
         updateHeroBalance()
     }
 
@@ -152,9 +191,12 @@ class AnalyticsActivity : BaseActivity() {
 
         // Adjust root layout padding so content is not obscured by system bars
         // (status bar, navigation bar) on edge-to-edge displays.
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+        val navBarContainer = findViewById<LinearLayout>(R.id.containerForBottomNavBar)
+
+        ViewCompat.setOnApplyWindowInsetsListener(navBarContainer) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val basePadding = (16 * resources.displayMetrics.density).toInt()
+            v.setPadding(bars.left, bars.top, bars.right, basePadding + bars.bottom)
             insets
         }
 
@@ -169,9 +211,8 @@ class AnalyticsActivity : BaseActivity() {
         setupPeriodChips()
         selectPeriod(Period.MONTH) // Default to Month view on first launch.
 
-        // Export button - feature placeholder; shows a coming-soon toast for now.
         findViewById<MaterialButton>(R.id.exportButton)?.setOnClickListener {
-            Toast.makeText(this, "Export coming soon", Toast.LENGTH_SHORT).show()
+            exportAnalyticsPdf()
         }
 
         // "See all categories" link navigates to the dedicated CategoryTotalsActivity.
@@ -203,6 +244,9 @@ class AnalyticsActivity : BaseActivity() {
         legendIncomeValue   = findViewById(R.id.legendIncomeValue)
         legendExpensesValue = findViewById(R.id.legendExpensesValue)
         legendSavedValue    = findViewById(R.id.legendSavedValue)
+        spendingGoalChart         = findViewById(R.id.spendingGoalChart)
+        spendingGoalStatus        = findViewById(R.id.spendingGoalStatus)
+        spendingGoalSelectorLabel = findViewById(R.id.spendingGoalSelectorLabel)
     }
 
     // -------------------------------------------------------------------------
@@ -373,6 +417,10 @@ class AnalyticsActivity : BaseActivity() {
 
         val userId = SessionManager(this).getUserId()
         if (userId.isNotBlank()) bankAccountViewModel.init(userId)
+
+        savingsGoalViewModel = ViewModelProvider(
+            this, ViewModelFactory { com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel(com.example.pulserds_prog7313.repository.SavingsGoalRepository()) }
+        )[com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel::class.java]
     }
 
     // -------------------------------------------------------------------------
@@ -446,6 +494,9 @@ class AnalyticsActivity : BaseActivity() {
         expensesLiveData = expenseViewModel.getExpensesLive(userId, startStr, endStr).also {
             it.observe(this, expensesObserver)
         }
+
+        // Spending-goals chart always shows the past calendar month
+        loadSpendingGoalChart(userId)
     }
 
     /**
@@ -537,11 +588,11 @@ class AnalyticsActivity : BaseActivity() {
     private fun updateHeroBalance() {
         // Saved = income minus expenses, floored at zero (cannot save a negative amount).
         val saved = (lastIncome - lastExpenses).coerceAtLeast(0.0)
-        heroBalance.text = "R ${ "%,.2f".format(saved) }"
+        heroBalance.text = CurrencyManager.format(this, saved)
 
-        legendIncomeValue.text   = "R ${ "%,.2f".format(lastIncome) }"
-        legendExpensesValue.text = "R ${ "%,.2f".format(lastExpenses) }"
-        legendSavedValue.text    = "R ${ "%,.2f".format(saved) }"
+        legendIncomeValue.text = CurrencyManager.format(this, lastIncome)
+        legendExpensesValue.text = CurrencyManager.format(this, lastExpenses)
+        legendSavedValue.text = CurrencyManager.format(this, saved)
 
         if (lastIncome > 0) {
             // Compute saved and expense percentages, clamped to [0, 100] to avoid
@@ -568,5 +619,121 @@ class AnalyticsActivity : BaseActivity() {
             summaryPieChart.setSegments(emptyList())
             summaryPieChart.setCenterLabel("-", "No data")
         }
+    }
+
+    private fun launchAiInsights() {
+        val intent = Intent(this, SpendingInsightActivity::class.java).apply {
+            putExtra("periodLabel", periodLabel)
+        }
+        startActivity(intent)
+    }
+
+    private fun exportAnalyticsPdf() {
+        val accounts       = bankAccountViewModel.accounts.value ?: emptyList()
+        val accountSpend   = expenseViewModel.accountSpending.value ?: emptyList()
+        val shareIntent    = AnalyticsPdfExporter.export(
+            context        = this,
+            periodLabel    = periodLabel,
+            income         = lastIncome,
+            expenses       = lastExpenses,
+            categories     = cachedCategories,
+            totals         = cachedTotals,
+            accounts       = accounts,
+            accountSpending = accountSpend
+        )
+        startActivity(Intent.createChooser(shareIntent, "Share Analytics Report"))
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Spending Goal Chart
+    // -------------------------------------------------------------------------
+
+    /**
+     * Loads per-day expense totals for the current calendar month and the
+     * aggregate min/max spending goals from SavingsGoals, then renders
+     * SpendingGoalChartView with a tinted goal band and a status summary.
+     *
+     * The chart is always month-scoped as required by the PoE spec.
+     */
+    private fun loadSpendingGoalChart(userId: String) {
+        if (userId.isBlank()) return
+
+        val cal      = java.util.Calendar.getInstance()
+        val lastDay  = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        val month    = cal.get(java.util.Calendar.MONTH) + 1
+        val year     = cal.get(java.util.Calendar.YEAR)
+        val startStr = "01/%02d/%d".format(month, year)
+        val endStr   = "%02d/%02d/%d".format(lastDay, month, year)
+
+        // LiveData stream: expense entries filtered to this calendar month
+        expenseViewModel.getEntriesForPeriodLive(userId, startStr, endStr)
+            .observe(this) { entries ->
+
+                // Bucket absolute expense amounts by day-of-month (0-indexed)
+                val dailyTotals = DoubleArray(lastDay) { 0.0 }
+                val fmt = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+                entries?.forEach { entry ->
+                    if (entry.amount < 0) {
+                        try {
+                            val d    = fmt.parse(entry.date) ?: return@forEach
+                            val cal2 = java.util.Calendar.getInstance().also { c -> c.time = d }
+                            val day  = cal2.get(java.util.Calendar.DAY_OF_MONTH) - 1
+                            if (day in 0 until lastDay)
+                                dailyTotals[day] += kotlin.math.abs(entry.amount)
+                        } catch (e: Exception) { /* skip malformed dates */ }
+                    }
+                }
+
+                // LiveData stream: savings goals that carry a min/max spending band
+                savingsGoalViewModel.getAllGoalsLive(userId)
+                    .observe(this) { goals ->
+
+                        val withBand = goals?.filter {
+                            it.minSpendingGoal > 0 || it.maxSpendingGoal > 0
+                        } ?: emptyList()
+
+                        // Convert monthly totals to per-day averages for chart lines
+                        val sumMin   = withBand.sumOf { it.minSpendingGoal }
+                        val sumMax   = withBand.sumOf { it.maxSpendingGoal }
+                        val dailyMin = if (lastDay > 0) sumMin / lastDay else 0.0
+                        val dailyMax = if (lastDay > 0) sumMax / lastDay else 0.0
+
+                        spendingGoalChart.setData(
+                            dailyAmounts = dailyTotals.toList(),
+                            minGoal      = dailyMin,
+                            maxGoal      = if (dailyMax > dailyMin) dailyMax else 0.0
+                        )
+
+                        // Goal selector label — lists the goals that have a band set
+                        val names = withBand.joinToString(", ") { it.name }
+                        spendingGoalSelectorLabel.text =
+                            if (names.isNotBlank()) "Goals: $names"
+                            else "Set min/max goals in a Savings Goal to see your band"
+
+                        // Status summary (days elapsed so far this month)
+                        val todayDay   = java.util.Calendar.getInstance()
+                            .get(java.util.Calendar.DAY_OF_MONTH)
+                        val elapsed    = minOf(todayDay, lastDay)
+                        val activeDays = dailyTotals.take(elapsed)
+
+                        spendingGoalStatus.text = when {
+                            activeDays.isEmpty() || activeDays.sum() == 0.0 ->
+                                "No spending recorded this month"
+                            dailyMax <= 0 ->
+                                "${CurrencyManager.format(this@AnalyticsActivity, activeDays.sum())} spent — add min/max goals to see your band"
+                            else -> {
+                                val within  = activeDays.count { it in dailyMin..dailyMax }
+                                val overMax = activeDays.count { it > dailyMax }
+                                val pct     = (within.toDouble() / elapsed * 100).toInt()
+                                when {
+                                    pct >= 80 -> "On track! $pct% of days within your spending goal band"
+                                    overMax > elapsed / 2 -> "$overMax day(s) over budget — consider cutting back"
+                                    else -> "$within/$elapsed days within goal band ($pct%)"
+                                }
+                            }
+                        }
+                    }
+            }
     }
 }

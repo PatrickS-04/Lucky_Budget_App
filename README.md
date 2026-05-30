@@ -289,6 +289,46 @@ Camera hardware is declared as **not required** (`android:required="false"`), so
 [23] Google, *AndroidX Test Espresso Core*, ver. 3.6.1. [Software].
      Android Developers, 2024.
      Available: https://developer.android.com/training/testing/espresso.
+  
+[24] Firebase, "Authenticate with Google on Android," Google, 27 May 2026. [Online]. 
+     Available: https://firebase.google.com/docs/auth/android/google-signin. 
+     [Accessed 30 May 2026].
+       
+[25] F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online]. 
+     Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase. 
+     [Accessed 30 May 2026].
+       
+[26] A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online]. 
+     Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application. 
+     [Accessed 30 May 2026].
+       
+[27] Firebase, "Firebase Authentication," Google, 27 May 2026. [Online]. 
+     Available: https://firebase.google.com/docs/auth?authuser=0&_gl=1*10potxh*_ga*MTk4MDgwMzQ0MC4xNzcxODc3ODAz*_ga_CW55HF8NVT*czE3Nzk2NDE1OTIkbzExJGcxJHQxNzc5NjQyMzc2JGo1NCRsMCRoMA..#multi-factor. 
+     [Accessed 30 May 2026].
+       
+[28] Firebase, "Add multi-factor authentication to your Android app," Google, 27 May 2026. [Online]. 
+     Available: https://firebase.google.com/docs/auth/android/multi-factor. 
+     [Accessed 30 May 2026].
+       
+[29] R. and M. , "Is it possible to convert text into PDF in Android?," 2026 Stack Exchange Inc, 20 April 2011. [Online]. 
+     Available: https://stackoverflow.com/questions/5726411/is-it-possible-to-convert-text-into-pdf-in-android. 
+     [Accessed 30 May 2026].
+       
+[30] A. Van Gasse, "Generate PDF from Android," Stack Exchange Inc, 24 November 2016. [Online]. 
+     Available: https://stackoverflow.com/questions/40379451/generate-pdf-from-android. 
+     [Accessed 30 May 2026].
+       
+[31] B. Lowagie, "How to create a pdf programmatically from Android," 2026 Stack Exchange Inc, 16 November 2016. [Online]. 
+     Available: https://stackoverflow.com/questions/40423996/how-to-create-a-pdf-programmatically-from-android?rq=3. 
+     [Accessed 30 May 2026].
+       
+[32] T. C. City, Writer, Create PDF from any XML Layout/View in Android Studio - Step by Step Tutorial. [Performance]. 
+     YouTube, 2023. 
+       
+[33] S. Visweswaran, "Create PDF from layout XML in Android Studio using PDFDocument class," Medium, 27 August 2021. [Online]. 
+     Available: https://medium.com/@strawberryinc0531/convert-xml-to-pdf-in-android-studio-using-pdfdocument-class-757dee166d50. 
+     [Accessed 30 May 2026].
+
  
 ## DECLARATION OF AI USAGE:
 
