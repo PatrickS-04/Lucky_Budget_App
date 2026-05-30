@@ -35,6 +35,28 @@ import java.util.Calendar
 import kotlin.math.abs
 import com.example.pulserds_prog7313.utils.CurrencyManager
 
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[3] Google, "LiveData overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/livedata.
+// [Accessed: 28 Apr. 2026].
+//[4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024. [Online].
+// Available: https://kotlinlang.org/docs/coroutines-guide.html.
+// [Accessed: 28 Apr. 2026].
+//[8] JetBrains, kotlinx-coroutines-android, ver. 1.8.1. [Software]. JetBrains, 2024.
+// Available: https://github.com/Kotlin/kotlinx.coroutines.
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[25] 	F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online].
+// Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase.
+// [Accessed 30 May 2026].
+//[26] 	A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online].
+// Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application.
+// [Accessed 30 May 2026].
+
 class DashBoardActivity : BaseActivity() {
 
     private lateinit var categoryVM:    CategoryViewModel

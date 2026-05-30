@@ -34,6 +34,29 @@ import kotlin.math.roundToInt
  * Architecture: MVVM - all data operations go through [SavingsGoalViewModel];
  * the activity only observes LiveData and updates the UI.
  */
+
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[3] Google, "LiveData overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/livedata.
+// [Accessed: 28 Apr. 2026].
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[11] Google, Material Design Components for Android, ver. 1.12.0. [Software]. Google, 2024.
+// Available: https://github.com/material-components/material-components-android.
+//[15] Google, "View Binding," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/view-binding.
+// [Accessed: 28 Apr. 2026].
+//[25] 	F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online].
+// Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase.
+// [Accessed 30 May 2026].
+//[26] 	A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online].
+// Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application.
+// [Accessed 30 May 2026].
+
 class SavingsGoalsActivity : BaseActivity() {
 
     // ViewModel that owns all savings-goal business logic and Room interactions.

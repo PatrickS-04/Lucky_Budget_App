@@ -7,6 +7,11 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.pulserds_prog7313.R
 
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+
 class AddSubscriptionActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
