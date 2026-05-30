@@ -36,7 +36,7 @@ import kotlinx.coroutines.tasks.await
 // Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
 //[12] Google, AndroidX ConstraintLayout, ver. 2.2.0. [Software]. Android Developers, 2024.
 // Available: https://developer.android.com/jetpack/androidx/releases/constraintlayout.
-//[18] Google, "SharedPreferences — save key-value data," Android Developers, 2024. [Online].
+//[18] Google, "SharedPreferences - save key-value data," Android Developers, 2024. [Online].
 // Available: https://developer.android.com/training/data-storage/shared-preferences.
 // [Accessed: 28 Apr. 2026].
 //[27] 	Firebase, "Firebase Authentication," Google, 27 May 2026. [Online].
@@ -147,21 +147,6 @@ class SettingsActivity : BaseActivity() {
             showChangePasswordDialog()
         }
 
-<<<<<<< Updated upstream
-=======
-        //[28] 	Firebase, "Add multi-factor authentication to your Android app," Google, 27 May 2026. [Online].
-        // Available: https://firebase.google.com/docs/auth/android/multi-factor.
-        // [Accessed 30 May 2026].
-        val twoFactorSwitch = findViewById<Switch>(R.id.twoFactorSwitch)
-        twoFactorSwitch.isChecked = settingsPrefs.getBoolean(KEY_2FA, false)
-        twoFactorSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean(KEY_2FA, isChecked).apply()
-            val msg = if (isChecked) "Two-factor authentication enabled"
-            else "Two-factor authentication disabled"
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-        }
-
->>>>>>> Stashed changes
         val overspendSwitch        = findViewById<Switch>(R.id.overspendSwitch)
         val subReminderSwitch      = findViewById<Switch>(R.id.subReminderSwitch)
         val transactionAlertSwitch = findViewById<Switch>(R.id.transactionAlertSwitch)
