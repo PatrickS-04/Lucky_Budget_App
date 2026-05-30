@@ -22,6 +22,27 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+//[2] Google, "ViewModel overview," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
+// [Accessed: 28 Apr. 2026].
+//[4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024. [Online].
+// Available: https://kotlinlang.org/docs/coroutines-guide.html.
+// [Accessed: 28 Apr. 2026].
+//[8] JetBrains, kotlinx-coroutines-android, ver. 1.8.1. [Software]. JetBrains, 2024.
+// Available: https://github.com/Kotlin/kotlinx.coroutines.
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[12] Google, AndroidX ConstraintLayout, ver. 2.2.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/constraintlayout.
+//[18] Google, "SharedPreferences — save key-value data," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/training/data-storage/shared-preferences.
+// [Accessed: 28 Apr. 2026].
+//[27] 	Firebase, "Firebase Authentication," Google, 27 May 2026. [Online].
+// Available: https://firebase.google.com/docs/auth?authuser=0&_gl=1*10potxh*_ga*MTk4MDgwMzQ0MC4xNzcxODc3ODAz*_ga_CW55HF8NVT*czE3Nzk2NDE1OTIkbzExJGcxJHQxNzc5NjQyMzc2JGo1NCRsMCRoMA..#multi-factor.
+// [Accessed 30 May 2026].
+
 class SettingsActivity : BaseActivity() {
 
     private lateinit var sessionManager:  SessionManager
@@ -126,6 +147,21 @@ class SettingsActivity : BaseActivity() {
             showChangePasswordDialog()
         }
 
+<<<<<<< Updated upstream
+=======
+        //[28] 	Firebase, "Add multi-factor authentication to your Android app," Google, 27 May 2026. [Online].
+        // Available: https://firebase.google.com/docs/auth/android/multi-factor.
+        // [Accessed 30 May 2026].
+        val twoFactorSwitch = findViewById<Switch>(R.id.twoFactorSwitch)
+        twoFactorSwitch.isChecked = settingsPrefs.getBoolean(KEY_2FA, false)
+        twoFactorSwitch.setOnCheckedChangeListener { _, isChecked ->
+            settingsPrefs.edit().putBoolean(KEY_2FA, isChecked).apply()
+            val msg = if (isChecked) "Two-factor authentication enabled"
+            else "Two-factor authentication disabled"
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        }
+
+>>>>>>> Stashed changes
         val overspendSwitch        = findViewById<Switch>(R.id.overspendSwitch)
         val subReminderSwitch      = findViewById<Switch>(R.id.subReminderSwitch)
         val transactionAlertSwitch = findViewById<Switch>(R.id.transactionAlertSwitch)

@@ -12,6 +12,11 @@ import com.example.pulserds_prog7313.R
  * Each layout must have these IDs on the five nav LinearLayouts:
  *   navHome, navAccounts, navTransactions, navAnalytics, navSettings
  */
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+
 abstract class BaseActivity : AppCompatActivity() {
 
     /**

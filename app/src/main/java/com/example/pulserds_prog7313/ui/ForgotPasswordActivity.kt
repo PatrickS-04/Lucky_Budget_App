@@ -27,6 +27,24 @@ import kotlinx.coroutines.tasks.await
 //
 // The Step 2 views (new password, confirm password) are kept in the layout but
 // hidden -- Firebase handles that part entirely outside the app.
+//[4] JetBrains, "Coroutines guide," Kotlin Documentation, 2024. [Online].
+// Available: https://kotlinlang.org/docs/coroutines-guide.html.
+// [Accessed: 28 Apr. 2026].
+//[8] JetBrains, kotlinx-coroutines-android, ver. 1.8.1. [Software]. JetBrains, 2024.
+// Available: https://github.com/Kotlin/kotlinx.coroutines.
+//[9] Google, AndroidX Core KTX, ver. 1.13.1. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/core.
+//[10] Google, AndroidX AppCompat, ver. 1.7.0. [Software]. Android Developers, 2024.
+// Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
+//[11] Google, Material Design Components for Android, ver. 1.12.0. [Software]. Google, 2024.
+// Available: https://github.com/material-components/material-components-android.
+//[15] Google, "View Binding," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/topic/libraries/view-binding.
+// [Accessed: 28 Apr. 2026].
+//[27] 	Firebase, "Firebase Authentication," Google, 27 May 2026. [Online].
+// Available: https://firebase.google.com/docs/auth?authuser=0&_gl=1*10potxh*_ga*MTk4MDgwMzQ0MC4xNzcxODc3ODAz*_ga_CW55HF8NVT*czE3Nzk2NDE1OTIkbzExJGcxJHQxNzc5NjQyMzc2JGo1NCRsMCRoMA..#multi-factor.
+// [Accessed 30 May 2026].
+
 class ForgotPasswordActivity : AppCompatActivity() {
 
     private lateinit var backArrow:       TextView
@@ -126,6 +144,9 @@ class ForgotPasswordActivity : AppCompatActivity() {
                 // Firebase Auth sends a password reset email to the given address.
                 // If no account exists for that email, Firebase still returns success
                 // (by design, to avoid revealing whether an account exists).
+                //[28] 	Firebase, "Add multi-factor authentication to your Android app," Google, 27 May 2026. [Online].
+                // Available: https://firebase.google.com/docs/auth/android/multi-factor.
+                // [Accessed 30 May 2026].
                 FirebaseAuth.getInstance().sendPasswordResetEmail(email).await()
 
                 Toast.makeText(

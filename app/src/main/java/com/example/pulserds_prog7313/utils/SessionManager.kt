@@ -5,6 +5,12 @@ import android.content.SharedPreferences
 
 // SharedPreferences used to persist login session between app launches.
 // userId is now a String (Firebase Auth UID) instead of an Int.
+//[18] Google, "SharedPreferences — save key-value data," Android Developers, 2024. [Online].
+// Available: https://developer.android.com/training/data-storage/shared-preferences.
+// [Accessed: 28 Apr. 2026].
+//[26] 	Firebase, "Firebase Authentication," Google, 27 May 2026. [Online].
+// Available: https://firebase.google.com/docs/auth?authuser=0&_gl=1*10potxh*_ga*MTk4MDgwMzQ0MC4xNzcxODc3ODAz*_ga_CW55HF8NVT*czE3Nzk2NDE1OTIkbzExJGcxJHQxNzc5NjQyMzc2JGo1NCRsMCRoMA..#multi-factor.
+// [Accessed 30 May 2026].
 class SessionManager(context: Context) {
 
     private val prefs: SharedPreferences =
