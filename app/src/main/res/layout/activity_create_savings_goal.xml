@@ -406,7 +406,7 @@
                     app:boxStrokeColor="#4ADE80"
                     app:boxStrokeWidth="1.5dp"
                     app:hintEnabled="false"
-                    app:prefixText="R "
+                    app:prefixText="@string/currency_prefix"
                     app:prefixTextColor="#7A99B0">
 
                     <com.google.android.material.textfield.TextInputEditText
@@ -448,7 +448,7 @@
                     app:boxStrokeColor="#4ADE80"
                     app:boxStrokeWidth="1.5dp"
                     app:hintEnabled="false"
-                    app:prefixText="R "
+                    app:prefixText="@string/currency_prefix"
                     app:prefixTextColor="#7A99B0">
 
                     <com.google.android.material.textfield.TextInputEditText
@@ -668,7 +668,7 @@
                         app:boxStrokeColor="#4ADE80"
                         app:boxStrokeWidth="1.5dp"
                         app:hintEnabled="false"
-                        app:prefixText="R "
+                        app:prefixText="@string/currency_prefix"
                         app:prefixTextColor="#7A99B0">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -802,7 +802,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"
-                    android:hint="Min monthly spending (R)"
+                    android:hint="@string/hint_min_monthly_spending"
                     app:boxStrokeColor="#2EC4B6"
                     app:hintTextColor="#6ADB8A">
 
@@ -819,7 +819,7 @@
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Max monthly spending (R)"
+                    android:hint="@string/hint_max_monthly_spending"
                     app:boxStrokeColor="#F87171"
                     app:hintTextColor="#DB8A8A">
 
@@ -911,7 +911,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
-                            android:text="Target: R 0.00  •  By: —"
+                            android:text="@string/savings_target_preview"
                             android:textColor="#4ADE80"
                             android:textSize="12sp" />
 
@@ -938,7 +938,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="0% saved  •  R 0.00 initial deposit"
+                    android:text="@string/savings_progress_preview"
                     android:textColor="#4ADE80"
                     android:textSize="12sp"
                     app:layout_constraintBottom_toBottomOf="parent"

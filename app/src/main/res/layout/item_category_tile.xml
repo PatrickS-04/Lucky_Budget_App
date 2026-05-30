@@ -45,7 +45,7 @@
             android:id="@+id/tileAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="R 0"
+            android:text="@string/amount_zero_short"
             android:textColor="#6ADB8A"
             android:textSize="13sp"
             android:textStyle="bold" />

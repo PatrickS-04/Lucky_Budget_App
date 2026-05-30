@@ -123,7 +123,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:fontFamily="sans-serif-medium"
-                    android:text="R 647"
+                    tools:text="R 647"
+                    android:text="@string/amount_default"
                     android:textColor="#FFFFFF"
                     android:textSize="38sp"
                     android:textStyle="bold"
@@ -135,7 +136,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="R 7,764 / year across 4 subscriptions"
+                    tools:text="R 7,764 / year across 4 subscriptions"
+                    android:text=""
                     android:textColor="#7A99B0"
                     android:textSize="13sp"
                     app:layout_constraintStart_toStartOf="parent"
@@ -520,7 +522,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:gravity="end"
-                            android:text="R 199/mo"
+                            tools:text="R 199/mo"
+                            android:text="@string/amount_default_monthly"
                             android:textColor="#F87171"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -636,7 +639,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:gravity="end"
-                            android:text="R 99/mo"
+                            tools:text="R 99/mo"
+                            android:text="@string/amount_default_monthly"
                             android:textColor="#F87171"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -752,7 +756,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:gravity="end"
-                            android:text="R 49/mo"
+                            tools:text="R 49/mo"
+                            android:text="@string/amount_default_monthly"
                             android:textColor="#F87171"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -893,7 +898,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text="R 300/mo"
+                        tools:text="R 300/mo"
+                        android:text="@string/amount_default_monthly"
                         android:textColor="#7A99B0"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -981,7 +987,8 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="R 298"
+                            tools:text="R 298"
+                            android:text="@string/amount_default"
                             android:textColor="#FFFFFF"
                             android:textSize="13sp"
                             android:textStyle="bold" />
@@ -1037,7 +1044,8 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="R 49"
+                            tools:text="R 49"
+                            android:text="@string/amount_default"
                             android:textColor="#FFFFFF"
                             android:textSize="13sp"
                             android:textStyle="bold" />
@@ -1092,7 +1100,8 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="R 300"
+                            tools:text="R 300"
+                            android:text="@string/amount_default"
                             android:textColor="#7A99B0"
                             android:textSize="13sp"
                             android:textStyle="bold" />
