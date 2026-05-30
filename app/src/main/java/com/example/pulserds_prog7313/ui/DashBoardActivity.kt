@@ -262,7 +262,7 @@ class DashBoardActivity : BaseActivity() {
                     })
                     val lbl = when(sub.billingCycle) { "Weekly"->"wk"; "Yearly"->"yr"; else->"mo" }
                     val amt = android.widget.TextView(this).apply {
-                        text = "R ${"%.2f".format(sub.amount)}/$lbl"
+                        text = "${CurrencyManager.format(this@DashBoardActivity, sub.amount)}/$lbl"
                         setTextColor(0xFFF87171.toInt()); textSize = 13f
                         setTypeface(null, android.graphics.Typeface.BOLD)
                     }

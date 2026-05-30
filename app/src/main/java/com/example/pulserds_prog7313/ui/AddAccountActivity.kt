@@ -10,6 +10,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.repository.BankAccountRepository
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
@@ -191,7 +192,7 @@ class AddAccountActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {
                 val amount = s?.toString()?.toDoubleOrNull() ?: 0.0
-                previewBalance.text = "R %.2f".format(amount)
+                previewBalance.text = CurrencyManager.format(this@AddAccountActivity, amount)
             }
             override fun afterTextChanged(s: android.text.Editable?) {}
         })

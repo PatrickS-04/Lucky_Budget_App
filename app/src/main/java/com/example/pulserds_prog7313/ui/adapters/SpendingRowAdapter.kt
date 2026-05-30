@@ -69,7 +69,7 @@ class SpendingRowAdapter : ListAdapter<Category, SpendingRowAdapter.RowViewHolde
         fun bind(category: Category, spent: Double, pct: Int, tint: String) {
             icon.text = emojiForCategory(category.name)
             name.text = category.name
-            amount.text = "R ${ "%,.0f".format(spent) }"
+            amount.text = CurrencyManager.formatRounded(itemView.context, spent)
             percent.text = "$pct%"
             // Colour the percentage label red if the category is over-budget (>25 % of total)
             percent.setTextColor(if (pct > 25) Color.parseColor("#CC4400") else Color.parseColor("#7A6A50"))

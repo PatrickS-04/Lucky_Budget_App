@@ -26,6 +26,7 @@ import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.ui.adapters.AccountSpendingAdapter
 import com.example.pulserds_prog7313.ui.adapters.CategoryTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.SpendingRowAdapter
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
@@ -139,7 +140,7 @@ class AnalyticsActivity : BaseActivity() {
     /** Updates the income label and triggers a hero balance recalculation. */
     private val incomeObserver = Observer<Double> { income ->
         lastIncome = income ?: 0.0
-        totalIncomeView.text = "R ${ "%,.2f".format(lastIncome) }"
+        totalIncomeView.text = CurrencyManager.format(this, lastIncome)
         updateHeroBalance()
     }
 
@@ -149,7 +150,7 @@ class AnalyticsActivity : BaseActivity() {
      */
     private val expensesObserver = Observer<Double> { expenses ->
         lastExpenses = kotlin.math.abs(expenses ?: 0.0)
-        totalExpensesView.text = "R ${ "%,.2f".format(lastExpenses) }"
+        totalExpensesView.text = CurrencyManager.format(this, lastExpenses)
         updateHeroBalance()
     }
 
@@ -561,11 +562,11 @@ class AnalyticsActivity : BaseActivity() {
     private fun updateHeroBalance() {
         // Saved = income minus expenses, floored at zero (cannot save a negative amount).
         val saved = (lastIncome - lastExpenses).coerceAtLeast(0.0)
-        heroBalance.text = "R ${ "%,.2f".format(saved) }"
+        heroBalance.text = CurrencyManager.format(this, saved)
 
-        legendIncomeValue.text   = "R ${ "%,.2f".format(lastIncome) }"
-        legendExpensesValue.text = "R ${ "%,.2f".format(lastExpenses) }"
-        legendSavedValue.text    = "R ${ "%,.2f".format(saved) }"
+        legendIncomeValue.text = CurrencyManager.format(this, lastIncome)
+        legendExpensesValue.text = CurrencyManager.format(this, lastExpenses)
+        legendSavedValue.text = CurrencyManager.format(this, saved)
 
         if (lastIncome > 0) {
             // Compute saved and expense percentages, clamped to [0, 100] to avoid
@@ -694,7 +695,7 @@ class AnalyticsActivity : BaseActivity() {
                             activeDays.isEmpty() || activeDays.sum() == 0.0 ->
                                 "No spending recorded this month"
                             dailyMax <= 0 ->
-                                "R ${"%.2f".format(activeDays.sum())} spent — add min/max goals to see your band"
+                                "${CurrencyManager.format(this@AnalyticsActivity, activeDays.sum())} spent — add min/max goals to see your band"
                             else -> {
                                 val within  = activeDays.count { it in dailyMin..dailyMax }
                                 val overMax = activeDays.count { it > dailyMax }

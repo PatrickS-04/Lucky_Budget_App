@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.repository.SubscriptionRepository
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.SubscriptionViewModel
@@ -353,7 +354,7 @@ class AddSubscriptionActivity : BaseActivity() {
             "Yearly"  -> "yr"
             else      -> "mo"
         }
-        previewAmount.text = "R %.2f/%s".format(amountD, cycleLabel)
+        previewAmount.text = "${CurrencyManager.format(this, amountD)}/$cycleLabel"
 
         // Compute yearly equivalent for the preview
         val yearlyEquiv = when (selectedBillingCycle) {
@@ -362,7 +363,7 @@ class AddSubscriptionActivity : BaseActivity() {
             "Yearly"  -> amountD
             else      -> amountD * 12
         }
-        previewYearly.text = "R %.2f / year".format(yearlyEquiv)
+        previewYearly.text = "${CurrencyManager.format(this, yearlyEquiv)} / year"
 
         // Show next renewal in preview if start date is set
         if (startDate.isNotBlank()) {

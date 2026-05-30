@@ -48,9 +48,9 @@ object AnalyticsPdfExporter {
         val canvas = page.canvas
 
         var y = drawHeader(canvas, periodLabel)
-        y = drawSummaryCard(canvas, y, income, expenses)
-        y = drawCategorySection(canvas, y, categories, totals)
-        y = drawAccountSection(canvas, y, accounts, accountSpending)
+        y = drawSummaryCard(canvas, y, income, expenses, context)
+        y = drawCategorySection(canvas, y, categories, totals, context)
+        y = drawAccountSection(canvas, y, accounts, accountSpending, context)
         drawFooter(canvas)
 
         doc.finishPage(page)
@@ -66,7 +66,7 @@ object AnalyticsPdfExporter {
         return Intent(Intent.ACTION_SEND).apply {
             type = "application/pdf"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "Analytics Report – $periodLabel")
+            putExtra(Intent.EXTRA_SUBJECT, "Analytics Report - $periodLabel")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }
@@ -106,7 +106,7 @@ object AnalyticsPdfExporter {
     // Summary card
     // -------------------------------------------------------------------------
 
-    private fun drawSummaryCard(canvas: Canvas, startY: Float, income: Double, expenses: Double): Float {
+    private fun drawSummaryCard(canvas: Canvas, startY: Float, income: Double, expenses: Double, context: Context): Float {
         val saved = (income - expenses).coerceAtLeast(0.0)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
@@ -127,9 +127,9 @@ object AnalyticsPdfExporter {
 
         // Three columns: Income | Expenses | Saved
         val colW = CONTENT_WIDTH / 3f
-        drawSummaryColumn(canvas, MARGIN + 14f,            startY + 40f, "Total Income",   "R ${"%.2f".format(income)},  ", Color.parseColor("#2EC4B6"))
-        drawSummaryColumn(canvas, MARGIN + 14f + colW,     startY + 40f, "Total Expenses", "R ${"%.2f".format(expenses)}", Color.parseColor("#F87171"))
-        drawSummaryColumn(canvas, MARGIN + 14f + colW * 2, startY + 40f, "Saved",          "R ${"%.2f".format(saved)}",   ORANGE)
+        drawSummaryColumn(canvas, MARGIN + 14f,            startY + 40f, "Total Income",   CurrencyManager.format(context, income),   Color.parseColor("#2EC4B6"))
+        drawSummaryColumn(canvas, MARGIN + 14f + colW,     startY + 40f, "Total Expenses", CurrencyManager.format(context, expenses), Color.parseColor("#F87171"))
+        drawSummaryColumn(canvas, MARGIN + 14f + colW * 2, startY + 40f, "Saved",          CurrencyManager.format(context, saved),    ORANGE)
 
         return startY + 110f
     }
@@ -155,7 +155,8 @@ object AnalyticsPdfExporter {
         canvas: Canvas,
         startY: Float,
         categories: List<Category>,
-        totals: Map<String, Double>
+        totals: Map<String, Double>,
+        context: Context
     ): Float {
         var y = startY
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -169,7 +170,7 @@ object AnalyticsPdfExporter {
         expenseCategories.forEachIndexed { i, cat ->
             val amount = totals[cat.id] ?: 0.0
             val rowBg = if (i % 2 == 0) Color.parseColor("#F9FFFE") else Color.WHITE
-            y = drawTableRow(canvas, y, cat.name, cat.type, "R ${"%.2f".format(amount)}", rowBg, paint)
+            y = drawTableRow(canvas, y, cat.name, cat.type, CurrencyManager.format(context, amount), rowBg, paint)
         }
 
         return y + 16f
@@ -183,7 +184,8 @@ object AnalyticsPdfExporter {
         canvas: Canvas,
         startY: Float,
         accounts: List<BankAccount>,
-        accountSpending: List<AccountSpending>
+        accountSpending: List<AccountSpending>,
+        context: Context
     ): Float {
         var y = startY
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -196,7 +198,7 @@ object AnalyticsPdfExporter {
             val name  = account?.nickname ?: "Unknown Account"
             val bank  = account?.bankName    ?: ""
             val rowBg = if (i % 2 == 0) Color.parseColor("#F9FFFE") else Color.WHITE
-            y = drawTableRow(canvas, y, name, bank, "R ${"%.2f".format(spend.total)}", rowBg, paint)
+            y = drawTableRow(canvas, y, name, bank, CurrencyManager.format(context, spend.total), rowBg, paint)
         }
 
         return y + 16f

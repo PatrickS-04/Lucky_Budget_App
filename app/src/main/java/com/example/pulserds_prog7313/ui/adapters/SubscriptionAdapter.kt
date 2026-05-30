@@ -84,7 +84,7 @@ class SubscriptionAdapter(
             "Yearly"  -> "yr"
             else      -> "mo"
         }
-        holder.amountText.text = "R %.2f/%s".format(sub.amount, cycleLabel)
+        holder.amountText.text = "${com.example.pulserds_prog7313.utils.CurrencyManager.format(holder.itemView.context, sub.amount)}/$cycleLabel"
         holder.amountText.alpha = if (isPaused) 0.5f else 1.0f
 
         // -- Auto-pay label --
