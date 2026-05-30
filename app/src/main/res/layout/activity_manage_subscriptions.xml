@@ -392,23 +392,40 @@
         </androidx.cardview.widget.CardView>
 
         <!-- ═══════════════════════════════════════ -->
-        <!--         ACTIVE SUBSCRIPTIONS            -->
+        <!--         SUBSCRIPTIONS LIST              -->
         <!-- ═══════════════════════════════════════ -->
 
-        <TextView
-            android:id="@+id/activeLabel"
-            android:layout_width="wrap_content"
+        <FrameLayout
+            android:id="@+id/subsContainer"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="20dp"
-            android:layout_marginTop="22dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="Active"
-            android:textColor="@color/very_darkGreen"
-            android:textSize="17sp"
-            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="20dp"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/renewingAlertCard" />
+            app:layout_constraintTop_toBottomOf="@id/renewingAlertCard">
 
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/subsRecycler"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+
+            <TextView
+                android:id="@+id/subsEmptyText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="32dp"
+                android:text="No subscriptions yet. Tap '+ Add' to get started."
+                android:textColor="#7A99B0"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
+        <!-- dummy placeholder to satisfy removed CardView structure -->
         <androidx.cardview.widget.CardView
             android:id="@+id/activeSubsCard"
             android:layout_width="match_parent"
@@ -416,12 +433,13 @@
             android:layout_marginStart="20dp"
             android:layout_marginTop="10dp"
             android:layout_marginEnd="20dp"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/backgroundOrange"
             app:cardCornerRadius="20dp"
             app:cardElevation="6dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/activeLabel">
+            app:layout_constraintTop_toBottomOf="@id/subsContainer">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -792,6 +810,7 @@
             android:textColor="@color/very_darkGreen"
             android:textSize="17sp"
             android:textStyle="bold"
+            android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/activeSubsCard" />
 
@@ -802,6 +821,7 @@
             android:layout_marginStart="20dp"
             android:layout_marginTop="10dp"
             android:layout_marginEnd="20dp"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/backgroundOrange"
             app:cardCornerRadius="20dp"
             app:cardElevation="6dp"
@@ -933,7 +953,8 @@
             android:textSize="17sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/pausedSubsCard" />
+            app:layout_constraintTop_toBottomOf="@id/pausedSubsCard"
+            android:visibility="gone" />
 
         <androidx.cardview.widget.CardView
             android:id="@+id/breakdownCard"
@@ -942,6 +963,7 @@
             android:layout_marginStart="20dp"
             android:layout_marginTop="10dp"
             android:layout_marginEnd="20dp"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/backgroundOrange"
             app:cardCornerRadius="20dp"
             app:cardElevation="6dp"
@@ -1148,7 +1170,7 @@
             app:cornerRadius="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/breakdownCard"
+            app:layout_constraintTop_toBottomOf="@id/subsContainer"
             app:rippleColor="#22C55E" />
 
         <!-- ═══════════════════════════════════════ -->
