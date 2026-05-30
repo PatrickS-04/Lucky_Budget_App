@@ -21,6 +21,7 @@ import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
 import com.example.pulserds_prog7313.ui.adapters.CategoryTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.SpendingRowAdapter
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.CategoryViewModel
 import com.example.pulserds_prog7313.viewmodel.ExpenseEntryViewModel
@@ -106,13 +107,13 @@ class CategoryTotalsActivity : BaseActivity() {
     /** Updates the income total in the hero card whenever the LiveData emits. */
     private val incomeObserver = Observer<Double> { income ->
         val value = income ?: 0.0
-        totalIncomeView.text = "R ${"%,.2f".format(value)}"
+        totalIncomeView.text = CurrencyManager.format(this, value)
     }
 
     /** Updates the expense total in the hero card (stored as negatives, displayed positive). */
     private val expensesObserver = Observer<Double> { expenses ->
         val value = kotlin.math.abs(expenses ?: 0.0)
-        totalExpensesView.text = "R ${"%,.2f".format(value)}"
+        totalExpensesView.text = CurrencyManager.format(this, value)
     }
 
     // -------------------------------------------------------------------------

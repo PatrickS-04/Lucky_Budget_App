@@ -135,7 +135,8 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
                         android:fontFamily="sans-serif-medium"
-                        android:text="R 24,580.00"
+                        tools:text="R 24,580.00"
+                        android:text="@string/amount_default"
                         android:textColor="#FFFFFF"
                         android:textSize="36sp"
                         android:textStyle="bold"
@@ -186,7 +187,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="4dp"
-                                android:text="R 32,000.00"
+                                tools:text="R 32,000.00"
+                                android:text="@string/amount_default"
                                 android:textColor="#FFFFFF"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
@@ -226,7 +228,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="4dp"
-                                android:text="R 7,420.00"
+                                tools:text="R 7,420.00"
+                                android:text="@string/amount_default"
                                 android:textColor="#FFFFFF"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
@@ -288,7 +291,8 @@
                         android:layout_marginStart="10dp"
                         android:layout_marginTop="2dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="You've exceeded your Dining budget by R 320. Consider shifting funds from Entertainment."
+                        tools:text="You've exceeded your Dining budget by R 320. Consider shifting funds from Entertainment."
+                        android:text=""
                         android:textColor="#C97A40"
                         android:textSize="12sp"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -599,6 +603,63 @@
                 <!--                     </LinearLayout> -->
                 <!--                 </LinearLayout> -->
             </androidx.cardview.widget.CardView>
+
+            <!--  ═══════════════════════════════════════  -->
+            <!--         ACTIVE SUBSCRIPTIONS              -->
+            <!--  ═══════════════════════════════════════  -->
+            <TextView
+                android:id="@+id/subscriptionsTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="22dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Active Subscriptions"
+                android:textColor="@color/black"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/categoriesCard" />
+
+            <TextView
+                android:id="@+id/subManageLink"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:layout_marginEnd="20dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="4dp"
+                android:text="Manage"
+                android:textColor="@color/very_darkGreen"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/categoriesCard" />
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/subscriptionsCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="20dp"
+                app:cardBackgroundColor="@color/buttonOrange"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="6dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/subscriptionsTitle">
+
+                <LinearLayout
+                    android:id="@+id/dashSubsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp" />
+
+            </androidx.cardview.widget.CardView>
             <!--  ═══════════════════════════════════════  -->
             <!--          RECENT TRANSACTIONS              -->
             <!--  ═══════════════════════════════════════  -->
@@ -614,7 +675,7 @@
                 android:textSize="17sp"
                 android:textStyle="bold"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/categoriesCard" />
+                app:layout_constraintTop_toBottomOf="@id/subscriptionsCard" />
 
             <TextView
                 android:id="@+id/transactionsSeeAll"
@@ -630,7 +691,7 @@
                 android:textSize="13sp"
                 android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/categoriesCard" />
+                app:layout_constraintTop_toBottomOf="@id/subscriptionsCard" />
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/transactionsCard"

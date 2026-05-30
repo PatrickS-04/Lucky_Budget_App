@@ -19,6 +19,7 @@ import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.google.android.material.button.MaterialButton
 
 class AccountsActivity : BaseActivity() {
@@ -78,7 +79,7 @@ class AccountsActivity : BaseActivity() {
             updateDonut(accounts)
         }
         viewModel.totalBalance.observe(this) { total ->
-            donutChart.setCenterLabel(formatRand(total), "ZAR *")
+            donutChart.setCenterLabel(CurrencyManager.format(this, total), "")
         }
     }
 
@@ -95,7 +96,7 @@ class AccountsActivity : BaseActivity() {
             val typeTag = row.findViewById<TextView>(R.id.accountTypeTag)
             typeTag.text = account.accountType
             typeTag.setTextColor(dotColour)
-            row.findViewById<TextView>(R.id.accountBalance).text = formatRand(account.balance)
+            row.findViewById<TextView>(R.id.accountBalance).text = CurrencyManager.format(this, account.balance)
             val last4 = account.accountNumber.takeLast(4).padStart(4, '*')
             row.findViewById<TextView>(R.id.accountMasked).text = "**** $last4"
             accountsContainer.addView(row)
@@ -143,7 +144,6 @@ class AccountsActivity : BaseActivity() {
         donutChart.setSegments(segments)
     }
 
-    private fun formatRand(amount: Double): String = "R %,.2f".format(amount)
     private fun safeParseColour(hex: String, fallback: String): Int =
         try { Color.parseColor(hex) } catch (_: Exception) { Color.parseColor(fallback) }
     private fun buildDivider(): View = View(this).apply {

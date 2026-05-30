@@ -27,6 +27,7 @@ class SettingsActivity : BaseActivity() {
     private lateinit var sessionManager:  SessionManager
     private lateinit var savingsGoalRepo: SavingsGoalRepository
     private lateinit var userRepo:        UserRepository
+    private var currencyDialog: AlertDialog? = null
 
     companion object {
         private const val PREFS_SETTINGS = "app_settings"
@@ -36,6 +37,22 @@ class SettingsActivity : BaseActivity() {
         private const val KEY_TX_ALERTS  = "tx_alerts"
         private const val KEY_MILESTONES = "savings_milestones"
         private const val KEY_DARK_MODE  = "dark_mode"
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** Updates the subtitle under "Currency" in the Preferences card. */
+    private fun refreshCurrencyLabel() {
+        val currency = CurrencyManager.getSelectedCurrency(this)
+        findViewById<TextView>(R.id.currencyValue)?.text =
+            "${currency.label} (${currency.code})"
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    override fun onResume() {
+        super.onResume()
+        refreshCurrencyLabel()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -323,33 +340,52 @@ class SettingsActivity : BaseActivity() {
             .show()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        currencyDialog?.dismiss()
+        currencyDialog = null
+    }
+
     private fun showCurrencyDialog() {
-        // Matches the order of CurrencyManager.CURRENCIES exactly
-        val currencies    = CurrencyManager.CURRENCIES.map { "${it.label} (${it.code})" }.toTypedArray()
+        currencyDialog?.dismiss()
+
+        // Build list items showing symbol + label + code, e.g. "R  South African Rand (ZAR)"
+        val currencies    = CurrencyManager.CURRENCIES
+            .map { "${it.symbol}  ${it.label} (${it.code})" }
+            .toTypedArray()
         val settingsPrefs = getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE)
         val currentIndex  = settingsPrefs.getInt("currency_index", 0)
 
         AlertDialog.Builder(this)
             .setTitle("Select Currency")
             .setSingleChoiceItems(currencies, currentIndex) { dialog, which ->
+                // 1. Persist the new index
                 settingsPrefs.edit().putInt("currency_index", which).apply()
 
-                // ↓ CHANGED: invalidate the cached rate so the next fetch
-                //   retrieves a rate for the newly selected currency
+                // 2. Invalidate cached rate so the next refresh fetches a fresh
+                //    rate for the newly selected currency
                 settingsPrefs.edit()
                     .remove("cached_exchange_rate")
                     .remove("cached_exchange_time")
                     .apply()
 
-                // ↓ CHANGED: kick off a background fetch for the new rate
+                // 3. Background-fetch the new exchange rate
                 lifecycleScope.launch {
                     CurrencyManager.refreshRateIfNeeded(this@SettingsActivity)
                 }
 
-                Toast.makeText(this, "Currency set to: ${currencies[which]}", Toast.LENGTH_SHORT).show()
+                // 4. Update the subtitle label in the Preferences card immediately
+                refreshCurrencyLabel()
+
+                val selected = CurrencyManager.CURRENCIES[which]
+                Toast.makeText(
+                    this,
+                    "Currency changed to ${selected.label} (${selected.symbol})",
+                    Toast.LENGTH_SHORT
+                ).show()
                 dialog.dismiss()
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .also { currencyDialog = it.show() }
     }
 }

@@ -52,7 +52,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Completed • R 0.00"
+                android:text="@string/savings_completed_zero"
                 android:textColor="#4ADE80"
                 android:textSize="12sp" />
         </LinearLayout>

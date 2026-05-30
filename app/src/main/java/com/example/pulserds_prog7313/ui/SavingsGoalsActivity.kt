@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.SavingsGoal
 import com.example.pulserds_prog7313.repository.SavingsGoalRepository
+import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel
 import com.example.pulserds_prog7313.viewmodel.ViewModelFactory
@@ -185,12 +186,12 @@ class SavingsGoalsActivity : BaseActivity() {
         }
 
         vm.totalSaved.observe(this) { saved ->
-            overallAmount.text = "R %,.0f".format(saved)
+            overallAmount.text = CurrencyManager.formatRounded(this, saved)
         }
 
         vm.totalTarget.observe(this) { target ->
             val saved = vm.totalSaved.value ?: 0.0
-            overallTarget.text = "of R %,.0f total target".format(target)
+            overallTarget.text = "of ${CurrencyManager.formatRounded(this, target)} total target"
             // Clamp to 0-100 so the ProgressBar never overflows.
             val pct = if (target > 0) ((saved / target) * 100).roundToInt().coerceIn(0, 100) else 0
             overallProgressBar.progress = pct
@@ -257,7 +258,7 @@ class SavingsGoalsActivity : BaseActivity() {
 
         // Sum savedAmount for active goals whose createdAt falls in the current month.
         val thisMonthSaved = active.filter { it.createdAt >= thisMonthMs }.sumOf { it.savedAmount }
-        statThisMonth.text = "R %,.0f".format(thisMonthSaved)
+        statThisMonth.text = CurrencyManager.formatRounded(this, thisMonthSaved)
 
         // Active goals section
         activeGoalsContainer.removeAllViews() // Clear stale cards before re-inflating.
@@ -312,11 +313,11 @@ class SavingsGoalsActivity : BaseActivity() {
         card.findViewById<TextView>(R.id.goalCardDate).text  =
             if (goal.targetDate.isNotBlank()) "Target: ${goal.targetDate}" else "No target date"
         card.findViewById<TextView>(R.id.goalCardSaved).text =
-            "R ${"%.2f".format(goal.savedAmount)} saved"
+            "${CurrencyManager.format(this, goal.savedAmount)} saved"
 
         // Progress summary line - shows percentage and remaining amount in the accent colour.
         card.findViewById<TextView>(R.id.goalCardProgress).also {
-            it.text = "$pct%  •  R ${"%.2f".format(abs(left))} to go"
+            it.text = "$pct%  •  ${CurrencyManager.format(this, abs(left))} to go"
             it.setTextColor(tintColor)
         }
 

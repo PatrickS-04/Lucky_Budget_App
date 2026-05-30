@@ -83,7 +83,7 @@ object CurrencyManager {
         withContext(Dispatchers.IO) {
             try {
                 // Free tier: base is always USD, so fetch ZAR and target separately
-                val APP_ID = "YOUR_FREE_APP_ID"
+                val APP_ID = "13e060ea9fbb45bead0b53ec06a9b262"
                 val url    = "https://openexchangerates.org/api/latest.json?app_id=$APP_ID&symbols=ZAR,${selected.code}"
                 val json   = JSONObject(URL(url).readText())
                 val rates  = json.getJSONObject("rates")
