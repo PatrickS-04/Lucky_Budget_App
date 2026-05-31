@@ -11,13 +11,13 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/very_darkGreen"
+        android:background="@color/darkerGreen"
         android:paddingHorizontal="8dp"
         app:navigationIcon="?attr/homeAsUpIndicator"
         app:navigationIconTint="@color/backgroundOrange"
         app:navigationContentDescription="Back to Analytics"
         app:title="AI Spending Insights"
-        app:titleTextColor="@color/backgroundOrange" />
+        app:titleTextColor="@color/counterTextColor" />
 
     <!-- Loading spinner — centred on the teal background -->
     <ProgressBar

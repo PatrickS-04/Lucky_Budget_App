@@ -124,7 +124,9 @@ class ForgotPasswordActivity : AppCompatActivity() {
     }
 
     private fun handleSendResetEmail() {
-        val email = etEmail.text?.toString()?.trim() ?: ""
+        // Normalise to lowercase so the address always matches the Firebase Auth
+        // account regardless of how the user capitalised it at registration.
+        val email = etEmail.text?.toString()?.trim()?.lowercase() ?: ""
 
         when {
             email.isEmpty() -> {
