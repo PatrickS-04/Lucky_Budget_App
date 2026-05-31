@@ -109,7 +109,7 @@
                     android:inputType="text"
                     android:paddingTop="14dp"
                     android:paddingBottom="14dp"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#0D1B2A"
                     android:textColorHint="#3D5A70"
                     android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>

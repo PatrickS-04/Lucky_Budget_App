@@ -122,8 +122,10 @@ class CategoryTotalsActivity : BaseActivity() {
     // -- Swappable LiveData observers -----------------------------------------
     // References are kept so old observers can be removed before new ones are
     // attached whenever the user switches periods, preventing stale duplicates.
-    private var incomeLiveData: LiveData<Double>?   = null
-    private var expensesLiveData: LiveData<Double>? = null
+    private var incomeLiveData: LiveData<Double>?           = null
+    private var expensesLiveData: LiveData<Double>?         = null
+    private var categoriesLiveData: LiveData<List<com.example.pulserds_prog7313.data.Category>>? = null
+    private var entriesLiveData: LiveData<List<com.example.pulserds_prog7313.data.ExpenseEntry>>? = null
 
     /** Updates the income total in the hero card whenever the LiveData emits. */
     private val incomeObserver = Observer<Double> { income ->
@@ -158,8 +160,6 @@ class CategoryTotalsActivity : BaseActivity() {
         setupViewModels()
         setupCategoryTilesRecycler()
         setupSpendingBreakdownRecycler()
-        observeCategories()
-        observeEntries()
         setupPeriodChips()
 
         // Default to Month view on first launch.
@@ -398,14 +398,36 @@ class CategoryTotalsActivity : BaseActivity() {
         val startStr = dbDateFmt.format(periodStart)
         val endStr   = dbDateFmt.format(periodEnd)
 
-        // Reload categories and period-filtered entries (drives cachedTotals via observeEntries).
-        categoryViewModel.loadCategoriesForUser(userId)
-        expenseViewModel.loadEntriesForPeriod(userId, startStr, endStr)
-
-        // Detach stale income/expense observers before attaching new ones for the
-        // new period, preventing duplicate callbacks from the old LiveData instances.
+        // Detach ALL stale observers before attaching new live streams for the
+        // new period, preventing duplicate callbacks from old LiveData instances.
         incomeLiveData?.removeObserver(incomeObserver)
         expensesLiveData?.removeObserver(expensesObserver)
+        categoriesLiveData?.removeObservers(this)
+        entriesLiveData?.removeObservers(this)
+
+        // Use the live Firestore snapshot listeners (not one-shot coroutines) so
+        // that all documents are delivered and totals remain accurate even when
+        // Firestore returns results across multiple async batches.
+        categoriesLiveData = categoryViewModel.getCategoriesLive(userId).also { ld ->
+            ld.observe(this) { categories ->
+                cachedCategories = categories ?: emptyList()
+                pushAdapterUpdates()
+            }
+        }
+
+        entriesLiveData = expenseViewModel.getEntriesForPeriodLive(userId, startStr, endStr).also { ld ->
+            ld.observe(this) { entries ->
+                cachedTotals = if (entries.isNullOrEmpty()) {
+                    emptyMap()
+                } else {
+                    entries
+                        .filter { it.amount < 0 }
+                        .groupBy { it.categoryId }
+                        .mapValues { (_, list) -> list.sumOf { kotlin.math.abs(it.amount) } }
+                }
+                pushAdapterUpdates()
+            }
+        }
 
         incomeLiveData = expenseViewModel.getIncomeLive(userId, startStr, endStr).also {
             it.observe(this, incomeObserver)
@@ -419,38 +441,9 @@ class CategoryTotalsActivity : BaseActivity() {
     // LiveData observers
     // -------------------------------------------------------------------------
 
-    /**
-     * Observes the full category list for the logged-in user.
-     * Caches it and calls [pushAdapterUpdates] so any pending totals are
-     * applied immediately even if entries arrived first.
-     */
-    private fun observeCategories() {
-        categoryViewModel.categories.observe(this) { categories ->
-            cachedCategories = categories ?: emptyList()
-            pushAdapterUpdates()
-        }
-    }
-
-    /**
-     * Observes period-filtered expense entries.
-     * Computes per-category spend totals (absolute value of negative amounts),
-     * caches them, and delegates to [pushAdapterUpdates].
-     */
-    private fun observeEntries() {
-        expenseViewModel.entries.observe(this) { entries ->
-            cachedTotals = if (entries.isNullOrEmpty()) {
-                emptyMap()
-            } else {
-                entries
-                    .filter { it.amount < 0 }          // Expenses are stored as negative values.
-                    .groupBy { it.categoryId }
-                    .mapValues { (_, list) ->
-                        list.sumOf { kotlin.math.abs(it.amount) }
-                    }
-            }
-            pushAdapterUpdates()
-        }
-    }
+    // observeCategories() and observeEntries() have been merged into reloadData().
+    // Live Firestore snapshot listeners are attached there and swapped on every
+    // period change, ensuring full data delivery and no stale observers.
 
     // -------------------------------------------------------------------------
     // Adapter updates

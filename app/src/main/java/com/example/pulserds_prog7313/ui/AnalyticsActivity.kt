@@ -220,6 +220,11 @@ class AnalyticsActivity : BaseActivity() {
             startActivity(android.content.Intent(this, CategoryTotalsActivity::class.java))
         }
 
+        // AI Spending Insights button navigates to SpendingInsightActivity.
+        findViewById<MaterialButton>(R.id.aiInsightsButton)?.setOnClickListener {
+            launchAiInsights()
+        }
+
         setupBottomNav(R.id.navAnalytics)
     }
 
@@ -559,18 +564,43 @@ class AnalyticsActivity : BaseActivity() {
      * Observes per-account spending and cross-references with the account list
      * from [bankAccountViewModel] to populate the Spending by Account card.
      *
-     * Both observers update the adapter so the card stays correct whichever
-     * LiveData (accounts or spending) emits a new value first.
+     * Per-account totals are computed directly from the live [entries] LiveData
+     * (which is already kept up-to-date by a Firestore snapshot listener) rather
+     * than via the one-shot [accountSpending] LiveData. This ensures the card
+     * always reflects the full set of expenses for the current period rather than
+     * only the single most-recent entry that was loaded when [reloadData] fired.
+     *
+     * Both observers (entries and accounts) call [pushAccountSpending] so the
+     * adapter is refreshed whichever LiveData emits a new value first.
      */
     private fun observeAccountSpending() {
-        expenseViewModel.accountSpending.observe(this) { spending ->
-            val accounts = bankAccountViewModel.accounts.value ?: emptyList()
-            accountSpendingAdapter.submitData(accounts, spending ?: emptyList())
+        expenseViewModel.entries.observe(this) { _ ->
+            pushAccountSpending()
         }
-        bankAccountViewModel.accounts.observe(this) { accounts ->
-            val spending = expenseViewModel.accountSpending.value ?: emptyList()
-            accountSpendingAdapter.submitData(accounts ?: emptyList(), spending)
+        bankAccountViewModel.accounts.observe(this) { _ ->
+            pushAccountSpending()
         }
+    }
+
+    /**
+     * Derives per-account spending totals from [expenseViewModel.entries] (the
+     * already-live, period-filtered list) and submits them to the adapter.
+     *
+     * Only negative amounts (expenses) are counted; the total per account is the
+     * sum of their absolute values.
+     */
+    private fun pushAccountSpending() {
+        val entries  = expenseViewModel.entries.value ?: emptyList()
+        val accounts = bankAccountViewModel.accounts.value ?: emptyList()
+
+        val spending = entries
+            .filter { it.amount < 0 }
+            .groupBy { it.bankAccountId }
+            .map { (accountId, accountEntries) ->
+                com.example.pulserds_prog7313.data.AccountSpending(accountId, accountEntries.sumOf { kotlin.math.abs(it.amount) })
+            }
+
+        accountSpendingAdapter.submitData(accounts, spending)
     }
 
     /**

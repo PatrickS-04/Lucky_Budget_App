@@ -1272,6 +1272,27 @@
             </androidx.cardview.widget.CardView>
 
             <!--  ═══════════════════════════════════════  -->
+            <!--          AI SPENDING INSIGHTS              -->
+            <!--  ═══════════════════════════════════════  -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/aiInsightsButton"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="8dp"
+                android:text="✨ AI Spending Insights"
+                android:textColor="#1A1A1A"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:backgroundTint="#4ADE80"
+                app:cornerRadius="18dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/spendingGoalsCard" />
+
+            <!--  ═══════════════════════════════════════  -->
             <!--            BOTTOM NAV BAR                 -->
             <!--  ═══════════════════════════════════════  -->
         </androidx.constraintlayout.widget.ConstraintLayout>
