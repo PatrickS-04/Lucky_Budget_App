@@ -15,6 +15,7 @@ import com.example.pulserds_prog7313.R
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.example.pulserds_prog7313.repository.UserRepository
 import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -55,6 +56,8 @@ class ForgotPasswordActivity : AppCompatActivity() {
     private lateinit var etEmail:         TextInputEditText
     private lateinit var btnAction:       MaterialButton
 
+    private lateinit var userRepo: UserRepository
+
     // Step 2 views -- kept but hidden (Firebase handles the actual reset)
     private lateinit var newPasswordLabel:     TextView
     private lateinit var tilNewPassword:       TextInputLayout
@@ -74,7 +77,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
             insets
         }
 
-        // No ViewModel or Repository needed -- Firebase Auth is called directly here.
+        userRepo = UserRepository()
 
         bindViews()
         setupListeners()
@@ -144,9 +147,24 @@ class ForgotPasswordActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
+                // Check that the email belongs to a registered account before
+                // asking Firebase to send anything. getUserByEmail() queries the
+                // Firestore /users collection; if nothing is found we surface a
+                // clear error rather than silently succeeding (Firebase's default
+                // behaviour is to return success even for unknown addresses).
+                val existingUser = userRepo.getUserByEmail(email)
+                if (existingUser == null) {
+                    btnAction.isEnabled = true
+                    tilEmail.error = "No account found for this email address"
+                    Toast.makeText(
+                        this@ForgotPasswordActivity,
+                        "No account found for this email address.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                }
+
                 // Firebase Auth sends a password reset email to the given address.
-                // If no account exists for that email, Firebase still returns success
-                // (by design, to avoid revealing whether an account exists).
                 // ActionCodeSettings sets a continueUrl so Firebase's email template
                 // includes a proper redirect — this improves deliverability with
                 // institutional mail servers that block the bare firebaseapp.com links.
