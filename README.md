@@ -1,405 +1,324 @@
-# Pulser DS - Personal Finance Manager - The Lucky Budget
-> PROG7311 POE Part 2  
+# 💰 Pulser DS — The Lucky Budget
+> PROG7313 POE Part 3 · Personal Finance Manager
 
-The Lucky Budget is a personal finance manager application that helps users manage funds, expenses, goals and financial information that can provide financial knowledge to users allowing them to achieve financial freedom.
-
----
-
-## Collaborators
- 
-- Dillon Rinkwest- ST10439147 (Group Leader)
-- Liam Swile- ST10438679
-- Patrick Shutte- ST10440987
-- Uzair Essa- ST10440109 
+The Lucky Budget helps users manage funds, expenses, goals, and subscriptions — providing financial knowledge and insights to help achieve financial freedom.
 
 ---
 
-## Table of Contents
- 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [CI / CD](#ci--cd)
-- [Database](#database)
-- [Permissions](#permissions)
-- [Referencees](#references)
-- [Declaration of AI Usage](#declaration-of-ai-usage)
+## 👥 Collaborators
+
+| Name | Student Number | Role |
+|---|---|---|
+| Dillon Rinkwest | ST10439147 | Group Leader |
+| Liam Swile | ST10438679 | Developer |
+| Patrick Shutte | ST10440987 | Developer |
+| Uzair Essa | ST10440109 | Developer |
 
 ---
 
-## Features
- 
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [CI / CD](#-ci--cd)
+- [Database](#-database)
+- [Permissions](#-permissions)
+- [References](#-references)
+- [Declaration of AI Usage](#-declaration-of-ai-usage)
+
+---
+
+## ✨ Features
+
 | Screen | Description |
 |---|---|
-| **Login / Register** | Secure account creation and login with SHA-256 password hashing and strict password-strength rules (8+ chars, upper, lower, digit, special character), google login will be implented in the Final POE |
+| **Login / Register** | Firebase Authentication with email/password and **Google Sign-In**. Strict password rules (8+ chars, upper, lower, digit, special character) |
 | **Dashboard** | Personalised greeting, spending category tiles, recent transactions, and a savings-goal snapshot |
-| **Transactions** | Full transaction history with the ability to add new expense entries linked to a category and bank account |
-| **Analytics** | Date-range filtered spending breakdown with a custom donut chart and per-account / per-category spending rows |
+| **Transactions** | Full transaction history; add expense entries linked to a category and bank account |
+| **Analytics** | Date-range filtered spending breakdown with a custom donut chart, per-account / per-category rows, and **PDF export** |
 | **Category Totals** | Detailed view of totals grouped by category |
 | **Bank Accounts** | Add and manage multiple bank accounts; view per-account spending |
-| **Savings Goals** | Create savings goals with target amounts and deadlines; track progress and mark goals complete |
-| **Settings** | Toggle app preferences ((Future Implementation) 2FA, overspend alerts, subscription reminders, transaction alerts, savings milestones, dark mode, currency, collabrative access); manage profile and session |
+| **Savings Goals** | Create goals with target amounts and deadlines; track progress and mark complete |
+| **Subscriptions** | Track recurring subscriptions (e.g. Netflix, Spotify) with billing cycle, auto-pay, renewal dates, and reminders |
+| **Spending Insights** | **AI-powered analysis via Gemini 2.0 Flash** — spending summaries, overspending warnings, budget suggestions, and savings advice |
+| **Settings** | Toggle preferences (2FA, overspend alerts, subscription reminders, dark mode, **multi-currency**); manage profile and session |
 | **Manage Categories** | Create and manage custom expense categories |
- 
+
 ---
- 
-## Tech Stack
- 
+
+## 🛠 Tech Stack
+
 - **Language:** Kotlin
-- **Min SDK:** 26 (Android 8.0 Oreo)
-- **Target / Compile SDK:** 36
-- **Architecture:** MVVM (ViewModel + LiveData + Repository pattern)
-- **Database:** Room 2.7 with KSP code generation, schema export, and versioned migrations
-- **UI:** XML layouts with ViewBinding, Material Design 3 components, custom `DonutChartView`
+- **Min SDK:** 26 (Android 8.0 Oreo) · **Target / Compile SDK:** 36
+- **Architecture:** MVVM (ViewModel + LiveData + Repository)
+- **Database:** Cloud Firestore (Firebase) — real-time sync across devices
+- **Authentication:** Firebase Auth — email/password + Google Sign-In (Credential Manager)
+- **AI:** Google Gemini 2.0 Flash Lite via OkHttp REST
+- **UI:** XML layouts, ViewBinding, Material Design 3, custom `DonutChartView` & `SpendingGoalChartView`
 - **Concurrency:** Kotlin Coroutines + `lifecycleScope`
-- **Build System:** Gradle with Kotlin DSL (`.gradle.kts`)
-- **CI:** GitHub Actions
+- **Build:** Gradle Kotlin DSL · **CI:** GitHub Actions
+
 ### Key Dependencies
- 
+
+```toml
+firebase-bom                  = "34.13.0"
+firebase-auth                 (via BoM)
+firebase-firestore             (via BoM)
+credentials                   = "1.3.0"
+googleid                      = "1.1.1"
+okhttp3                       = "4.12.0"
+lifecycle-viewmodel-ktx       = "2.8.4"
+kotlinx-coroutines-android    = "1.8.1"
+kotlinx-coroutines-play-services = "1.8.1"
+material                      = "1.13.0"
+constraintlayout              = "2.2.1"
 ```
-androidx.room:room-ktx
-androidx.lifecycle:lifecycle-viewmodel-ktx
-org.jetbrains.kotlinx:kotlinx-coroutines-android
-com.google.android.material:material
-androidx.constraintlayout:constraintlayout
-```
- 
+
 ---
- 
-## Project Structure
- 
+
+## 📁 Project Structure
+
 ```
 app/src/main/java/com/example/pulserds_prog7313/
-├── App.kt                          # Custom Application class (auto-logout lifecycle callbacks)
-├── DonutChart.kt / DonutChartView.kt  # Custom spending chart
-├── data/                           # Room entities and DAOs
-│   ├── AppDatabase.kt
-│   ├── User.kt / UserDao.kt
-│   ├── Category.kt / CategoryDao.kt
-│   ├── ExpenseEntry.kt / ExpenseEntryDao.kt
-│   ├── BankAccount.kt / BankAccountDao.kt
-│   └── SavingsGoal.kt / SavingsGoalDao.kt
-├── repository/                     # Repository classes (data access layer)
-|   ├── BankAccountRepository.kt
-|   ├── CategoryRepository.kt
-|   ├── ExpenseEntryRepository.kt
-|   ├── SavingsGoalRepository.kt
-|   └── UserRepository.kt
-├── ui/                             # Activities
-│   ├── MainActivity.kt             # Login screen
-│   ├── CreateAccActivity.kt        # Registration screen
+├── App.kt                              # Application class — auto-logout lifecycle callbacks
+├── DonutChart.kt / DonutChartView.kt   # Custom spending donut chart
+├── SpendingGoalChartView.kt            # Custom savings-goal progress chart
+│
+├── data/                               # Firestore document models
+│   ├── User.kt
+│   ├── Category.kt
+│   ├── ExpenseEntry.kt
+│   ├── BankAccount.kt / AccountSpending.kt
+│   ├── SavingsGoal.kt
+│   └── Subscription.kt
+│
+├── repository/                         # Firestore data access layer
+│   ├── BankAccountRepository.kt
+│   ├── CategoryRepository.kt
+│   ├── ExpenseEntryRepository.kt
+│   ├── SavingsGoalRepository.kt
+│   ├── SubscriptionRepository.kt
+│   └── UserRepository.kt
+│
+├── service/
+│   └── GeminiSpendingService.kt        # Gemini 2.0 Flash REST integration
+│
+├── ui/                                 # Activities
+│   ├── MainActivity.kt                 # Login
+│   ├── CreateAccActivity.kt            # Registration
 │   ├── DashBoardActivity.kt
 │   ├── TransactionsActivity.kt / AddTransactionActivity.kt
 │   ├── AnalyticsActivity.kt / CategoryTotalsActivity.kt
 │   ├── AccountsActivity.kt / AddAccountActivity.kt
 │   ├── SavingsGoalsActivity.kt / CreateSavingsGoalActivity.kt
+│   ├── ManageSubscriptionsActivity.kt / AddSubscriptionActivity.kt
+│   ├── SpendingInsightActivity.kt      # AI spending analysis
 │   ├── SettingsActivity.kt
 │   ├── ManageCategoriesActivity.kt
-|   ├── ManageSubscriptionsActivity.kt
-|   ├── AddSubscriptionActivity.kt
-|   ├── BaseActivity.kt
-|   ├── ForgotPasswordActivity.kt
-│   └── adapters/                   # RecyclerView adapters
-|       ├── AccountSpendingAdapter.kt
-|       ├── CategoryRowAdapter.kt
-|       ├── CategoryTileAdapter.kt
-|       ├── DashSavingsAdapter.kt
-|       ├── SpendingRowAdapter.kt
-|       └── TransactionAdapter.kt
+│   ├── ForgotPasswordActivity.kt
+│   ├── BaseActivity.kt
+│   └── adapters/
+│       ├── AccountSpendingAdapter.kt
+│       ├── CategoryRowAdapter.kt / CategoryTileAdapter.kt
+│       ├── DashSavingsAdapter.kt
+│       ├── SpendingRowAdapter.kt
+│       ├── SubscriptionAdapter.kt / SubscriptionTileAdapter.kt
+│       └── TransactionAdapter.kt
+│
 ├── utils/
-│   ├── SessionManager.kt           # SharedPreferences-based session handling
-|   └── SingleLiveEvent.kt
-└── viewmodel/                      # ViewModels and ViewModelFactory
-|   ├── BankAccountViewModel.kt
-|   ├── CategoryViewModel.kt
-|   ├── ExpenseEntryViewModel.kt
-|   ├── SavingsGoalViewModel.kt
-|   ├── UserViewModel.kt
-|   └── ViewModelFactory.kt
-
+│   ├── SessionManager.kt               # SharedPreferences session handling
+│   ├── CurrencyManager.kt              # Multi-currency with live exchange rates
+│   ├── AnalyticsPdfExporter.kt         # Analytics PDF export
+│   └── SingleLiveEvent.kt
+│
+└── viewmodel/
+    ├── BankAccountViewModel.kt
+    ├── CategoryViewModel.kt
+    ├── ExpenseEntryViewModel.kt
+    ├── SavingsGoalViewModel.kt
+    ├── SubscriptionViewModel.kt
+    ├── SpendingInsightViewModel.kt
+    ├── UserViewModel.kt
+    └── ViewModelFactory.kt
 ```
- 
+
 ---
- 
-## Getting Started
- 
+
+## 🚀 Getting Started
+
 ### Prerequisites
- 
+
 - Android Studio Ladybug or newer
 - JDK 17
 - Android SDK with API 36 installed
+- A `local.properties` file in the project root with your Gemini API key:
+  ```properties
+  GEMINI_API_KEY=your_key_here
+  ```
+
 ### Clone and Open
- 
+
 ```bash
 git clone <repository-url>
-cd prog7313-part1-g2-pulser-ds-main
+cd prog7313-poe-g2-pulser-ds-main
 ```
- 
-Open the project in Android Studio by selecting **File → Open** and choosing the project folder. Android Studio will sync Gradle automatically.
- 
+
+Open in Android Studio via **File → Open**, select the project folder, and let Gradle sync.
+
 ### Build and Run
- 
-1. Connect a physical device or start an emulator running API 26+.
-2. Click **Run ▶** in Android Studio, or run from the terminal:
+
+1. Connect a device or start an emulator (API 26+).
+2. Click **Run ▶** or from the terminal:
+
 ```bash
 ./gradlew assembleDebug
 ```
- 
-The debug APK will be output to `app/build/outputs/apk/debug/app-debug.apk`.
- 
+
+Output: `app/build/outputs/apk/debug/app-debug.apk`
+
+> **Note:** A valid `google-services.json` is included. The Spending Insights screen requires a `GEMINI_API_KEY` in `local.properties`.
+
 ---
- 
-## CI / CD
- 
-The project uses a **GitHub Actions** workflow (`.github/workflows/ci.yml`) that triggers on every push and pull request to `main`. The pipeline:
- 
-1. Checks out the repository and sets up JDK 17
-2. Verifies the Gradle wrapper checksum for security
-3. Builds the debug APK (`assembleDebug`)
-4. Validates the Room database schema (`kspDebugKotlin`)
-5. Runs JUnit unit tests (`testDebugUnitTest`)
-6. Runs Android Lint (`lintDebug`)
-7. Uploads the lint report, test results, and debug APK as build artifacts
+
+## ⚙️ CI / CD
+
+A **GitHub Actions** workflow (`.github/workflows/ci.yml`) triggers on every push and pull request to `main`:
+
+1. Check out repo and set up JDK 17
+2. Verify Gradle wrapper checksum
+3. Build debug APK (`assembleDebug`)
+4. Run JUnit unit tests (`testDebugUnitTest`)
+5. Run Android Lint (`lintDebug`)
+6. Upload lint report, test results, and APK as build artifacts
+
 ---
- 
-## Database
- 
-Pulser DS uses a local **Room** database (`pulser_db`) at schema version 9. The database is a singleton accessed via `AppDatabase.getDatabase(context)`.
- 
-### Entities
- 
-| Entity | Description |
+
+## 🗄 Database
+
+Pulser DS uses **Cloud Firestore** as its database. All data is stored per user under their Firebase UID, enabling real-time sync across devices.
+
+| Collection | Description |
 |---|---|
-| `User` | Registered user accounts (email + SHA-256 password hash) |
-| `Category` | User-defined expense categories |
-| `ExpenseEntry` | Individual transaction records linked to a category and bank account |
-| `BankAccount` | Bank accounts with balance tracking |
-| `SavingsGoal` | Savings targets with progress tracking |
- 
-Schema JSON exports are stored in `app/schemas/` for migration history.
- 
+| `users` | User profiles linked to Firebase Auth |
+| `categories` | User-defined expense categories |
+| `expense_entries` | Transaction records linked to a category and bank account |
+| `bank_accounts` | Bank accounts with balance tracking |
+| `savings_goals` | Savings targets with progress tracking |
+| `subscriptions` | Recurring subscriptions with billing cycle, renewal date, and reminder settings |
+
+> A local Room schema export remains in `app/schemas/` from the Part 2 implementation (version 10).
+
 ---
- 
-## Permissions
- 
+
+## 🔐 Permissions
+
 | Permission | Reason |
 |---|---|
+| `INTERNET` | Firebase, Gemini API, and live currency exchange rate calls |
 | `CAMERA` | Attach receipt photos to transactions |
 | `READ_MEDIA_IMAGES` (API 33+) | Select images from gallery |
 | `READ_EXTERNAL_STORAGE` (API ≤ 32) | Select images from gallery on older devices |
- 
-Camera hardware is declared as **not required** (`android:required="false"`), so the app installs on devices without a camera.
+
+Camera hardware is declared as **not required** (`android:required="false"`).
 
 ---
 
-## Youtube Video Mobile App Demonstration Video Link
-- https://youtu.be/pipU8XDkbBA
+## 🎬 Demo Video
 
-## References
+▶️ https://youtu.be/pipU8XDkbBA
 
-[1] Google, "Save data in a local database using Room," *Android Developers*, 2024.
-    [Online]. Available: https://developer.android.com/training/data-storage/room.
-    [Accessed: 28 Apr. 2026].
+---
 
-[2] Google, "ViewModel overview," *Android Developers*, 2024.
-    [Online]. Available: https://developer.android.com/topic/libraries/architecture/viewmodel.
-    [Accessed: 28 Apr. 2026].
- 
-[3] Google, "LiveData overview," *Android Developers*, 2024.
-    [Online]. Available: https://developer.android.com/topic/libraries/architecture/livedata.
-    [Accessed: 28 Apr. 2026].
- 
-[4] JetBrains, "Coroutines guide," *Kotlin Documentation*, 2024.
-    [Online]. Available: https://kotlinlang.org/docs/coroutines-guide.html.
-    [Accessed: 28 Apr. 2026].
- 
-[5] Google, "Guide to app architecture," *Android Developers*, 2024.
-    [Online]. Available: https://developer.android.com/topic/architecture.
-    [Accessed: 28 Apr. 2026].
- 
-[6] Google, *AndroidX Room*, ver. 2.7.0-alpha11. [Software].
-    Android Developers, 2024.
-    Available: https://developer.android.com/jetpack/androidx/releases/room.
- 
-[7] Google, *AndroidX Lifecycle ViewModel KTX*, ver. 2.8.4. [Software].
-    Android Developers, 2024.
-    Available: https://developer.android.com/jetpack/androidx/releases/lifecycle.
- 
-[8] JetBrains, *kotlinx-coroutines-android*, ver. 1.8.1. [Software].
-    JetBrains, 2024.
-    Available: https://github.com/Kotlin/kotlinx.coroutines.
- 
-[9] Google, *AndroidX Core KTX*, ver. 1.13.1. [Software].
-    Android Developers, 2024.
-    Available: https://developer.android.com/jetpack/androidx/releases/core.
- 
-[10] Google, *AndroidX AppCompat*, ver. 1.7.0. [Software].
-     Android Developers, 2024.
-     Available: https://developer.android.com/jetpack/androidx/releases/appcompat.
- 
-[11] Google, *Material Design Components for Android*, ver. 1.12.0. [Software].
-     Google, 2024.
-     Available: https://github.com/material-components/material-components-android.
- 
-[12] Google, *AndroidX ConstraintLayout*, ver. 2.2.0. [Software].
-     Android Developers, 2024.
-     Available: https://developer.android.com/jetpack/androidx/releases/constraintlayout.
- 
-[13] Google, *AndroidX Activity KTX*, ver. 1.9.0. [Software].
-     Android Developers, 2024.
-     Available: https://developer.android.com/jetpack/androidx/releases/activity.
- 
-[14] Google, "KSP quickstart," *Android Developers*, 2024.
-     [Online]. Available: https://developer.android.com/build/migrate-to-ksp.
-     [Accessed: 28 Apr. 2026].
- 
-[15] Google, "View Binding," *Android Developers*, 2024.
-     [Online]. Available: https://developer.android.com/topic/libraries/view-binding.
-     [Accessed: 28 Apr. 2026].
- 
-[16] Google, "Requesting permissions at runtime," *Android Developers*, 2024.
-     [Online]. Available: https://developer.android.com/training/permissions/requesting.
-     [Accessed: 28 Apr. 2026].
- 
-[17] Google, "Share files with FileProvider," *Android Developers*, 2024.
-     [Online]. Available: https://developer.android.com/reference/androidx/core/content/FileProvider.
-     [Accessed: 28 Apr. 2026].
- 
-[18] Google, "SharedPreferences — save key-value data," *Android Developers*, 2024.
-     [Online]. Available: https://developer.android.com/training/data-storage/shared-preferences.
-     [Accessed: 28 Apr. 2026].
- 
-[19] Gradle Inc., "Gradle Kotlin DSL primer," *Gradle Documentation*, 2024.
-     [Online]. Available: https://docs.gradle.org/current/userguide/kotlin_dsl.html.
-     [Accessed: 28 Apr. 2026].
- 
-[20] Google, "Canvas and drawables," *Android Developers*, 2024.
-     [Online]. Available: https://developer.android.com/develop/ui/views/graphics/drawables.
-     [Accessed: 28 Apr. 2026].
- 
-[21] GitHub, "GitHub Actions documentation," *GitHub Docs*, 2024.
-     [Online]. Available: https://docs.github.com/en/actions.
-     [Accessed: 28 Apr. 2026].
- 
-[22] JUnit Team, *JUnit*, ver. 4.13.2. [Software].
-     JUnit, 2021.
-     Available: https://junit.org/junit4.
- 
-[23] Google, *AndroidX Test Espresso Core*, ver. 3.6.1. [Software].
-     Android Developers, 2024.
-     Available: https://developer.android.com/training/testing/espresso.
-  
-[24] Firebase, "Authenticate with Google on Android," Google, 27 May 2026. [Online]. 
-     Available: https://firebase.google.com/docs/auth/android/google-signin. 
-     [Accessed 30 May 2026].
-       
-[25] F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online]. 
-     Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase. 
-     [Accessed 30 May 2026].
-       
-[26] A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online]. 
-     Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application. 
-     [Accessed 30 May 2026].
-       
-[27] Firebase, "Firebase Authentication," Google, 27 May 2026. [Online]. 
-     Available: https://firebase.google.com/docs/auth?authuser=0&_gl=1*10potxh*_ga*MTk4MDgwMzQ0MC4xNzcxODc3ODAz*_ga_CW55HF8NVT*czE3Nzk2NDE1OTIkbzExJGcxJHQxNzc5NjQyMzc2JGo1NCRsMCRoMA..#multi-factor. 
-     [Accessed 30 May 2026].
-       
-[28] Firebase, "Add multi-factor authentication to your Android app," Google, 27 May 2026. [Online]. 
-     Available: https://firebase.google.com/docs/auth/android/multi-factor. 
-     [Accessed 30 May 2026].
-       
-[29] R. and M. , "Is it possible to convert text into PDF in Android?," 2026 Stack Exchange Inc, 20 April 2011. [Online]. 
-     Available: https://stackoverflow.com/questions/5726411/is-it-possible-to-convert-text-into-pdf-in-android. 
-     [Accessed 30 May 2026].
-       
-[30] A. Van Gasse, "Generate PDF from Android," Stack Exchange Inc, 24 November 2016. [Online]. 
-     Available: https://stackoverflow.com/questions/40379451/generate-pdf-from-android. 
-     [Accessed 30 May 2026].
-       
-[31] B. Lowagie, "How to create a pdf programmatically from Android," 2026 Stack Exchange Inc, 16 November 2016. [Online]. 
-     Available: https://stackoverflow.com/questions/40423996/how-to-create-a-pdf-programmatically-from-android?rq=3. 
-     [Accessed 30 May 2026].
-       
-[32] T. C. City, Writer, Create PDF from any XML Layout/View in Android Studio - Step by Step Tutorial. [Performance]. 
-     YouTube, 2023. 
-       
-[33] S. Visweswaran, "Create PDF from layout XML in Android Studio using PDFDocument class," Medium, 27 August 2021. [Online]. 
-     Available: https://medium.com/@strawberryinc0531/convert-xml-to-pdf-in-android-studio-using-pdfdocument-class-757dee166d50. 
-     [Accessed 30 May 2026].
+## 📚 References
 
- 
-## DECLARATION OF AI USAGE:
+[1] Google, "Get started with Cloud Firestore," *Firebase Documentation*, 2024. [Online]. Available: https://firebase.google.com/docs/firestore/quickstart. [Accessed: 30 May 2026].
 
-### Sections where AI was used:
-AI was used in small sections of the code to aid in troubleshooting on the login page.
-### AI Tool Used:  
-Claude AI 
-### Purpose/Intent:
-The purpose of using the ai tool was to get an idea of how the login functionality of the app should look.
-The other purpose was to help fix an id reference issue in different classes between variables.
-### Dates used: 
-10/04/2026
-### Link:
-https://claude.ai/share/dd1caa85-5884-4b9d-b899-88d3234fc2d8
-### Action taken:
-The generated code was not used at all for the login functionality as we found another a similar way to code it. Similarly, the ai tool’s code was not used to fix the error as it was redone again to avoid the issue.
+[2] Google, "Firebase Authentication," *Firebase Documentation*, 2024. [Online]. Available: https://firebase.google.com/docs/auth. [Accessed: 30 May 2026].
 
---- 
-### Sections where AI was used:
-AI was used in the create account page 
-### AI Tool Used:
-Claude AI 
-### Purpose/Intent:
-The purpose of using the ai tool was to help fix a layout overlap issue of different visual interactive elements.
-### Dates used:
-16/04/2026
-### Link:
-https://claude.ai/share/88a5d0cb-a044-414b-be2e-2aaac0ca8a9c
-### Action taken:
-The generated code was used to fix the error in the layout only, but the rest was all done manually by us.
+[3] Firebase, "Authenticate with Google on Android," Google, 27 May 2026. [Online]. Available: https://firebase.google.com/docs/auth/android/google-signin. [Accessed: 30 May 2026].
 
---- 
-### Sections where AI was used:
-AI was used for the image upload feature
-### AI Tool Used: 
-Claude AI 
-### Purpose/Intent:
-The purpose of using the ai tool was to help determine if the image upload feature works as the button directed the user to google drive where we could not upload an image from.
-### Dates used:
-27/04/2026
-### Link:
-https://claude.ai/share/40b1dbf3-4c4f-4ff2-b609-a29acc39e7c0
-### Action taken:
-The action taken was to just understand the response the ai tool provided and determine if the feature worked or not.
+[4] Firebase, "Add multi-factor authentication to your Android app," Google, 27 May 2026. [Online]. Available: https://firebase.google.com/docs/auth/android/multi-factor. [Accessed: 30 May 2026].
 
---- 
-### Sections where AI was used:
-AI was used for a filter issue
-### AI Tool Used:  
-Claude AI 
-### Purpose/Intent:
-The purpose of using the ai tool was to help determine the cause of a week filter not working correctly even though entries exist within the filtered period.
-### Dates used:
-28/04/2026
-### Link:
-https://claude.ai/share/061c7497-53d9-43e7-93b0-9900f54a475b
-https://claude.ai/share/353e3527-cce5-4e5c-a5ab-ae4d3d0fca40
-### Action taken:
-The code was tested to see if the minor formatting change worked or not for the week filter.
- 
---- 
-### Sections where AI was used:
-AI was used for the Github CI workflow
-### AI Tool Used:  
-Claude AI 
-### Purpose/Intent:
-The purpose of using the ai tool was to help determine the cause of the workflow failure during testing.
-### Dates used: 
-28/04/2026
-### Link: 
-https://claude.ai/share/9cdf5f21-1522-47c3-8d6d-92ae827bc0f5
-### Action taken:
-The code was used to determine which option was best suited to fix the workflow error.
+[5] Google, "ViewModel overview," *Android Developers*, 2024. [Online]. Available: https://developer.android.com/topic/libraries/architecture/viewmodel. [Accessed: 28 Apr. 2026].
 
+[6] Google, "LiveData overview," *Android Developers*, 2024. [Online]. Available: https://developer.android.com/topic/libraries/architecture/livedata. [Accessed: 28 Apr. 2026].
+
+[7] JetBrains, "Coroutines guide," *Kotlin Documentation*, 2024. [Online]. Available: https://kotlinlang.org/docs/coroutines-guide.html. [Accessed: 28 Apr. 2026].
+
+[8] Google, "Guide to app architecture," *Android Developers*, 2024. [Online]. Available: https://developer.android.com/topic/architecture. [Accessed: 28 Apr. 2026].
+
+[9] Google, "View Binding," *Android Developers*, 2024. [Online]. Available: https://developer.android.com/topic/libraries/view-binding. [Accessed: 28 Apr. 2026].
+
+[10] Google, "Credential Manager," *Android Developers*, 2024. [Online]. Available: https://developer.android.com/identity/sign-in/credential-manager. [Accessed: 30 May 2026].
+
+[11] Google, "Gemini API — generateContent REST reference," *Google AI for Developers*, 2025. [Online]. Available: https://ai.google.dev/api/generate-content. [Accessed: 30 May 2026].
+
+[12] Square Inc., *OkHttp*, ver. 4.12.0. [Software]. Available: https://square.github.io/okhttp.
+
+[13] Google, "Canvas and drawables," *Android Developers*, 2024. [Online]. Available: https://developer.android.com/develop/ui/views/graphics/drawables. [Accessed: 28 Apr. 2026].
+
+[14] Google, "SharedPreferences — save key-value data," *Android Developers*, 2024. [Online]. Available: https://developer.android.com/training/data-storage/shared-preferences. [Accessed: 28 Apr. 2026].
+
+[15] Google, "Requesting permissions at runtime," *Android Developers*, 2024. [Online]. Available: https://developer.android.com/training/permissions/requesting. [Accessed: 28 Apr. 2026].
+
+[16] Google, "Share files with FileProvider," *Android Developers*, 2024. [Online]. Available: https://developer.android.com/reference/androidx/core/content/FileProvider. [Accessed: 28 Apr. 2026].
+
+[17] GitHub, "GitHub Actions documentation," *GitHub Docs*, 2024. [Online]. Available: https://docs.github.com/en/actions. [Accessed: 28 Apr. 2026].
+
+[18] Gradle Inc., "Gradle Kotlin DSL primer," *Gradle Documentation*, 2024. [Online]. Available: https://docs.gradle.org/current/userguide/kotlin_dsl.html. [Accessed: 28 Apr. 2026].
+
+[19] JUnit Team, *JUnit*, ver. 4.13.2. [Software]. Available: https://junit.org/junit4.
+
+[20] Google, *AndroidX Test Espresso Core*, ver. 3.6.1. [Software]. Available: https://developer.android.com/training/testing/espresso.
+
+[21] F. van Puffelen, "Save a Room Database file in Firebase," Stack Exchange Inc, 22 August 2021. [Online]. Available: https://stackoverflow.com/questions/68878022/save-a-room-database-file-in-firebase. [Accessed: 30 May 2026].
+
+[22] A. Mamo, "Android Room and Firebase in a MVVM Architecture - Offline First Application," Stack Exchange Inc, 18 November 2022. [Online]. Available: https://stackoverflow.com/questions/74484239/android-room-and-firebase-in-a-mvvm-architecture-offline-first-application. [Accessed: 30 May 2026].
+
+[23] S. Visweswaran, "Create PDF from layout XML in Android Studio using PDFDocument class," Medium, 27 August 2021. [Online]. Available: https://medium.com/@strawberryinc0531/convert-xml-to-pdf-in-android-studio-using-pdfdocument-class-757dee166d50. [Accessed: 30 May 2026].
+
+[24] A. Van Gasse, "Generate PDF from Android," Stack Exchange Inc, 24 November 2016. [Online]. Available: https://stackoverflow.com/questions/40379451/generate-pdf-from-android. [Accessed: 30 May 2026].
+
+---
+
+## 🤖 Declaration of AI Usage
+
+### Usage 1 — Login page troubleshooting
+**Tool:** Claude AI · **Date:** 10/04/2026
+**Purpose:** Understand how login functionality should be structured and fix an ID reference issue between classes.
+**Link:** https://claude.ai/share/dd1caa85-5884-4b9d-b899-88d3234fc2d8
+**Action:** Generated code was not used — a different approach was found independently. The ID issue was also resolved manually.
+
+---
+
+### Usage 2 — Create account layout overlap
+**Tool:** Claude AI · **Date:** 16/04/2026
+**Purpose:** Fix a layout overlap issue between interactive UI elements.
+**Link:** https://claude.ai/share/88a5d0cb-a044-414b-be2e-2aaac0ca8a9c
+**Action:** Generated code was used only to fix the layout error; all other code was written manually.
+
+---
+
+### Usage 3 — Image upload feature investigation
+**Tool:** Claude AI · **Date:** 27/04/2026
+**Purpose:** Determine whether the image upload feature worked correctly (button was routing to Google Drive instead of the gallery).
+**Link:** https://claude.ai/share/40b1dbf3-4c4f-4ff2-b609-a29acc39e7c0
+**Action:** Response was used to understand and confirm the feature's behaviour. No generated code was adopted.
+
+---
+
+### Usage 4 — Week filter debugging
+**Tool:** Claude AI · **Date:** 28/04/2026
+**Purpose:** Identify why the week filter returned no results despite entries existing within the filtered period.
+**Links:** https://claude.ai/share/061c7497-53d9-43e7-93b0-9900f54a475b · https://claude.ai/share/353e3527-cce5-4e5c-a5ab-ae4d3d0fca40
+**Action:** A minor date-formatting change suggested by the tool was tested to verify whether it resolved the filter.
+
+---
+
+### Usage 5 — GitHub Actions CI workflow failure
+**Tool:** Claude AI · **Date:** 28/04/2026
+**Purpose:** Identify the cause of a workflow failure during the test step.
+**Link:** https://claude.ai/share/9cdf5f21-1522-47c3-8d6d-92ae827bc0f5
+**Action:** Output was used to evaluate which fix option best suited the workflow configuration.
