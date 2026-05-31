@@ -755,6 +755,85 @@
                 <!--                     </LinearLayout> -->
                 <!--                 </LinearLayout> -->
             </androidx.cardview.widget.CardView>
+            <!--  ═══════════════════════════════════════  -->
+            <!--         ACTIVE SUBSCRIPTIONS TILES        -->
+            <!--  ═══════════════════════════════════════  -->
+            <LinearLayout
+                android:id="@+id/subsHeaderAnalytics"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="22dp"
+                android:layout_marginEnd="20dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/budgetCatCard">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Active Subscriptions"
+                    android:textColor="@color/very_darkGreen"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/subsManageLinkAnalytics"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:text="Manage"
+                    android:textColor="@color/very_darkGreen"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/subscriptionsTilesCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="16dp"
+                app:cardBackgroundColor="#FFBB55"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="6dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/subsHeaderAnalytics">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/subscriptionsTilesRecycler"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:padding="9dp"
+                        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                        app:spanCount="2" />
+
+                    <TextView
+                        android:id="@+id/subscriptionsTilesEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="20dp"
+                        android:text="No active subscriptions. Tap 'Manage' to add one."
+                        android:textAlignment="center"
+                        android:textColor="#7A6A50"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
             <!--              ═══════════════════════════════════════ -->
             <!--                    SPENDING BY CATEGORY (bars) -->
             <!--              ═══════════════════════════════════════ -->
@@ -769,7 +848,7 @@
                 android:textSize="17sp"
                 android:textStyle="bold"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/budgetCatCard" />
+                app:layout_constraintTop_toBottomOf="@id/subscriptionsTilesCard" />
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/spendingBreakdownCard"
@@ -1270,6 +1349,27 @@
                         android:textStyle="bold" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
+
+            <!--  ═══════════════════════════════════════  -->
+            <!--          AI SPENDING INSIGHTS              -->
+            <!--  ═══════════════════════════════════════  -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/aiInsightsButton"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="8dp"
+                android:text="✨ AI Spending Insights"
+                android:textColor="#1A1A1A"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:backgroundTint="#4ADE80"
+                app:cornerRadius="18dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/spendingGoalsCard" />
 
             <!--  ═══════════════════════════════════════  -->
             <!--            BOTTOM NAV BAR                 -->

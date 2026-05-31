@@ -23,6 +23,7 @@ import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
 import com.example.pulserds_prog7313.repository.SavingsGoalRepository
 import com.example.pulserds_prog7313.ui.adapters.CategoryTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.DashSavingsAdapter
+import com.example.pulserds_prog7313.ui.adapters.SubscriptionTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.TransactionAdapter
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
@@ -66,9 +67,10 @@ class DashBoardActivity : BaseActivity() {
     private lateinit var savingsVM:     SavingsGoalViewModel
     private lateinit var bankAccountVM: BankAccountViewModel
 
-    private lateinit var tileAdapter:   CategoryTileAdapter
-    private lateinit var savingsAdapter:DashSavingsAdapter
-    private lateinit var txAdapter:     TransactionAdapter
+    private lateinit var tileAdapter:         CategoryTileAdapter
+    private lateinit var savingsAdapter:      DashSavingsAdapter
+    private lateinit var txAdapter:           TransactionAdapter
+    private lateinit var subscriptionAdapter: SubscriptionTileAdapter
 
     // userId is now a String (Firebase Auth UID). "" means no session.
     private var userId = ""
@@ -123,6 +125,12 @@ class DashBoardActivity : BaseActivity() {
         if (userId.isNotBlank()) {
             loadAggregateData(latestCategories)
             bankAccountVM.refreshTotal(userId)
+            // Currency may have changed while away — force all adapters to rebind
+            // so they pick up the new symbol/rate from CurrencyManager.
+            txAdapter.notifyDataSetChanged()
+            savingsAdapter.notifyDataSetChanged()
+            subscriptionAdapter.notifyDataSetChanged()
+            tileAdapter.notifyDataSetChanged()
         }
     }
 
@@ -184,6 +192,13 @@ class DashBoardActivity : BaseActivity() {
             adapter = txAdapter
             isNestedScrollingEnabled = false
         }
+
+        subscriptionAdapter = SubscriptionTileAdapter()
+        findViewById<RecyclerView>(R.id.dashSubsRecycler).apply {
+            layoutManager = androidx.recyclerview.widget.GridLayoutManager(this@DashBoardActivity, 2)
+            adapter = subscriptionAdapter
+            isNestedScrollingEnabled = false
+        }
     }
 
     private fun observeLiveData() {
@@ -205,7 +220,7 @@ class DashBoardActivity : BaseActivity() {
 
                 val defaultCategories = setOf(
                     "groceries", "dining out", "transport", "entertainment",
-                    "subscriptions", "utilities", "healthcare", "shopping",
+                    "utilities", "healthcare", "shopping",
                     "salary", "investment", "freelance", "gift"
                 )
 
@@ -246,52 +261,14 @@ class DashBoardActivity : BaseActivity() {
 
     private fun observeSubscriptions() {
         subscriptionVM.subscriptions.observe(this) { subs ->
-            val activeSubs = subs.filter { it.status == "Active" }.take(3)
-            val container = findViewById<android.widget.LinearLayout>(R.id.dashSubsContainer)
-                ?: return@observe
-            container.removeAllViews()
-            if (activeSubs.isEmpty()) {
-                val empty = android.widget.TextView(this).apply {
-                    text = "No active subscriptions."
-                    setTextColor(0xFF7A99B0.toInt())
-                    textSize = 13f
-                    setPadding(40, 24, 40, 24)
-                }
-                container.addView(empty)
-            } else {
-                activeSubs.forEach { sub ->
-                    val row = android.widget.LinearLayout(this).apply {
-                        orientation = android.widget.LinearLayout.HORIZONTAL
-                        gravity = android.view.Gravity.CENTER_VERTICAL
-                        setPadding(40, 20, 40, 20)
-                    }
-                    val icon = android.widget.TextView(this).apply {
-                        text = sub.icon; textSize = 20f; setPadding(0, 0, 20, 0)
-                    }
-                    val info = android.widget.LinearLayout(this).apply {
-                        orientation = android.widget.LinearLayout.VERTICAL
-                        layoutParams = android.widget.LinearLayout.LayoutParams(0,
-                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    }
-                    info.addView(android.widget.TextView(this).apply {
-                        text = sub.serviceName
-                        setTextColor(0xFFFFFFFF.toInt()); textSize = 14f
-                        setTypeface(null, android.graphics.Typeface.BOLD)
-                    })
-                    info.addView(android.widget.TextView(this).apply {
-                        text = "Renews ${sub.nextRenewal}"
-                        setTextColor(0xFF7A99B0.toInt()); textSize = 12f
-                    })
-                    val lbl = when(sub.billingCycle) { "Weekly"->"wk"; "Yearly"->"yr"; else->"mo" }
-                    val amt = android.widget.TextView(this).apply {
-                        text = "${CurrencyManager.format(this@DashBoardActivity, sub.amount)}/$lbl"
-                        setTextColor(0xFFF87171.toInt()); textSize = 13f
-                        setTypeface(null, android.graphics.Typeface.BOLD)
-                    }
-                    row.addView(icon); row.addView(info); row.addView(amt)
-                    container.addView(row)
-                }
-            }
+            val activeSubs = subs.filter { it.status == "Active" }.take(4)
+            subscriptionAdapter.submitList(activeSubs)
+
+            val hasData = activeSubs.isNotEmpty()
+            findViewById<View>(R.id.dashSubsRecycler).visibility =
+                if (hasData) View.VISIBLE else View.GONE
+            findViewById<View>(R.id.dashSubsEmpty).visibility =
+                if (hasData) View.GONE else View.VISIBLE
         }
     }
 

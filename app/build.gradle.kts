@@ -8,8 +8,8 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-    val localProps = Properties()
-    localProps.load(rootProject.file("local.properties").inputStream())
+val localProps = Properties()
+localProps.load(rootProject.file("local.properties").inputStream())
 
 android {
     namespace = "com.example.pulserds_prog7313"
@@ -24,7 +24,7 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "GEMINI_API_KEY", "\"${localProps["GEMINI_API_KEY"]}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"${localProps["GEMINI_API_KEY"].toString().trim()}\"")
     }
 
 
@@ -76,8 +76,8 @@ dependencies {
     // Firebase Analytics (was already present)
     implementation("com.google.firebase:firebase-analytics")
 
-    // Gemini / Google AI SDK
-    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    // Gemini is now called via OkHttp REST (v1 endpoint) — SDK removed because
+    // generativeai:0.9.0 hardcodes the deprecated v1beta base URL.
 
     // OkHttp (only needed if you call the REST API directly instead of the SDK)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

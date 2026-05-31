@@ -168,7 +168,7 @@ class CreateAccActivity : AppCompatActivity() {
 
             if (validateSignUpForm()) {
                 val fullName = etFullName.text?.toString()?.trim() ?: ""
-                val email    = etEmail.text?.toString()?.trim() ?: ""
+                val email    = etEmail.text?.toString()?.trim()?.lowercase() ?: ""
                 val password = etPassword.text?.toString() ?: ""
 
                 // Pass plain-text password directly to Firebase Auth via the ViewModel.

@@ -95,12 +95,28 @@ class TransactionAdapter : ListAdapter<ExpenseEntry, TransactionAdapter.TxViewHo
             if (!entry.photoPath.isNullOrBlank()) {
                 receiptBadge.visibility = View.VISIBLE
                 receiptBadge.setOnClickListener {
-                    val uri = Uri.parse(entry.photoPath)
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, itemView.context.contentResolver.getType(uri))
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    try {
+                        val uri = Uri.parse(entry.photoPath)
+                        // Verify the URI is still accessible before launching the viewer.
+                        // photo picker URIs (content://media/picker_get_content/...) are
+                        // temporary and expire after the app is closed, which would
+                        // cause a SecurityException and crash TransactionsActivity.
+                        // New receipts are copied to private storage on selection, so
+                        // this guard only matters for receipts saved before that fix.
+                        val mimeType = itemView.context.contentResolver.getType(uri)
+                            ?: "image/jpeg"
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, mimeType)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        itemView.context.startActivity(Intent.createChooser(intent, "Open receipt"))
+                    } catch (e: Exception) {
+                        android.widget.Toast.makeText(
+                            itemView.context,
+                            "Receipt no longer available",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
                     }
-                    itemView.context.startActivity(Intent.createChooser(intent, "Open receipt"))
                 }
             } else {
                 receiptBadge.visibility = View.GONE

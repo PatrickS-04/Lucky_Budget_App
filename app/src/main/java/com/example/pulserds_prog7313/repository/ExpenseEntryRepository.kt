@@ -188,9 +188,15 @@ class ExpenseEntryRepository {
     // Returns true if the entry date falls within [startDate, endDate] inclusive.
     // All three dates must be in "dd/MM/yyyy" format.
     private fun isDateInRange(date: String, startDate: String, endDate: String): Boolean {
-        val d     = normaliseDateForSort(date)
-        val start = normaliseDateForSort(startDate)
-        val end   = normaliseDateForSort(endDate)
-        return d in start..end
+        return try {
+            val fmt = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+            fmt.isLenient = false
+            val d     = fmt.parse(date)     ?: return false
+            val start = fmt.parse(startDate) ?: return false
+            val end   = fmt.parse(endDate)   ?: return false
+            !d.before(start) && !d.after(end)
+        } catch (e: Exception) {
+            false
+        }
     }
 }

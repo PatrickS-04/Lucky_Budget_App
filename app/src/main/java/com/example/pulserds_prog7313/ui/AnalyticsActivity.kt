@@ -20,12 +20,16 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.pulserds_prog7313.DonutChartView
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.Category
+import com.example.pulserds_prog7313.data.ExpenseEntry
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
 import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.ui.adapters.AccountSpendingAdapter
 import com.example.pulserds_prog7313.ui.adapters.CategoryTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.SpendingRowAdapter
+import com.example.pulserds_prog7313.ui.adapters.SubscriptionTileAdapter
+import com.example.pulserds_prog7313.repository.SubscriptionRepository
+import com.example.pulserds_prog7313.viewmodel.SubscriptionViewModel
 import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
@@ -99,6 +103,10 @@ class AnalyticsActivity : BaseActivity() {
     private lateinit var tileAdapter: CategoryTileAdapter
     private lateinit var spendingAdapter: SpendingRowAdapter
     private lateinit var accountSpendingAdapter: AccountSpendingAdapter
+    private lateinit var subscriptionTileAdapter: SubscriptionTileAdapter
+
+    // -- Subscription ViewModel -----------------------------------------------
+    private lateinit var subscriptionViewModel: SubscriptionViewModel
 
     // -- Period state ---------------------------------------------------------
     /** Represents the available reporting periods the user can select. */
@@ -156,12 +164,25 @@ class AnalyticsActivity : BaseActivity() {
     /** Map of categoryId -> total spend amount for the current period. */
     private var cachedTotals: Map<String, Double> = emptyMap()
 
+    /** Latest savings goals from Firestore, kept in sync by the goals observer. */
+    private var cachedGoals: List<com.example.pulserds_prog7313.data.SavingsGoal> = emptyList()
+
     // -- Swappable LiveData observers -----------------------------------------
     // References are kept so old observers can be removed before new ones are
     // attached whenever the user switches periods, preventing duplicate callbacks.
     // [3] Google, "LiveData overview," Android Developers, 2024.
     private var incomeLiveData: LiveData<Double>? = null
     private var expensesLiveData: LiveData<Double>? = null
+
+    // -- Spending goal chart: swappable LiveData references -------------------
+    // The chart always shows the current calendar month, independent of the
+    // selected period chip. The entries LiveData is swapped each time
+    // loadSpendingGoalChart() is called so that only ONE observer is ever active.
+    // The goals LiveData is set up once (in observeSpendingGoalChart) and never
+    // re-subscribed, eliminating the nested-observer stacking bug.
+    private var chartEntriesLiveData: LiveData<List<com.example.pulserds_prog7313.data.ExpenseEntry>>? = null
+    private var chartDailyTotals: DoubleArray = DoubleArray(0)
+    private var chartLastDay: Int = 0
 
     /** Updates the income label and triggers a hero balance recalculation. */
     private val incomeObserver = Observer<Double> { income ->
@@ -205,9 +226,12 @@ class AnalyticsActivity : BaseActivity() {
         setupCategoryTilesRecycler()
         setupSpendingBreakdownRecycler()
         setupAccountSpendingRecycler()
+        setupSubscriptionTilesRecycler()
         observeCategories()
         observeEntries()
         observeAccountSpending()
+        observeSpendingGoalChart()
+        observeSubscriptions()
         setupPeriodChips()
         selectPeriod(Period.MONTH) // Default to Month view on first launch.
 
@@ -218,6 +242,16 @@ class AnalyticsActivity : BaseActivity() {
         // "See all categories" link navigates to the dedicated CategoryTotalsActivity.
         findViewById<TextView>(R.id.seeAllCategories)?.setOnClickListener {
             startActivity(android.content.Intent(this, CategoryTotalsActivity::class.java))
+        }
+
+        // AI Spending Insights button navigates to SpendingInsightActivity.
+        findViewById<MaterialButton>(R.id.aiInsightsButton)?.setOnClickListener {
+            launchAiInsights()
+        }
+
+        // "Manage" link in the subscriptions section navigates to ManageSubscriptionsActivity.
+        findViewById<TextView>(R.id.subsManageLinkAnalytics)?.setOnClickListener {
+            startActivity(android.content.Intent(this, ManageSubscriptionsActivity::class.java))
         }
 
         setupBottomNav(R.id.navAnalytics)
@@ -421,6 +455,11 @@ class AnalyticsActivity : BaseActivity() {
         savingsGoalViewModel = ViewModelProvider(
             this, ViewModelFactory { com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel(com.example.pulserds_prog7313.repository.SavingsGoalRepository()) }
         )[com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel::class.java]
+
+        subscriptionViewModel = ViewModelProvider(
+            this, ViewModelFactory { SubscriptionViewModel(SubscriptionRepository()) }
+        )[SubscriptionViewModel::class.java]
+        if (userId.isNotBlank()) subscriptionViewModel.init(userId)
     }
 
     // -------------------------------------------------------------------------
@@ -454,6 +493,30 @@ class AnalyticsActivity : BaseActivity() {
             layoutManager = LinearLayoutManager(this@AnalyticsActivity)
             adapter = accountSpendingAdapter
             isNestedScrollingEnabled = false // Parent ScrollView handles scrolling.
+        }
+    }
+
+    /** Sets up the 2-column grid that shows a tile per active subscription. */
+    private fun setupSubscriptionTilesRecycler() {
+        subscriptionTileAdapter = SubscriptionTileAdapter()
+        findViewById<RecyclerView>(R.id.subscriptionsTilesRecycler).apply {
+            layoutManager = GridLayoutManager(this@AnalyticsActivity, 2)
+            adapter = subscriptionTileAdapter
+            isNestedScrollingEnabled = false
+        }
+    }
+
+    /** Observes active subscriptions and keeps the tile grid up to date. */
+    private fun observeSubscriptions() {
+        subscriptionViewModel.subscriptions.observe(this) { subs ->
+            val activeSubs = subs.filter { it.status == "Active" }
+            subscriptionTileAdapter.submitList(activeSubs)
+
+            val hasData = activeSubs.isNotEmpty()
+            findViewById<android.view.View>(R.id.subscriptionsTilesRecycler).visibility =
+                if (hasData) android.view.View.VISIBLE else android.view.View.GONE
+            findViewById<android.view.View>(R.id.subscriptionsTilesEmpty).visibility =
+                if (hasData) android.view.View.GONE else android.view.View.VISIBLE
         }
     }
 
@@ -559,18 +622,43 @@ class AnalyticsActivity : BaseActivity() {
      * Observes per-account spending and cross-references with the account list
      * from [bankAccountViewModel] to populate the Spending by Account card.
      *
-     * Both observers update the adapter so the card stays correct whichever
-     * LiveData (accounts or spending) emits a new value first.
+     * Per-account totals are computed directly from the live [entries] LiveData
+     * (which is already kept up-to-date by a Firestore snapshot listener) rather
+     * than via the one-shot [accountSpending] LiveData. This ensures the card
+     * always reflects the full set of expenses for the current period rather than
+     * only the single most-recent entry that was loaded when [reloadData] fired.
+     *
+     * Both observers (entries and accounts) call [pushAccountSpending] so the
+     * adapter is refreshed whichever LiveData emits a new value first.
      */
     private fun observeAccountSpending() {
-        expenseViewModel.accountSpending.observe(this) { spending ->
-            val accounts = bankAccountViewModel.accounts.value ?: emptyList()
-            accountSpendingAdapter.submitData(accounts, spending ?: emptyList())
+        expenseViewModel.entries.observe(this) { _ ->
+            pushAccountSpending()
         }
-        bankAccountViewModel.accounts.observe(this) { accounts ->
-            val spending = expenseViewModel.accountSpending.value ?: emptyList()
-            accountSpendingAdapter.submitData(accounts ?: emptyList(), spending)
+        bankAccountViewModel.accounts.observe(this) { _ ->
+            pushAccountSpending()
         }
+    }
+
+    /**
+     * Derives per-account spending totals from [expenseViewModel.entries] (the
+     * already-live, period-filtered list) and submits them to the adapter.
+     *
+     * Only negative amounts (expenses) are counted; the total per account is the
+     * sum of their absolute values.
+     */
+    private fun pushAccountSpending() {
+        val entries  = expenseViewModel.entries.value ?: emptyList()
+        val accounts = bankAccountViewModel.accounts.value ?: emptyList()
+
+        val spending = entries
+            .filter { it.amount < 0 }
+            .groupBy { it.bankAccountId }
+            .map { (accountId, accountEntries) ->
+                com.example.pulserds_prog7313.data.AccountSpending(accountId, accountEntries.sumOf { kotlin.math.abs(it.amount) })
+            }
+
+        accountSpendingAdapter.submitData(accounts, spending)
     }
 
     /**
@@ -650,9 +738,35 @@ class AnalyticsActivity : BaseActivity() {
     // -------------------------------------------------------------------------
 
     /**
-     * Loads per-day expense totals for the current calendar month and the
-     * aggregate min/max spending goals from SavingsGoals, then renders
-     * SpendingGoalChartView with a tinted goal band and a status summary.
+     * Registers a single, permanent observer on the savings-goals LiveData.
+     * Must be called ONCE from onCreate() so that no matter how many times
+     * loadSpendingGoalChart() / reloadData() runs, the goals observer is never
+     * duplicated. Whenever goals change, it re-renders the chart using the
+     * already-cached [chartDailyTotals] array.
+     *
+     * Previously the goals observer was nested inside the entries observer
+     * inside loadSpendingGoalChart(), which caused an exponential pile-up:
+     *   - loadSpendingGoalChart() called on each period change  -> new entries observer
+     *   - Each entries emission inside that observer added another goals observer
+     * Result: after a few interactions dozens of duplicate callbacks fired, each
+     * reading stale or zero data and overwriting the chart with an empty band.
+     */
+    private fun observeSpendingGoalChart() {
+        val userId = SessionManager(this).getUserId()
+        if (userId.isBlank()) return
+
+        savingsGoalViewModel.getAllGoalsLive(userId).observe(this) { goals ->
+            cachedGoals = goals ?: emptyList()
+            renderSpendingGoalChart(cachedGoals)
+        }
+    }
+
+    /**
+     * Swaps the month-scoped entries LiveData so that only ONE entries observer
+     * is active at a time for the spending goal chart. The entries observer caches
+     * the computed daily totals and then calls [renderSpendingGoalChart] so the
+     * goals observer and entries observer are fully decoupled — neither is nested
+     * inside the other.
      *
      * The chart is always month-scoped as required by the PoE spec.
      */
@@ -660,19 +774,22 @@ class AnalyticsActivity : BaseActivity() {
         if (userId.isBlank()) return
 
         val cal      = java.util.Calendar.getInstance()
-        val lastDay  = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        chartLastDay = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
         val month    = cal.get(java.util.Calendar.MONTH) + 1
         val year     = cal.get(java.util.Calendar.YEAR)
         val startStr = "01/%02d/%d".format(month, year)
-        val endStr   = "%02d/%02d/%d".format(lastDay, month, year)
+        val endStr   = "%02d/%02d/%d".format(chartLastDay, month, year)
 
-        // LiveData stream: expense entries filtered to this calendar month
-        expenseViewModel.getEntriesForPeriodLive(userId, startStr, endStr)
-            .observe(this) { entries ->
+        // Remove the previous entries observer before attaching a new one,
+        // mirroring the same pattern used for incomeLiveData / expensesLiveData.
+        chartEntriesLiveData?.removeObservers(this)
 
-                // Bucket absolute expense amounts by day-of-month (0-indexed)
-                val dailyTotals = DoubleArray(lastDay) { 0.0 }
-                val fmt = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+        chartEntriesLiveData = expenseViewModel.getEntriesForPeriodLive(userId, startStr, endStr).also { ld ->
+            ld.observe(this) { entries ->
+                val lastDay = chartLastDay
+                val totals  = DoubleArray(lastDay) { 0.0 }
+                val fmt     = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+
                 entries?.forEach { entry ->
                     if (entry.amount < 0) {
                         try {
@@ -680,60 +797,75 @@ class AnalyticsActivity : BaseActivity() {
                             val cal2 = java.util.Calendar.getInstance().also { c -> c.time = d }
                             val day  = cal2.get(java.util.Calendar.DAY_OF_MONTH) - 1
                             if (day in 0 until lastDay)
-                                dailyTotals[day] += kotlin.math.abs(entry.amount)
+                                totals[day] += kotlin.math.abs(entry.amount)
                         } catch (e: Exception) { /* skip malformed dates */ }
                     }
                 }
 
-                // LiveData stream: savings goals that carry a min/max spending band
-                savingsGoalViewModel.getAllGoalsLive(userId)
-                    .observe(this) { goals ->
+                // Cache the computed totals so the goals observer can use them
+                // without needing to be nested inside this observer.
+                chartDailyTotals = totals
 
-                        val withBand = goals?.filter {
-                            it.minSpendingGoal > 0 || it.maxSpendingGoal > 0
-                        } ?: emptyList()
-
-                        // Convert monthly totals to per-day averages for chart lines
-                        val sumMin   = withBand.sumOf { it.minSpendingGoal }
-                        val sumMax   = withBand.sumOf { it.maxSpendingGoal }
-                        val dailyMin = if (lastDay > 0) sumMin / lastDay else 0.0
-                        val dailyMax = if (lastDay > 0) sumMax / lastDay else 0.0
-
-                        spendingGoalChart.setData(
-                            dailyAmounts = dailyTotals.toList(),
-                            minGoal      = dailyMin,
-                            maxGoal      = if (dailyMax > dailyMin) dailyMax else 0.0
-                        )
-
-                        // Goal selector label — lists the goals that have a band set
-                        val names = withBand.joinToString(", ") { it.name }
-                        spendingGoalSelectorLabel.text =
-                            if (names.isNotBlank()) "Goals: $names"
-                            else "Set min/max goals in a Savings Goal to see your band"
-
-                        // Status summary (days elapsed so far this month)
-                        val todayDay   = java.util.Calendar.getInstance()
-                            .get(java.util.Calendar.DAY_OF_MONTH)
-                        val elapsed    = minOf(todayDay, lastDay)
-                        val activeDays = dailyTotals.take(elapsed)
-
-                        spendingGoalStatus.text = when {
-                            activeDays.isEmpty() || activeDays.sum() == 0.0 ->
-                                "No spending recorded this month"
-                            dailyMax <= 0 ->
-                                "${CurrencyManager.format(this@AnalyticsActivity, activeDays.sum())} spent — add min/max goals to see your band"
-                            else -> {
-                                val within  = activeDays.count { it in dailyMin..dailyMax }
-                                val overMax = activeDays.count { it > dailyMax }
-                                val pct     = (within.toDouble() / elapsed * 100).toInt()
-                                when {
-                                    pct >= 80 -> "On track! $pct% of days within your spending goal band"
-                                    overMax > elapsed / 2 -> "$overMax day(s) over budget — consider cutting back"
-                                    else -> "$within/$elapsed days within goal band ($pct%)"
-                                }
-                            }
-                        }
-                    }
+                // Re-render using the goals cached by the permanent goals observer.
+                renderSpendingGoalChart(cachedGoals)
             }
+        }
+    }
+
+    /**
+     * Renders the spending-goal chart and status text from the given [goals] list
+     * and the cached [chartDailyTotals] array. Both the entries observer and the
+     * goals observer call this method independently, so the chart always reflects
+     * the latest of whichever LiveData fires last.
+     */
+    private fun renderSpendingGoalChart(goals: List<com.example.pulserds_prog7313.data.SavingsGoal>) {
+        val lastDay = chartLastDay.takeIf { it > 0 }
+            ?: java.util.Calendar.getInstance().getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        val dailyTotals = chartDailyTotals.takeIf { it.size == lastDay }
+            ?: DoubleArray(lastDay) { 0.0 }
+
+        val withBand = goals.filter {
+            it.minSpendingGoal > 0 || it.maxSpendingGoal > 0
+        }
+
+        // Convert monthly min/max totals to per-day averages for chart lines
+        val sumMin   = withBand.sumOf { it.minSpendingGoal }
+        val sumMax   = withBand.sumOf { it.maxSpendingGoal }
+        val dailyMin = if (lastDay > 0) sumMin / lastDay else 0.0
+        val dailyMax = if (lastDay > 0) sumMax / lastDay else 0.0
+
+        spendingGoalChart.setData(
+            dailyAmounts = dailyTotals.toList(),
+            minGoal      = dailyMin,
+            maxGoal      = if (dailyMax > dailyMin) dailyMax else 0.0
+        )
+
+        // Goal selector label — lists the goals that have a band set
+        val names = withBand.joinToString(", ") { it.name }
+        spendingGoalSelectorLabel.text =
+            if (names.isNotBlank()) "Goals: $names"
+            else "Set min/max goals in a Savings Goal to see your band"
+
+        // Status summary (days elapsed so far this month)
+        val todayDay   = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)
+        val elapsed    = minOf(todayDay, lastDay)
+        val activeDays = dailyTotals.take(elapsed)
+
+        spendingGoalStatus.text = when {
+            activeDays.isEmpty() || activeDays.sum() == 0.0 ->
+                "No spending recorded this month"
+            dailyMax <= 0 ->
+                "${CurrencyManager.format(this, activeDays.sum())} spent — add min/max goals to see your band"
+            else -> {
+                val within  = activeDays.count { it in dailyMin..dailyMax }
+                val overMax = activeDays.count { it > dailyMax }
+                val pct     = (within.toDouble() / elapsed * 100).toInt()
+                when {
+                    pct >= 80 -> "On track! $pct% of days within your spending goal band"
+                    overMax > elapsed / 2 -> "$overMax day(s) over budget — consider cutting back"
+                    else -> "$within/$elapsed days within goal band ($pct%)"
+                }
+            }
+        }
     }
 }

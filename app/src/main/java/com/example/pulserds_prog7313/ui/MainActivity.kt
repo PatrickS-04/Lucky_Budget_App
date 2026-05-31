@@ -132,7 +132,7 @@ class MainActivity : AppCompatActivity() {
 
         btnLogin.setOnClickListener {
             if (validateLoginForm()) {
-                val email    = etEmail.text?.toString()?.trim() ?: ""
+                val email    = etEmail.text?.toString()?.trim()?.lowercase() ?: ""
                 val password = etPassword.text?.toString() ?: ""
 
                 lifecycleScope.launch {

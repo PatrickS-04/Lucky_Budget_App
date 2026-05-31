@@ -421,7 +421,7 @@
                         android:inputType="textCapSentences"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/black"
                         android:textColorHint="#3D5A70"
                         android:textSize="15sp" />
 
@@ -464,7 +464,7 @@
                         android:inputType="numberDecimal"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/black"
                         android:textColorHint="#3D5A70"
                         android:textSize="15sp" />
 
@@ -567,7 +567,7 @@
                         android:inputType="none"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/black"
                         android:textColorHint="#3D5A70"
                         android:textSize="15sp" />
 
@@ -609,7 +609,7 @@
                         android:inputType="none"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/black"
                         android:textColorHint="#3D5A70"
                         android:textSize="15sp" />
 
@@ -655,7 +655,7 @@
                         android:inputType="none"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/black"
                         android:textColorHint="#3D5A70"
                         android:textSize="15sp" />
 
@@ -701,7 +701,7 @@
                         android:minLines="2"
                         android:paddingTop="14dp"
                         android:paddingBottom="14dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/black"
                         android:textColorHint="#3D5A70"
                         android:textSize="15sp" />
 
