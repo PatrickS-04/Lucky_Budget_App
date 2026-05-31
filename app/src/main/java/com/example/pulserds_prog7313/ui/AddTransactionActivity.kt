@@ -314,8 +314,50 @@ class AddTransactionActivity : AppCompatActivity() {
         if (size > 10 * 1024 * 1024L) {
             Toast.makeText(this, "File exceeds the 10 MB limit", Toast.LENGTH_SHORT).show(); return
         }
-        uriOfSelectedReceipt = uri
-        showAttachedReceiptState(uri, mimeType, size)
+
+        // Copy the file into the app's private receipts directory immediately.
+        // content://media/picker_get_content/... URIs from the photo picker are
+        // TEMPORARY - they expire when the app is closed. Saving the raw URI to
+        // Firestore and opening it later causes a SecurityException which
+        // crashes TransactionsActivity. Copying to private storage gives a
+        // permanent FileProvider URI that is always readable by the app.
+        val permanentUri = copyReceiptToPrivateStorage(uri, mimeType)
+        if (permanentUri == null) {
+            Toast.makeText(this, "Could not attach receipt. Please try again.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        uriOfSelectedReceipt = permanentUri
+        showAttachedReceiptState(permanentUri, mimeType, size)
+    }
+
+    /**
+     * Copies the content at [sourceUri] into the app's private receipts folder
+     * (filesDir/receipts/) and returns a FileProvider URI for the copy, or null
+     * if the copy fails.
+     *
+     * A FileProvider URI (content://...fileprovider/...) is used instead of a
+     * raw file:// URI to avoid FileUriExposedException on Android 7+ while
+     * still letting viewer apps receive a read-permission grant.
+     */
+    private fun copyReceiptToPrivateStorage(sourceUri: Uri, mimeType: String?): Uri? {
+        return try {
+            val ext = when (mimeType) {
+                "application/pdf" -> ".pdf"
+                "image/png"       -> ".png"
+                else              -> ".jpg"
+            }
+            val dir  = File(filesDir, "receipts").also { it.mkdirs() }
+            val dest = File(dir, "receipt_${System.currentTimeMillis()}$ext")
+
+            contentResolver.openInputStream(sourceUri)?.use { input ->
+                dest.outputStream().use { output -> input.copyTo(output) }
+            }
+
+            FileProvider.getUriForFile(this, "${packageName}.fileprovider", dest)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun getSizeOfFile(uri: Uri) =

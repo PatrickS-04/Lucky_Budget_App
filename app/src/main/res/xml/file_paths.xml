@@ -3,4 +3,6 @@
     <external-files-path name="my_images" path="Pictures/" />
     <external-files-path name="analytics_exports" path="Documents/" />
     <cache-path name="my_cache" path="/" />
+    <!-- Permanent receipt copies stored in private app storage -->
+    <files-path name="receipts" path="receipts/" />
 </paths>

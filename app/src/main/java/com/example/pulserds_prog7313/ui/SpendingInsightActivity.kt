@@ -35,6 +35,8 @@ class SpendingInsightActivity : BaseActivity() {
     private var cachedCategories: List<Category> = emptyList()
     private var cachedGoals: List<SavingsGoal> = emptyList()
     private var aiTriggered = false
+    private var entriesLoaded = false
+    private var categoriesLoaded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,11 +89,13 @@ class SpendingInsightActivity : BaseActivity() {
         // -- Observe data and trigger AI when both entries + categories ready --
         expenseViewModel.entries.observe(this) { entries ->
             cachedEntries = entries ?: emptyList()
+            entriesLoaded = true
             tryTriggerAI(periodLabel)
         }
 
         categoryViewModel.categories.observe(this) { categories ->
             cachedCategories = categories ?: emptyList()
+            categoriesLoaded = true
             tryTriggerAI(periodLabel)
         }
 
@@ -121,8 +125,13 @@ class SpendingInsightActivity : BaseActivity() {
      */
     private fun tryTriggerAI(periodLabel: String) {
         if (aiTriggered) return
-        if (cachedCategories.isEmpty() && cachedEntries.isEmpty()) return
+        // Wait until BOTH LiveData sources have fired at least once.
+        // Previously this fired as soon as either one arrived, passing an
+        // empty list for the other. Now we wait for both, then call the AI
+        // regardless of whether the lists are empty (the AI handles no-data).
+        if (!entriesLoaded || !categoriesLoaded) return
         aiTriggered = true
+        android.util.Log.d("SpendingInsight", "Triggering AI: ${cachedEntries.size} entries, ${cachedCategories.size} cats, ${cachedGoals.size} goals")
         insightViewModel.loadInsights(cachedEntries, cachedCategories, cachedGoals, periodLabel)
     }
 }

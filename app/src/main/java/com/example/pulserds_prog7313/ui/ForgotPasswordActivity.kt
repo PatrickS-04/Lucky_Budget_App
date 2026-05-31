@@ -15,6 +15,7 @@ import com.example.pulserds_prog7313.R
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -146,14 +147,29 @@ class ForgotPasswordActivity : AppCompatActivity() {
                 // Firebase Auth sends a password reset email to the given address.
                 // If no account exists for that email, Firebase still returns success
                 // (by design, to avoid revealing whether an account exists).
+                // ActionCodeSettings sets a continueUrl so Firebase's email template
+                // includes a proper redirect — this improves deliverability with
+                // institutional mail servers that block the bare firebaseapp.com links.
                 //[28] 	Firebase, "Add multi-factor authentication to your Android app," Google, 27 May 2026. [Online].
                 // Available: https://firebase.google.com/docs/auth/android/multi-factor.
                 // [Accessed 30 May 2026].
-                FirebaseAuth.getInstance().sendPasswordResetEmail(email).await()
+                val actionCodeSettings = ActionCodeSettings.newBuilder()
+                    .setUrl("https://prog7313-poe-g2-pulser-ds.firebaseapp.com")
+                    .setHandleCodeInApp(false)
+                    .setAndroidPackageName(
+                        "com.example.pulserds_prog7313",
+                        /* installIfNotAvailable = */ true,
+                        /* minimumVersion = */ null
+                    )
+                    .build()
+
+                FirebaseAuth.getInstance()
+                    .sendPasswordResetEmail(email, actionCodeSettings)
+                    .await()
 
                 Toast.makeText(
                     this@ForgotPasswordActivity,
-                    "Reset email sent! Check your inbox.",
+                    "Reset email sent! Check your inbox — if you don't see it, check your Spam or Junk folder.",
                     Toast.LENGTH_LONG
                 ).show()
 
@@ -170,8 +186,11 @@ class ForgotPasswordActivity : AppCompatActivity() {
                 val msg = when {
                     e.message?.contains("network", ignoreCase = true) == true ->
                         "No internet connection. Please check your network and try again."
-                    e.message?.contains("blocked", ignoreCase = true) == true ->
-                        "Too many requests. Please wait a moment and try again."
+                    e.message?.contains("blocked", ignoreCase = true) == true ||
+                    e.message?.contains("too-many-requests", ignoreCase = true) == true ->
+                        "Too many requests. Please wait a few minutes and try again."
+                    e.message?.contains("invalid-email", ignoreCase = true) == true ->
+                        "Invalid email address. Please check and try again."
                     else ->
                         "Could not send reset email. Please check the address and try again."
                 }

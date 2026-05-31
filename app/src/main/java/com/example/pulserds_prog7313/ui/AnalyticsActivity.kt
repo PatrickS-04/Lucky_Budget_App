@@ -27,6 +27,9 @@ import com.example.pulserds_prog7313.repository.BankAccountRepository
 import com.example.pulserds_prog7313.ui.adapters.AccountSpendingAdapter
 import com.example.pulserds_prog7313.ui.adapters.CategoryTileAdapter
 import com.example.pulserds_prog7313.ui.adapters.SpendingRowAdapter
+import com.example.pulserds_prog7313.ui.adapters.SubscriptionTileAdapter
+import com.example.pulserds_prog7313.repository.SubscriptionRepository
+import com.example.pulserds_prog7313.viewmodel.SubscriptionViewModel
 import com.example.pulserds_prog7313.utils.CurrencyManager
 import com.example.pulserds_prog7313.utils.SessionManager
 import com.example.pulserds_prog7313.viewmodel.BankAccountViewModel
@@ -100,6 +103,10 @@ class AnalyticsActivity : BaseActivity() {
     private lateinit var tileAdapter: CategoryTileAdapter
     private lateinit var spendingAdapter: SpendingRowAdapter
     private lateinit var accountSpendingAdapter: AccountSpendingAdapter
+    private lateinit var subscriptionTileAdapter: SubscriptionTileAdapter
+
+    // -- Subscription ViewModel -----------------------------------------------
+    private lateinit var subscriptionViewModel: SubscriptionViewModel
 
     // -- Period state ---------------------------------------------------------
     /** Represents the available reporting periods the user can select. */
@@ -156,6 +163,9 @@ class AnalyticsActivity : BaseActivity() {
 
     /** Map of categoryId -> total spend amount for the current period. */
     private var cachedTotals: Map<String, Double> = emptyMap()
+
+    /** Latest savings goals from Firestore, kept in sync by the goals observer. */
+    private var cachedGoals: List<com.example.pulserds_prog7313.data.SavingsGoal> = emptyList()
 
     // -- Swappable LiveData observers -----------------------------------------
     // References are kept so old observers can be removed before new ones are
@@ -216,10 +226,12 @@ class AnalyticsActivity : BaseActivity() {
         setupCategoryTilesRecycler()
         setupSpendingBreakdownRecycler()
         setupAccountSpendingRecycler()
+        setupSubscriptionTilesRecycler()
         observeCategories()
         observeEntries()
         observeAccountSpending()
         observeSpendingGoalChart()
+        observeSubscriptions()
         setupPeriodChips()
         selectPeriod(Period.MONTH) // Default to Month view on first launch.
 
@@ -235,6 +247,11 @@ class AnalyticsActivity : BaseActivity() {
         // AI Spending Insights button navigates to SpendingInsightActivity.
         findViewById<MaterialButton>(R.id.aiInsightsButton)?.setOnClickListener {
             launchAiInsights()
+        }
+
+        // "Manage" link in the subscriptions section navigates to ManageSubscriptionsActivity.
+        findViewById<TextView>(R.id.subsManageLinkAnalytics)?.setOnClickListener {
+            startActivity(android.content.Intent(this, ManageSubscriptionsActivity::class.java))
         }
 
         setupBottomNav(R.id.navAnalytics)
@@ -438,6 +455,11 @@ class AnalyticsActivity : BaseActivity() {
         savingsGoalViewModel = ViewModelProvider(
             this, ViewModelFactory { com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel(com.example.pulserds_prog7313.repository.SavingsGoalRepository()) }
         )[com.example.pulserds_prog7313.viewmodel.SavingsGoalViewModel::class.java]
+
+        subscriptionViewModel = ViewModelProvider(
+            this, ViewModelFactory { SubscriptionViewModel(SubscriptionRepository()) }
+        )[SubscriptionViewModel::class.java]
+        if (userId.isNotBlank()) subscriptionViewModel.init(userId)
     }
 
     // -------------------------------------------------------------------------
@@ -471,6 +493,30 @@ class AnalyticsActivity : BaseActivity() {
             layoutManager = LinearLayoutManager(this@AnalyticsActivity)
             adapter = accountSpendingAdapter
             isNestedScrollingEnabled = false // Parent ScrollView handles scrolling.
+        }
+    }
+
+    /** Sets up the 2-column grid that shows a tile per active subscription. */
+    private fun setupSubscriptionTilesRecycler() {
+        subscriptionTileAdapter = SubscriptionTileAdapter()
+        findViewById<RecyclerView>(R.id.subscriptionsTilesRecycler).apply {
+            layoutManager = GridLayoutManager(this@AnalyticsActivity, 2)
+            adapter = subscriptionTileAdapter
+            isNestedScrollingEnabled = false
+        }
+    }
+
+    /** Observes active subscriptions and keeps the tile grid up to date. */
+    private fun observeSubscriptions() {
+        subscriptionViewModel.subscriptions.observe(this) { subs ->
+            val activeSubs = subs.filter { it.status == "Active" }
+            subscriptionTileAdapter.submitList(activeSubs)
+
+            val hasData = activeSubs.isNotEmpty()
+            findViewById<android.view.View>(R.id.subscriptionsTilesRecycler).visibility =
+                if (hasData) android.view.View.VISIBLE else android.view.View.GONE
+            findViewById<android.view.View>(R.id.subscriptionsTilesEmpty).visibility =
+                if (hasData) android.view.View.GONE else android.view.View.VISIBLE
         }
     }
 
@@ -710,7 +756,8 @@ class AnalyticsActivity : BaseActivity() {
         if (userId.isBlank()) return
 
         savingsGoalViewModel.getAllGoalsLive(userId).observe(this) { goals ->
-            renderSpendingGoalChart(goals ?: emptyList())
+            cachedGoals = goals ?: emptyList()
+            renderSpendingGoalChart(cachedGoals)
         }
     }
 
@@ -759,9 +806,8 @@ class AnalyticsActivity : BaseActivity() {
                 // without needing to be nested inside this observer.
                 chartDailyTotals = totals
 
-                // Re-render using the currently cached goals from the permanent observer.
-                val currentGoals = savingsGoalViewModel.getAllGoalsLive(userId).value ?: emptyList()
-                renderSpendingGoalChart(currentGoals)
+                // Re-render using the goals cached by the permanent goals observer.
+                renderSpendingGoalChart(cachedGoals)
             }
         }
     }
