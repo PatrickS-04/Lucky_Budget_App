@@ -1,5 +1,7 @@
 package com.example.pulserds_prog7313.data
 
+import com.google.firebase.firestore.PropertyName
+
 // 'id', 'userId', 'linkedAccountId' are now Strings.
 // All fields have default values for Firestore deserialisation.
 //[26] 	Firebase, "Firebase Authentication," Google, 27 May 2026. [Online].
@@ -38,7 +40,11 @@ data class SavingsGoal(
     val autoSaveFrequency: String = "MONTHLY",
 
     /** True once savedAmount >= targetAmount */
-    val isCompleted: Boolean = false,
+    // @PropertyName keeps Firestore serialisation aligned with the stored field name.
+    // Without this, Kotlin's is-prefix convention causes Firestore to read/write
+    // a field called "completed" instead of "isCompleted", so the flag never updates.
+    @get:PropertyName("isCompleted") @set:PropertyName("isCompleted")
+    var isCompleted: Boolean = false,
 
     /** "dd MMM yyyy" completion date */
     val completedDate: String = "",
