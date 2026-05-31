@@ -174,13 +174,6 @@ class SettingsActivity : BaseActivity() {
             Toast.makeText(this, if (isChecked) "Savings milestone alerts on" else "Savings milestone alerts off", Toast.LENGTH_SHORT).show()
         }
 
-        val darkModeSwitch = findViewById<Switch>(R.id.darkModeSwitch)
-        darkModeSwitch.isChecked = settingsPrefs.getBoolean(KEY_DARK_MODE, true)
-        darkModeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean(KEY_DARK_MODE, isChecked).apply()
-            Toast.makeText(this, if (isChecked) "Dark mode enabled" else "Dark mode disabled", Toast.LENGTH_SHORT).show()
-        }
-
         // ↓ CHANGED: showCurrencyDialog() now handles rate refresh (see below)
         findViewById<LinearLayout>(R.id.currencyRow).setOnClickListener { showCurrencyDialog() }
         findViewById<LinearLayout>(R.id.languageRow).setOnClickListener {

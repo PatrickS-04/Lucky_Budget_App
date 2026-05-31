@@ -18,7 +18,7 @@ data class SpendingInsight(
 class GeminiSpendingService {
 
     private val model = GenerativeModel(
-        modelName = "gemini-1.5-flash",   // fast & free-tier friendly
+        modelName = "gemini-2.0-flash",   // fast & free-tier friendly
         apiKey = BuildConfig.GEMINI_API_KEY,
         generationConfig = generationConfig {
             temperature = 0.4f             // lower = more factual, less creative
@@ -102,7 +102,7 @@ class GeminiSpendingService {
                 overspendingWarnings = emptyList(),
                 budgetSuggestions = emptyList(),
                 savingsAdvice = "",
-                topRisk = e.message ?: "Unknown error"
+                topRisk = "Unable to assess risks — AI service unavailable."
             )
         }
     }
