@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.Category
@@ -41,6 +42,12 @@ class SpendingInsightActivity : BaseActivity() {
 
         val periodLabel = intent.getStringExtra("periodLabel") ?: "This Month"
         val userId = SessionManager(this).getUserId()
+
+        // -- Toolbar back navigation ------------------------------------------
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        toolbar.setNavigationOnClickListener { finish() }
 
         // -- ViewModels -------------------------------------------------------
         insightViewModel = ViewModelProvider(

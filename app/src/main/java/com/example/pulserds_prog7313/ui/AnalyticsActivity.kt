@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.pulserds_prog7313.DonutChartView
 import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.Category
+import com.example.pulserds_prog7313.data.ExpenseEntry
 import com.example.pulserds_prog7313.repository.CategoryRepository
 import com.example.pulserds_prog7313.repository.ExpenseEntryRepository
 import com.example.pulserds_prog7313.repository.BankAccountRepository
@@ -163,6 +164,16 @@ class AnalyticsActivity : BaseActivity() {
     private var incomeLiveData: LiveData<Double>? = null
     private var expensesLiveData: LiveData<Double>? = null
 
+    // -- Spending goal chart: swappable LiveData references -------------------
+    // The chart always shows the current calendar month, independent of the
+    // selected period chip. The entries LiveData is swapped each time
+    // loadSpendingGoalChart() is called so that only ONE observer is ever active.
+    // The goals LiveData is set up once (in observeSpendingGoalChart) and never
+    // re-subscribed, eliminating the nested-observer stacking bug.
+    private var chartEntriesLiveData: LiveData<List<com.example.pulserds_prog7313.data.ExpenseEntry>>? = null
+    private var chartDailyTotals: DoubleArray = DoubleArray(0)
+    private var chartLastDay: Int = 0
+
     /** Updates the income label and triggers a hero balance recalculation. */
     private val incomeObserver = Observer<Double> { income ->
         lastIncome = income ?: 0.0
@@ -208,6 +219,7 @@ class AnalyticsActivity : BaseActivity() {
         observeCategories()
         observeEntries()
         observeAccountSpending()
+        observeSpendingGoalChart()
         setupPeriodChips()
         selectPeriod(Period.MONTH) // Default to Month view on first launch.
 
@@ -680,9 +692,34 @@ class AnalyticsActivity : BaseActivity() {
     // -------------------------------------------------------------------------
 
     /**
-     * Loads per-day expense totals for the current calendar month and the
-     * aggregate min/max spending goals from SavingsGoals, then renders
-     * SpendingGoalChartView with a tinted goal band and a status summary.
+     * Registers a single, permanent observer on the savings-goals LiveData.
+     * Must be called ONCE from onCreate() so that no matter how many times
+     * loadSpendingGoalChart() / reloadData() runs, the goals observer is never
+     * duplicated. Whenever goals change, it re-renders the chart using the
+     * already-cached [chartDailyTotals] array.
+     *
+     * Previously the goals observer was nested inside the entries observer
+     * inside loadSpendingGoalChart(), which caused an exponential pile-up:
+     *   - loadSpendingGoalChart() called on each period change  -> new entries observer
+     *   - Each entries emission inside that observer added another goals observer
+     * Result: after a few interactions dozens of duplicate callbacks fired, each
+     * reading stale or zero data and overwriting the chart with an empty band.
+     */
+    private fun observeSpendingGoalChart() {
+        val userId = SessionManager(this).getUserId()
+        if (userId.isBlank()) return
+
+        savingsGoalViewModel.getAllGoalsLive(userId).observe(this) { goals ->
+            renderSpendingGoalChart(goals ?: emptyList())
+        }
+    }
+
+    /**
+     * Swaps the month-scoped entries LiveData so that only ONE entries observer
+     * is active at a time for the spending goal chart. The entries observer caches
+     * the computed daily totals and then calls [renderSpendingGoalChart] so the
+     * goals observer and entries observer are fully decoupled — neither is nested
+     * inside the other.
      *
      * The chart is always month-scoped as required by the PoE spec.
      */
@@ -690,19 +727,22 @@ class AnalyticsActivity : BaseActivity() {
         if (userId.isBlank()) return
 
         val cal      = java.util.Calendar.getInstance()
-        val lastDay  = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        chartLastDay = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
         val month    = cal.get(java.util.Calendar.MONTH) + 1
         val year     = cal.get(java.util.Calendar.YEAR)
         val startStr = "01/%02d/%d".format(month, year)
-        val endStr   = "%02d/%02d/%d".format(lastDay, month, year)
+        val endStr   = "%02d/%02d/%d".format(chartLastDay, month, year)
 
-        // LiveData stream: expense entries filtered to this calendar month
-        expenseViewModel.getEntriesForPeriodLive(userId, startStr, endStr)
-            .observe(this) { entries ->
+        // Remove the previous entries observer before attaching a new one,
+        // mirroring the same pattern used for incomeLiveData / expensesLiveData.
+        chartEntriesLiveData?.removeObservers(this)
 
-                // Bucket absolute expense amounts by day-of-month (0-indexed)
-                val dailyTotals = DoubleArray(lastDay) { 0.0 }
-                val fmt = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+        chartEntriesLiveData = expenseViewModel.getEntriesForPeriodLive(userId, startStr, endStr).also { ld ->
+            ld.observe(this) { entries ->
+                val lastDay = chartLastDay
+                val totals  = DoubleArray(lastDay) { 0.0 }
+                val fmt     = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+
                 entries?.forEach { entry ->
                     if (entry.amount < 0) {
                         try {
@@ -710,60 +750,76 @@ class AnalyticsActivity : BaseActivity() {
                             val cal2 = java.util.Calendar.getInstance().also { c -> c.time = d }
                             val day  = cal2.get(java.util.Calendar.DAY_OF_MONTH) - 1
                             if (day in 0 until lastDay)
-                                dailyTotals[day] += kotlin.math.abs(entry.amount)
+                                totals[day] += kotlin.math.abs(entry.amount)
                         } catch (e: Exception) { /* skip malformed dates */ }
                     }
                 }
 
-                // LiveData stream: savings goals that carry a min/max spending band
-                savingsGoalViewModel.getAllGoalsLive(userId)
-                    .observe(this) { goals ->
+                // Cache the computed totals so the goals observer can use them
+                // without needing to be nested inside this observer.
+                chartDailyTotals = totals
 
-                        val withBand = goals?.filter {
-                            it.minSpendingGoal > 0 || it.maxSpendingGoal > 0
-                        } ?: emptyList()
-
-                        // Convert monthly totals to per-day averages for chart lines
-                        val sumMin   = withBand.sumOf { it.minSpendingGoal }
-                        val sumMax   = withBand.sumOf { it.maxSpendingGoal }
-                        val dailyMin = if (lastDay > 0) sumMin / lastDay else 0.0
-                        val dailyMax = if (lastDay > 0) sumMax / lastDay else 0.0
-
-                        spendingGoalChart.setData(
-                            dailyAmounts = dailyTotals.toList(),
-                            minGoal      = dailyMin,
-                            maxGoal      = if (dailyMax > dailyMin) dailyMax else 0.0
-                        )
-
-                        // Goal selector label — lists the goals that have a band set
-                        val names = withBand.joinToString(", ") { it.name }
-                        spendingGoalSelectorLabel.text =
-                            if (names.isNotBlank()) "Goals: $names"
-                            else "Set min/max goals in a Savings Goal to see your band"
-
-                        // Status summary (days elapsed so far this month)
-                        val todayDay   = java.util.Calendar.getInstance()
-                            .get(java.util.Calendar.DAY_OF_MONTH)
-                        val elapsed    = minOf(todayDay, lastDay)
-                        val activeDays = dailyTotals.take(elapsed)
-
-                        spendingGoalStatus.text = when {
-                            activeDays.isEmpty() || activeDays.sum() == 0.0 ->
-                                "No spending recorded this month"
-                            dailyMax <= 0 ->
-                                "${CurrencyManager.format(this@AnalyticsActivity, activeDays.sum())} spent — add min/max goals to see your band"
-                            else -> {
-                                val within  = activeDays.count { it in dailyMin..dailyMax }
-                                val overMax = activeDays.count { it > dailyMax }
-                                val pct     = (within.toDouble() / elapsed * 100).toInt()
-                                when {
-                                    pct >= 80 -> "On track! $pct% of days within your spending goal band"
-                                    overMax > elapsed / 2 -> "$overMax day(s) over budget — consider cutting back"
-                                    else -> "$within/$elapsed days within goal band ($pct%)"
-                                }
-                            }
-                        }
-                    }
+                // Re-render using the currently cached goals from the permanent observer.
+                val currentGoals = savingsGoalViewModel.getAllGoalsLive(userId).value ?: emptyList()
+                renderSpendingGoalChart(currentGoals)
             }
+        }
+    }
+
+    /**
+     * Renders the spending-goal chart and status text from the given [goals] list
+     * and the cached [chartDailyTotals] array. Both the entries observer and the
+     * goals observer call this method independently, so the chart always reflects
+     * the latest of whichever LiveData fires last.
+     */
+    private fun renderSpendingGoalChart(goals: List<com.example.pulserds_prog7313.data.SavingsGoal>) {
+        val lastDay = chartLastDay.takeIf { it > 0 }
+            ?: java.util.Calendar.getInstance().getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        val dailyTotals = chartDailyTotals.takeIf { it.size == lastDay }
+            ?: DoubleArray(lastDay) { 0.0 }
+
+        val withBand = goals.filter {
+            it.minSpendingGoal > 0 || it.maxSpendingGoal > 0
+        }
+
+        // Convert monthly min/max totals to per-day averages for chart lines
+        val sumMin   = withBand.sumOf { it.minSpendingGoal }
+        val sumMax   = withBand.sumOf { it.maxSpendingGoal }
+        val dailyMin = if (lastDay > 0) sumMin / lastDay else 0.0
+        val dailyMax = if (lastDay > 0) sumMax / lastDay else 0.0
+
+        spendingGoalChart.setData(
+            dailyAmounts = dailyTotals.toList(),
+            minGoal      = dailyMin,
+            maxGoal      = if (dailyMax > dailyMin) dailyMax else 0.0
+        )
+
+        // Goal selector label — lists the goals that have a band set
+        val names = withBand.joinToString(", ") { it.name }
+        spendingGoalSelectorLabel.text =
+            if (names.isNotBlank()) "Goals: $names"
+            else "Set min/max goals in a Savings Goal to see your band"
+
+        // Status summary (days elapsed so far this month)
+        val todayDay   = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)
+        val elapsed    = minOf(todayDay, lastDay)
+        val activeDays = dailyTotals.take(elapsed)
+
+        spendingGoalStatus.text = when {
+            activeDays.isEmpty() || activeDays.sum() == 0.0 ->
+                "No spending recorded this month"
+            dailyMax <= 0 ->
+                "${CurrencyManager.format(this, activeDays.sum())} spent — add min/max goals to see your band"
+            else -> {
+                val within  = activeDays.count { it in dailyMin..dailyMax }
+                val overMax = activeDays.count { it > dailyMax }
+                val pct     = (within.toDouble() / elapsed * 100).toInt()
+                when {
+                    pct >= 80 -> "On track! $pct% of days within your spending goal band"
+                    overMax > elapsed / 2 -> "$overMax day(s) over budget — consider cutting back"
+                    else -> "$within/$elapsed days within goal band ($pct%)"
+                }
+            }
+        }
     }
 }
