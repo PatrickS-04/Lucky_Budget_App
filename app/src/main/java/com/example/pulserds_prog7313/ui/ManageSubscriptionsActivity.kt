@@ -121,8 +121,8 @@ class ManageSubscriptionsActivity : BaseActivity() {
         // The alert body text is inside the nested LinearLayout
         renewingAlertBody = (renewingAlertCard as android.view.ViewGroup)
             .let { card ->
-                // LinearLayout > LinearLayout > [TextView(bell), LinearLayout > [title, body]]
-                val inner = (card as android.widget.LinearLayout)
+                // CardView wraps a LinearLayout; getChildAt(0) gives the inner LinearLayout
+                val inner = card.getChildAt(0) as android.widget.LinearLayout
                 val textCol = inner.getChildAt(1) as android.widget.LinearLayout
                 textCol.getChildAt(1) as TextView
             }

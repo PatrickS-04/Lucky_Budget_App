@@ -163,8 +163,18 @@ class ForgotPasswordActivity : AppCompatActivity() {
                 finish()
 
             } catch (e: Exception) {
+                android.util.Log.e("ForgotPassword", "Reset email failed: ${e.message}", e)
                 btnAction.isEnabled = true
-                tilEmail.error = "Could not send reset email. Please check the address and try again."
+                val msg = when {
+                    e.message?.contains("network", ignoreCase = true) == true ->
+                        "No internet connection. Please check your network and try again."
+                    e.message?.contains("blocked", ignoreCase = true) == true ->
+                        "Too many requests. Please wait a moment and try again."
+                    else ->
+                        "Could not send reset email. Please check the address and try again."
+                }
+                tilEmail.error = msg
+                Toast.makeText(this@ForgotPasswordActivity, msg, Toast.LENGTH_LONG).show()
             }
         }
     }
