@@ -42,7 +42,7 @@ The Lucky Budget helps users manage funds, expenses, goals, and subscriptions �
 | **Bank Accounts** | Add and manage multiple bank accounts; view per-account spending |
 | **Savings Goals** | Create goals with target amounts and deadlines; track progress and mark complete |
 | **Subscriptions** | Track recurring subscriptions (e.g. Netflix, Spotify) with billing cycle, auto-pay, renewal dates, and reminders |
-| **Spending Insights** | **AI-powered analysis via Gemini 2.0 Flash** — spending summaries, overspending warnings, budget suggestions, and savings advice |
+| **Spending Insights** | **AI-powered analysis via Gemini 2.5 Flash** — spending summaries, overspending warnings, budget suggestions, and savings advice |
 | **Settings** | Toggle preferences (2FA, overspend alerts, subscription reminders, dark mode, **multi-currency**); manage profile and session |
 | **Manage Categories** | Create and manage custom expense categories |
 
@@ -55,7 +55,7 @@ The Lucky Budget helps users manage funds, expenses, goals, and subscriptions �
 - **Architecture:** MVVM (ViewModel + LiveData + Repository)
 - **Database:** Cloud Firestore (Firebase) — real-time sync across devices
 - **Authentication:** Firebase Auth — email/password + Google Sign-In (Credential Manager)
-- **AI:** Google Gemini 2.0 Flash via OkHttp REST
+- **AI:** Google Gemini 2.5 Flash via OkHttp REST
 - **UI:** XML layouts, ViewBinding, Material Design 3, custom `DonutChartView` & `SpendingGoalChartView`
 - **Concurrency:** Kotlin Coroutines + `lifecycleScope`
 - **Build:** Gradle 9.4.1 (Kotlin DSL) · AGP 9.2.1 · **CI:** GitHub Actions
