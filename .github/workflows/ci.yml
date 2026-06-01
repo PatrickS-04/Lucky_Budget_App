@@ -26,6 +26,7 @@ jobs:
         run: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
+          echo "GEMINI_API_KEY_2=${{ secrets.GEMINI_API_KEY_2 }}" >> local.properties
       # Step 5: Cache Gradle dependencies to speed up builds
       - name: Cache Gradle Packages
         uses: actions/cache@v4

@@ -327,8 +327,8 @@ class AddSubscriptionActivity : BaseActivity() {
             bankAccountId = bankAccountId,
             startDate     = startDate,
             note          = note,
-            isAutoPay     = autoPaySwitch.isChecked,
-            isReminderOn  = reminderSwitch.isChecked,
+            autoPay      = autoPaySwitch.isChecked,
+            reminderOn   = reminderSwitch.isChecked,
             reminderDays  = selectedReminderDays,
             icon          = selectedIcon
         )

@@ -91,7 +91,7 @@ class SubscriptionAdapter(
         if (isPaused) {
             holder.autoPayText.text = "Auto-pay OFF"
             holder.autoPayText.setTextColor(0xFFFBBF24.toInt())
-        } else if (sub.isAutoPay) {
+        } else if (sub.autoPay) {
             holder.autoPayText.text = "Auto-pay ON"
             holder.autoPayText.setTextColor(0xFF4ADE80.toInt())
         } else {

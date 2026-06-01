@@ -16,8 +16,8 @@ package com.example.pulserds_prog7313.data
  * @param startDate     Start date in "dd/MM/yyyy" format.
  * @param nextRenewal   Computed next renewal date in "dd/MM/yyyy" format.
  * @param note          Optional user note.
- * @param isAutoPay     Whether the subscription deducts automatically on renewal.
- * @param isReminderOn  Whether to notify the user before renewal.
+ * @param autoPay       Whether the subscription deducts automatically on renewal.
+ * @param reminderOn    Whether to notify the user before renewal.
  * @param reminderDays  Days before renewal to send a reminder (1, 3, or 7).
  * @param status        One of: "Active", "Paused".
  * @param icon          Emoji icon representing the service (e.g. "📺").
@@ -33,8 +33,8 @@ data class Subscription(
     val startDate: String = "",
     val nextRenewal: String = "",
     val note: String = "",
-    val isAutoPay: Boolean = true,
-    val isReminderOn: Boolean = true,
+    val autoPay: Boolean = true,
+    val reminderOn: Boolean = true,
     val reminderDays: Int = 3,
     val status: String = "Active",
     val icon: String = "📋"

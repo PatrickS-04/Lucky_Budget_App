@@ -72,8 +72,8 @@ class SubscriptionViewModel(
         bankAccountId: String,
         startDate: String,
         note: String,
-        isAutoPay: Boolean,
-        isReminderOn: Boolean,
+        autoPay: Boolean,
+        reminderOn: Boolean,
         reminderDays: Int,
         icon: String
     ) {
@@ -97,8 +97,8 @@ class SubscriptionViewModel(
                 startDate     = startDate,
                 nextRenewal   = nextRenewal,
                 note          = note.trim(),
-                isAutoPay     = isAutoPay,
-                isReminderOn  = isReminderOn,
+                autoPay      = autoPay,
+                reminderOn   = reminderOn,
                 reminderDays  = reminderDays,
                 status        = "Active",
                 icon          = icon

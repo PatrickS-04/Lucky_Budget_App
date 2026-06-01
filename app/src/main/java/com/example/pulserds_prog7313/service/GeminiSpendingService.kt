@@ -25,16 +25,18 @@ data class SpendingInsight(
 
 class GeminiSpendingService {
 
-    // Use the v1 REST endpoint directly — the Google AI SDK 0.9.0 hardcodes v1beta
-    // which no longer supports gemini-2.0-flash. OkHttp is already a project dependency.
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    private val apiKey = BuildConfig.GEMINI_API_KEY.trim()  // trim in case local.properties has accidental whitespace
-    private val model  = "gemini-2.0-flash-lite"
-    private val url    = "https://generativelanguage.googleapis.com/v1/models/$model:generateContent?key=$apiKey"
+    private val model = "gemini-2.5-flash"
+    private val apiKeys = listOfNotNull(
+        BuildConfig.GEMINI_API_KEY.trim().takeIf { it.isNotEmpty() },
+        BuildConfig.GEMINI_API_KEY_2.trim().takeIf { it.isNotEmpty() }
+    )
+    private fun urlForKey(key: String) =
+        "https://generativelanguage.googleapis.com/v1/models/$model:generateContent?key=$key"
 
     /**
      * Builds a structured prompt from the user's real data and returns parsed insights.
@@ -107,28 +109,40 @@ class GeminiSpendingService {
             ))
             put("generationConfig", JSONObject().apply {
                 put("temperature", 0.4)
-                put("maxOutputTokens", 800)
+                put("maxOutputTokens", 2048)
             })
         }.toString()
 
         return@withContext try {
-            val okRequest = Request.Builder()
-                .url(url)
-                .post(requestBody.toRequestBody("application/json".toMediaType()))
-                .build()
+            val body = requestBody.toRequestBody("application/json".toMediaType())
 
-            var response = client.newCall(okRequest).execute()
+            var response = client.newCall(
+                Request.Builder().url(urlForKey(apiKeys[0])).post(body).build()
+            ).execute()
             var responseBody = response.body?.string() ?: "{}"
             var httpCode = response.code
 
-            // Retry up to 3 times with exponential backoff on rate-limit (429)
-            var attempt = 0
-            while (httpCode == 429 && attempt < 3) {
-                attempt++
-                val backoffMs = (1000L * (1 shl attempt)) // 2s, 4s, 8s
-                android.util.Log.w("GeminiService", "429 rate limit — retrying in ${backoffMs}ms (attempt $attempt)")
-                delay(backoffMs)
-                response = client.newCall(okRequest).execute()
+            // On 503 (server overloaded), retry up to 3 times with backoff
+            var retries = 0
+            while (httpCode == 503 && retries < 3) {
+                val waitMs = 3_000L * (retries + 1)
+                android.util.Log.w("GeminiService", "503 overloaded — waiting ${waitMs}ms then retrying (attempt ${retries + 1}/3)")
+                delay(waitMs)
+                response = client.newCall(
+                    Request.Builder().url(urlForKey(apiKeys[0])).post(body).build()
+                ).execute()
+                responseBody = response.body?.string() ?: "{}"
+                httpCode = response.code
+                retries++
+            }
+
+            // On 429, wait briefly then fall over to the secondary key (if configured)
+            if (httpCode == 429 && apiKeys.size > 1) {
+                android.util.Log.w("GeminiService", "Primary key rate-limited (429) — waiting 5s then switching to secondary key")
+                delay(5_000L)
+                response = client.newCall(
+                    Request.Builder().url(urlForKey(apiKeys[1])).post(body).build()
+                ).execute()
                 responseBody = response.body?.string() ?: "{}"
                 httpCode = response.code
             }
@@ -139,8 +153,10 @@ class GeminiSpendingService {
             if (!response.isSuccessful) {
                 android.util.Log.e("GeminiService", "API error $httpCode: $responseBody")
                 val (summary, topRisk) = when (httpCode) {
-                    429  -> "AI insights unavailable — rate limit reached." to
-                            "Free tier quota exceeded. Please wait a minute and try again."
+                    429  -> "AI insights unavailable — both API key quotas are exhausted." to
+                            "Free tier quota exceeded on all configured keys. Try again later."
+                    503  -> "AI server is overloaded right now. Please try again in a moment." to
+                            "Google's servers returned 503 after retries — temporary high demand."
                     401, 403 -> "AI insights unavailable — authentication failed." to
                             "Invalid or missing API key (HTTP $httpCode)."
                     else -> "Could not load AI insights. Check your connection." to

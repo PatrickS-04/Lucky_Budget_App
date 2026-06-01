@@ -25,6 +25,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "GEMINI_API_KEY", "\"${localProps["GEMINI_API_KEY"].toString().trim()}\"")
+        buildConfigField("String", "GEMINI_API_KEY_2", "\"${localProps["GEMINI_API_KEY_2"].toString().trim()}\"")
     }
 
 
