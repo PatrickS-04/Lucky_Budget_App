@@ -22,7 +22,7 @@ The Lucky Budget helps users manage funds, expenses, goals, and subscriptions �
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
-- [CI / CD](#-ci--cd)
+- [CI / CD](#-ci-/-cd)
 - [Database](#-database)
 - [Permissions](#-permissions)
 - [References](#-references)
@@ -55,25 +55,37 @@ The Lucky Budget helps users manage funds, expenses, goals, and subscriptions �
 - **Architecture:** MVVM (ViewModel + LiveData + Repository)
 - **Database:** Cloud Firestore (Firebase) — real-time sync across devices
 - **Authentication:** Firebase Auth — email/password + Google Sign-In (Credential Manager)
-- **AI:** Google Gemini 2.0 Flash Lite via OkHttp REST
+- **AI:** Google Gemini 2.0 Flash via OkHttp REST
 - **UI:** XML layouts, ViewBinding, Material Design 3, custom `DonutChartView` & `SpendingGoalChartView`
 - **Concurrency:** Kotlin Coroutines + `lifecycleScope`
-- **Build:** Gradle Kotlin DSL · **CI:** GitHub Actions
+- **Build:** Gradle 9.4.1 (Kotlin DSL) · AGP 9.2.1 · **CI:** GitHub Actions
 
 ### Key Dependencies
 
 ```toml
-firebase-bom                  = "34.13.0"
-firebase-auth                 (via BoM)
-firebase-firestore             (via BoM)
-credentials                   = "1.3.0"
-googleid                      = "1.1.1"
-okhttp3                       = "4.12.0"
-lifecycle-viewmodel-ktx       = "2.8.4"
-kotlinx-coroutines-android    = "1.8.1"
-kotlinx-coroutines-play-services = "1.8.1"
-material                      = "1.13.0"
-constraintlayout              = "2.2.1"
+# Firebase
+firebase-bom                        = "34.13.0"
+firebase-auth                       (via BoM)
+firebase-firestore                  (via BoM)
+firebase-analytics                  (via BoM)
+
+# Google Sign-In
+credentials                         = "1.3.0"
+credentials-play-services-auth      = "1.3.0"
+googleid                            = "1.1.1"
+
+# Networking
+okhttp3                             = "4.12.0"
+
+# Lifecycle / Coroutines
+lifecycle-viewmodel-ktx             = "2.8.4"
+kotlinx-coroutines-android          = "1.8.1"
+kotlinx-coroutines-play-services    = "1.8.1"
+
+# UI
+material                            = "1.12.0"
+constraintlayout                    = "2.2.0"
+activity-ktx                        = "1.9.0"
 ```
 
 ---
@@ -81,67 +93,105 @@ constraintlayout              = "2.2.1"
 ## 📁 Project Structure
 
 ```
-app/src/main/java/com/example/pulserds_prog7313/
-├── App.kt                              # Application class — auto-logout lifecycle callbacks
-├── DonutChart.kt / DonutChartView.kt   # Custom spending donut chart
-├── SpendingGoalChartView.kt            # Custom savings-goal progress chart
+Pulserds_PROG7313/
+├── app/
+│   ├── google-services.json
+│   ├── build.gradle.kts
+│   └── src/main/
+│       ├── AndroidManifest.xml
+│       ├── java/com/example/pulserds_prog7313/
+│       │   ├── App.kt                              # Application class — auto-logout lifecycle callbacks
+│       │   ├── DonutChart.kt                       # Donut chart data model
+│       │   ├── DonutChartView.kt                   # Custom Canvas donut chart view
+│       │   ├── SpendingGoalChartView.kt            # Custom daily-spending bar chart with goal band
+│       │   │
+│       │   ├── data/                               # Firestore document models
+│       │   │   ├── User.kt
+│       │   │   ├── Category.kt
+│       │   │   ├── ExpenseEntry.kt
+│       │   │   ├── BankAccount.kt
+│       │   │   ├── AccountSpending.kt
+│       │   │   ├── SavingsGoal.kt
+│       │   │   └── Subscription.kt
+│       │   │
+│       │   ├── repository/                         # Firestore data access layer
+│       │   │   ├── UserRepository.kt
+│       │   │   ├── CategoryRepository.kt
+│       │   │   ├── ExpenseEntryRepository.kt
+│       │   │   ├── BankAccountRepository.kt
+│       │   │   ├── SavingsGoalRepository.kt
+│       │   │   └── SubscriptionRepository.kt
+│       │   │
+│       │   ├── service/
+│       │   │   └── GeminiSpendingService.kt        # Gemini 2.0 Flash REST integration
+│       │   │
+│       │   ├── ui/                                 # Activities
+│       │   │   ├── BaseActivity.kt
+│       │   │   ├── MainActivity.kt                 # Login
+│       │   │   ├── CreateAccActivity.kt            # Registration
+│       │   │   ├── ForgotPasswordActivity.kt
+│       │   │   ├── DashBoardActivity.kt
+│       │   │   ├── TransactionsActivity.kt
+│       │   │   ├── AddTransactionActivity.kt
+│       │   │   ├── AnalyticsActivity.kt
+│       │   │   ├── CategoryTotalsActivity.kt
+│       │   │   ├── AccountsActivity.kt
+│       │   │   ├── AddAccountActivity.kt
+│       │   │   ├── SavingsGoalsActivity.kt
+│       │   │   ├── CreateSavingsGoalActivity.kt
+│       │   │   ├── ManageSubscriptionsActivity.kt
+│       │   │   ├── AddSubscriptionActivity.kt
+│       │   │   ├── SpendingInsightActivity.kt      # AI spending analysis
+│       │   │   ├── SettingsActivity.kt
+│       │   │   ├── ManageCategoriesActivity.kt
+│       │   │   └── adapters/
+│       │   │       ├── AccountSpendingAdapter.kt
+│       │   │       ├── CategoryRowAdapter.kt
+│       │   │       ├── CategoryTileAdapter.kt
+│       │   │       ├── DashSavingsAdapter.kt
+│       │   │       ├── SpendingRowAdapter.kt
+│       │   │       ├── SubscriptionAdapter.kt
+│       │   │       ├── SubscriptionTileAdapter.kt
+│       │   │       └── TransactionAdapter.kt
+│       │   │
+│       │   ├── utils/
+│       │   │   ├── SessionManager.kt               # SharedPreferences session handling
+│       │   │   ├── CurrencyManager.kt              # Multi-currency with live exchange rates
+│       │   │   ├── AnalyticsPdfExporter.kt         # Analytics PDF export
+│       │   │   └── SingleLiveEvent.kt
+│       │   │
+│       │   └── viewmodel/
+│       │       ├── BankAccountViewModel.kt
+│       │       ├── CategoryViewModel.kt
+│       │       ├── ExpenseEntryViewModel.kt
+│       │       ├── SavingsGoalViewModel.kt
+│       │       ├── SubscriptionViewModel.kt
+│       │       ├── SpendingInsightViewModel.kt
+│       │       ├── UserViewModel.kt
+│       │       └── ViewModelFactory.kt
+│       │
+│       └── res/
+│           ├── layout/                             # 20 XML layout files
+│           ├── values/                             # colors, strings, themes, dimens, attrs
+│           ├── drawable/
+│           ├── mipmap-anydpi/
+│           └── xml/                               # backup_rules, data_extraction_rules, file_paths
 │
-├── data/                               # Firestore document models
-│   ├── User.kt
-│   ├── Category.kt
-│   ├── ExpenseEntry.kt
-│   ├── BankAccount.kt / AccountSpending.kt
-│   ├── SavingsGoal.kt
-│   └── Subscription.kt
+├── gradle/
+│   ├── libs.versions.toml
+│   ├── wrapper/
+│   │   └── gradle-wrapper.properties              # Gradle 9.4.1
+│   └── gradle-daemon-jvm.properties
 │
-├── repository/                         # Firestore data access layer
-│   ├── BankAccountRepository.kt
-│   ├── CategoryRepository.kt
-│   ├── ExpenseEntryRepository.kt
-│   ├── SavingsGoalRepository.kt
-│   ├── SubscriptionRepository.kt
-│   └── UserRepository.kt
+├── .github/
+│   └── workflows/
+│       └── ci.yml                                 # GitHub Actions CI pipeline
 │
-├── service/
-│   └── GeminiSpendingService.kt        # Gemini 2.0 Flash REST integration
-│
-├── ui/                                 # Activities
-│   ├── MainActivity.kt                 # Login
-│   ├── CreateAccActivity.kt            # Registration
-│   ├── DashBoardActivity.kt
-│   ├── TransactionsActivity.kt / AddTransactionActivity.kt
-│   ├── AnalyticsActivity.kt / CategoryTotalsActivity.kt
-│   ├── AccountsActivity.kt / AddAccountActivity.kt
-│   ├── SavingsGoalsActivity.kt / CreateSavingsGoalActivity.kt
-│   ├── ManageSubscriptionsActivity.kt / AddSubscriptionActivity.kt
-│   ├── SpendingInsightActivity.kt      # AI spending analysis
-│   ├── SettingsActivity.kt
-│   ├── ManageCategoriesActivity.kt
-│   ├── ForgotPasswordActivity.kt
-│   ├── BaseActivity.kt
-│   └── adapters/
-│       ├── AccountSpendingAdapter.kt
-│       ├── CategoryRowAdapter.kt / CategoryTileAdapter.kt
-│       ├── DashSavingsAdapter.kt
-│       ├── SpendingRowAdapter.kt
-│       ├── SubscriptionAdapter.kt / SubscriptionTileAdapter.kt
-│       └── TransactionAdapter.kt
-│
-├── utils/
-│   ├── SessionManager.kt               # SharedPreferences session handling
-│   ├── CurrencyManager.kt              # Multi-currency with live exchange rates
-│   ├── AnalyticsPdfExporter.kt         # Analytics PDF export
-│   └── SingleLiveEvent.kt
-│
-└── viewmodel/
-    ├── BankAccountViewModel.kt
-    ├── CategoryViewModel.kt
-    ├── ExpenseEntryViewModel.kt
-    ├── SavingsGoalViewModel.kt
-    ├── SubscriptionViewModel.kt
-    ├── SpendingInsightViewModel.kt
-    ├── UserViewModel.kt
-    └── ViewModelFactory.kt
+├── build.gradle.kts                               # Root build file (AGP 9.2.1, Kotlin 2.2.21)
+├── settings.gradle.kts                            # Project name: Pulserds_PROG7313
+├── gradle.properties
+├── gradlew / gradlew.bat
+└── local.properties                               # sdk.dir + GEMINI_API_KEY (not committed)
 ```
 
 ---
@@ -150,54 +200,114 @@ app/src/main/java/com/example/pulserds_prog7313/
 
 ### Prerequisites
 
-- Android Studio Ladybug or newer
-- JDK 17
-- Android SDK with API 36 installed
-- A `local.properties` file in the project root with your Gemini API key:
-  ```properties
-  GEMINI_API_KEY=your_key_here
-  ```
+| Requirement | Version |
+|---|---|
+| Android Studio | Ladybug (2024.2.1) or newer |
+| JDK | 17 |
+| Android SDK | API 36 (compile & target) |
+| Gradle | 9.4.1 (via wrapper — no manual install needed) |
+| Android Gradle Plugin | 9.2.1 |
 
-### Clone and Open
+### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd prog7313-poe-g2-pulser-ds-main
+git clone https://github.com/EMWCCN/prog7313-poe-g2-pulser-ds.git
+cd prog7313-poe-g2-pulser-ds
 ```
 
-Open in Android Studio via **File → Open**, select the project folder, and let Gradle sync.
+### 2. Configure `local.properties`
 
-### Build and Run
+Create (or edit) `local.properties` in the **project root** — this file is not committed to Git:
 
-1. Connect a device or start an emulator (API 26+).
-2. Click **Run ▶** or from the terminal:
+```properties
+sdk.dir=/path/to/your/Android/Sdk
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_API_KEY_2=your_gemini_api_key_2_here
+```
 
+> **Where to get a Gemini API key:** Visit [Google AI Studio](https://aistudio.google.com/app/apikey) and generate a free key. The Spending Insights screen will not load without it.
+
+> **`sdk.dir` on common platforms:**
+> - **Windows:** `C\:\\Users\\YourName\\AppData\\Local\\Android\\Sdk`
+> - **macOS:** `/Users/YourName/Library/Android/sdk`
+> - **Linux:** `/home/YourName/Android/Sdk`
+>
+> Android Studio sets this automatically when you open the project — you only need to add the `GEMINI_API_KEY` lines.
+
+### 3. Firebase Setup
+
+A valid `app/google-services.json` is already included in the repository. No additional Firebase setup is required to run the app.
+
+### 4. Open in Android Studio
+
+1. Launch Android Studio.
+2. Select **File → Open** and choose the cloned project folder.
+3. Wait for Gradle sync to complete (this may take a few minutes on first run).
+4. If prompted, install any missing SDK components.
+
+### 5. Run the App
+
+**Option A — Android Studio (recommended):**
+1. Connect a physical device (API 26+) via USB with USB Debugging enabled, or start an emulator (API 26+) from the AVD Manager.
+2. Select your device in the toolbar.
+3. Click **Run ▶**.
+
+**Option B — Command line:**
 ```bash
+# Build debug APK
 ./gradlew assembleDebug
+
+# Output location
+app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Output: `app/build/outputs/apk/debug/app-debug.apk`
+To install directly to a connected device:
+```bash
+./gradlew installDebug
+```
 
-> **Note:** A valid `google-services.json` is included. The Spending Insights screen requires a `GEMINI_API_KEY` in `local.properties`.
+### 6. Run Unit Tests
+
+```bash
+./gradlew testDebugUnitTest
+```
+
+Test results are written to `app/build/reports/tests/testDebugUnitTest/`.
 
 ---
 
 ## ⚙️ CI / CD
 
-A **GitHub Actions** workflow (`.github/workflows/ci.yml`) triggers on every push and pull request to `main`:
+A **GitHub Actions** workflow (`.github/workflows/ci.yml`) triggers automatically on every push and pull request to `main`, as well as manually via `workflow_dispatch`:
 
-1. Check out repo and set up JDK 17
-2. Verify Gradle wrapper checksum
-3. Build debug APK (`assembleDebug`)
-4. Run JUnit unit tests (`testDebugUnitTest`)
-5. Run Android Lint (`lintDebug`)
-6. Upload lint report, test results, and APK as build artifacts
+| Step | Action |
+|---|---|
+| 1 | Checkout repository |
+| 2 | Set up JDK 17 (Temurin distribution) |
+| 3 | Set up Android SDK |
+| 4 | Generate `local.properties` from repository secrets (`GEMINI_API_KEY`, `GEMINI_API_KEY_2`, `sdk.dir`) |
+| 5 | Cache Gradle packages |
+| 6 | Grant execute permission for `gradlew` |
+| 7 | Verify Gradle wrapper checksum |
+| 8 | Write `google-services.json` from `GOOGLE_SERVICES_JSON` secret |
+| 9 | Build debug APK (`assembleDebug`) |
+| 10 | Run JUnit unit tests (`testDebugUnitTest`) |
+| 11 | Run Android Lint (`lintDebug`) |
+| 12–14 | Upload lint report, test results, and debug APK as build artifacts |
+
+**Required repository secrets:**
+
+| Secret | Description |
+|---|---|
+| `GEMINI_API_KEY` | Primary Gemini API key |
+| `GEMINI_API_KEY_2` | Secondary / fallback Gemini API key |
+| `GOOGLE_SERVICES_JSON` | Full contents of `google-services.json` |
 
 ---
 
 ## 🗄 Database
 
-Pulser DS uses **Cloud Firestore** as its database. All data is stored per user under their Firebase UID, enabling real-time sync across devices.
+Pulser DS uses **Cloud Firestore** as its sole database. All data is stored per user under their Firebase UID, enabling real-time sync across devices.
 
 | Collection | Description |
 |---|---|
@@ -205,10 +315,10 @@ Pulser DS uses **Cloud Firestore** as its database. All data is stored per user 
 | `categories` | User-defined expense categories |
 | `expense_entries` | Transaction records linked to a category and bank account |
 | `bank_accounts` | Bank accounts with balance tracking |
-| `savings_goals` | Savings targets with progress tracking |
+| `savings_goals` | Savings targets with deadlines and min/max spending goal bands |
 | `subscriptions` | Recurring subscriptions with billing cycle, renewal date, and reminder settings |
 
-> A local Room schema export remains in `app/schemas/` from the Part 2 implementation (version 10).
+> A local Room schema export is retained in `app/schemas/` from the Part 2 implementation (version 10). Room is no longer used at runtime.
 
 ---
 
@@ -217,11 +327,9 @@ Pulser DS uses **Cloud Firestore** as its database. All data is stored per user 
 | Permission | Reason |
 |---|---|
 | `INTERNET` | Firebase, Gemini API, and live currency exchange rate calls |
-| `CAMERA` | Attach receipt photos to transactions |
+| `CAMERA` | Attach receipt photos to transactions (declared as not required) |
 | `READ_MEDIA_IMAGES` (API 33+) | Select images from gallery |
 | `READ_EXTERNAL_STORAGE` (API ≤ 32) | Select images from gallery on older devices |
-
-Camera hardware is declared as **not required** (`android:required="false"`).
 
 ---
 
