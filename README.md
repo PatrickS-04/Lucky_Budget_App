@@ -430,3 +430,59 @@ Pulser DS uses **Cloud Firestore** as its sole database. All data is stored per 
 **Purpose:** Identify the cause of a workflow failure during the test step.
 **Link:** https://claude.ai/share/9cdf5f21-1522-47c3-8d6d-92ae827bc0f5
 **Action:** Output was used to evaluate which fix option best suited the workflow configuration.
+
+---
+
+### Usage 6 — GitHub CI Workflow Fix
+**Tool:** Claude AI · **Date:** 30/05/2026
+**Purpose:** Get an explanation of why the CI workflow failed in GitHub and steps on how to resolve it.
+**Link:** https://claude.ai/share/472ba97e-5aee-4478-9f37-1f978c972253
+**Action:** Followed the provided steps to fix the failing CI issue.
+
+---
+
+### Usage 7 — BaseActivity Class Build Error
+**Tool:** Claude AI · **Date:** 30/05/2026
+**Purpose:** Understand why the project build was failing due to an error in the BaseActivity class.
+**Link:** https://claude.ai/share/9ed82f06-f6f3-485e-b99b-27fe4ebf307a
+**Action:** Followed instructions on how to fix the error.
+
+---
+
+### Usage 8 — Correct Referencing Guide
+**Tool:** Claude AI · **Date:** 30/05/2026
+**Purpose:** Aid in referencing methods correctly without making modifications to any existing code.
+**Link:** https://claude.ai/share/a916b1ac-ede1-4229-bcad-eca0de3a7885
+**Action:** Used the allocations provided as a guide to manually allocate the references correctly.
+
+---
+
+### Usage 9 — Gemini API Fix
+**Tool:** Claude AI · **Date:** 31/05/2026
+**Purpose:** Identify why the AI insights feature was failing within the application and learn how to resolve it.
+**Link:** https://claude.ai/share/f6701b7a-6d28-462c-a541-0ad39e45ad2c
+**Action:** Followed the provided instructions to fix the API integration error.
+
+---
+
+### Usage 10 — Testing Document Error Debugging
+**Tool:** Claude AI · **Date:** 31/05/2026
+**Purpose:** Get an explanation for specific errors identified in the testing document and how to address them.
+**Link:** https://claude.ai/share/89bf4806-22c6-4ec5-ab3a-25b63e93722d
+**Action:** Followed instructions to fix the highlighted errors.
+
+---
+
+### Usage 11 — Dynamic Navigation Bar Implementation
+**Tool:** Gemini · **Date:** 01/06/2026
+**Purpose:** Assist in creating, structuring, and fixing a dynamic navigation bar within the application.
+**Link:** https://g.co/gemini/share/faf4df7da882
+**Action:** Followed the instructions to successfully implement and troubleshoot the navigation bar.
+
+---
+
+### Usage 12 — Database Duplicate Display Resolution
+**Tool:** Gemini · **Date:** 01/06/2026
+**Purpose:** Explain and fix a duplicate display issue across the database and application by ensuring only a single entry is displayed even if duplicates exist.
+**Link:** https://g.co/gemini/share/bf95f422bd74
+**Action:** Followed the instructions to handle the duplicate entries and fix the display output.
