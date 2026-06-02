@@ -13,9 +13,16 @@ import com.example.pulserds_prog7313.R
 import com.example.pulserds_prog7313.data.Subscription
 import com.example.pulserds_prog7313.utils.CurrencyManager
 
+// Displays active subscriptions in the 2-column tile grid on the dashboard
+// and analytics screens. Reuses item_category_tile.xml; the icon, name, and
+// amount fields map to the subscription's emoji icon, service name, and per-cycle cost.
+// Tile background colours cycle through the four palette entries so adjacent
+// tiles are always visually distinct regardless of list length.
 class SubscriptionTileAdapter : ListAdapter<Subscription, SubscriptionTileAdapter.TileViewHolder>(DIFF) {
 
+    // Background colours for each tile position (cycled via modulo).
     private val tileColors   = listOf("#1A3A2A", "#2A1A1A", "#1A1A3A", "#2A1E10")
+    // Accent colours for the amount text that pair with each background.
     private val amountColors = listOf("#6ADB8A", "#FF9F9F", "#9A9AFF", "#FFBF69")
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TileViewHolder {
@@ -39,6 +46,7 @@ class SubscriptionTileAdapter : ListAdapter<Subscription, SubscriptionTileAdapte
             card.setCardBackgroundColor(Color.parseColor(bgColor))
             icon.text   = sub.icon.ifBlank { "📋" }
             name.text   = sub.serviceName
+            // Abbreviate the billing cycle to keep the amount label concise on the tile
             val lbl     = when (sub.billingCycle) { "Weekly" -> "wk"; "Yearly" -> "yr"; else -> "mo" }
             amount.text = "${CurrencyManager.format(itemView.context, sub.amount)}/$lbl"
             amount.setTextColor(Color.parseColor(amountColor))

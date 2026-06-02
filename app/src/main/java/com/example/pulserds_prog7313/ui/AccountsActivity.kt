@@ -106,6 +106,10 @@ class AccountsActivity : BaseActivity() {
         }
     }
 
+    // Rebuilds the account list from scratch on every LiveData emission.
+    // removeAllViews() clears stale rows before re-inflating so deleted accounts
+    // do not linger on screen. The account number is masked to show only the last
+    // four digits as a privacy measure.
     private fun renderAccountsList(accounts: List<BankAccount>) {
         accountsContainer.removeAllViews()
         if (accounts.isEmpty()) { emptyAccountsText.visibility = View.VISIBLE; return }
@@ -118,15 +122,21 @@ class AccountsActivity : BaseActivity() {
             row.findViewById<TextView>(R.id.accountBankName).text = account.bankName
             val typeTag = row.findViewById<TextView>(R.id.accountTypeTag)
             typeTag.text = account.accountType
+            // Tint the type badge to match the user-chosen account colour
             typeTag.setTextColor(dotColour)
             row.findViewById<TextView>(R.id.accountBalance).text = CurrencyManager.format(this, account.balance)
             val last4 = account.accountNumber.takeLast(4).padStart(4, '*')
             row.findViewById<TextView>(R.id.accountMasked).text = "**** $last4"
             accountsContainer.addView(row)
+            // Add a thin divider between rows but not after the last one
             if (index < accounts.lastIndex) accountsContainer.addView(buildDivider())
         }
     }
 
+    // Rebuilds the donut chart legend. Accounts that are excluded from the
+    // total or have a zero balance are omitted from the legend. If all accounts
+    // would be hidden by this filter (e.g. all balances are zero), the fallback
+    // shows every account so the legend is never empty.
     private fun updateLegend(accounts: List<BankAccount>) {
         legendRow.removeAllViews()
         accounts.filter { it.includeInTotal && it.balance > 0 }.forEach { account ->
@@ -161,12 +171,16 @@ class AccountsActivity : BaseActivity() {
         return item
     }
 
+    // Computes the donut chart segments from accounts that are included in the total
+    // and have a positive balance. Each segment size is proportional to its balance.
     private fun updateDonut(accounts: List<BankAccount>) {
         val segments = accounts.filter { it.includeInTotal && it.balance > 0 }
             .map { account -> account.balance.toFloat() to safeParseColour(account.colour, "#4ADE80") }
         donutChart.setSegments(segments)
     }
 
+    // Parses a hex colour string and falls back to the provided fallback colour
+    // if parsing fails (e.g. empty string or malformed hex from Firestore).
     private fun safeParseColour(hex: String, fallback: String): Int =
         try { Color.parseColor(hex) } catch (_: Exception) { Color.parseColor(fallback) }
     private fun buildDivider(): View = View(this).apply {

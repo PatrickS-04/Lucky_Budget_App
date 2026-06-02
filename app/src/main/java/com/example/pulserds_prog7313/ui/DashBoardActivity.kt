@@ -323,16 +323,19 @@ class DashBoardActivity : BaseActivity() {
         }
     }
 
+    // Formats and displays the user's total account balance in the selected currency.
     private fun showBalanceAmount(balance: Double) {
         findViewById<TextView>(R.id.balanceAmount).text =
             CurrencyManager.format(this, balance)
     }
 
+    // Formats and displays the lifetime income total below the balance card.
     private fun showIncomeAmount(income: Double) {
         findViewById<TextView>(R.id.incomeAmount).text =
             CurrencyManager.format(this, income)
     }
 
+    // Formats and displays the lifetime expense total (absolute value) below the balance card.
     private fun showExpenseAmount(expenses: Double) {
         findViewById<TextView>(R.id.expenseAmount).text =
             CurrencyManager.format(this, expenses)
@@ -428,6 +431,7 @@ class DashBoardActivity : BaseActivity() {
         }
     }
 
+    // Returns the first and last day of the current calendar month as "dd/MM/yyyy" strings.
     private fun currentMonthRange(): Pair<String, String> {
         val cal   = Calendar.getInstance()
         val month = cal.get(Calendar.MONTH) + 1
@@ -436,6 +440,8 @@ class DashBoardActivity : BaseActivity() {
         return "01/%02d/%d".format(month, year) to "%02d/%02d/%d".format(last, month, year)
     }
 
+    // Returns the first and last day of the previous calendar month as "dd/MM/yyyy" strings.
+    // Used to compute the month-over-month net change shown in showBalanceChange().
     private fun lastMonthRange(): Pair<String, String> {
         val cal   = Calendar.getInstance()
         cal.add(Calendar.MONTH, -1)

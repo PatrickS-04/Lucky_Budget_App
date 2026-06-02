@@ -192,6 +192,9 @@ class AddSubscriptionActivity : BaseActivity() {
         }
     }
 
+    // Wires click listeners to the Weekly / Monthly / Yearly cycle chips and
+    // defaults to Monthly on screen open. Each tap updates selectedBillingCycle,
+    // repaints the chips, and refreshes the preview card.
     private fun setupBillingCycleChips() {
         val chips = mapOf(cycleWeekly to "Weekly", cycleMonthly to "Monthly", cycleYearly to "Yearly")
         for ((chip, cycle) in chips) {
@@ -204,6 +207,8 @@ class AddSubscriptionActivity : BaseActivity() {
         selectBillingChip(cycleMonthly) // default: Monthly
     }
 
+    // Shows or hides the reminder-days row based on the reminder switch state.
+    // The row is hidden by default so new users are not overwhelmed with options.
     private fun setupReminderToggle() {
         reminderDaysRow.visibility = if (reminderSwitch.isChecked) View.VISIBLE else View.GONE
         reminderSwitch.setOnCheckedChangeListener { _, isChecked ->
@@ -211,6 +216,8 @@ class AddSubscriptionActivity : BaseActivity() {
         }
     }
 
+    // Wires click listeners to the 1 / 3 / 7 day reminder chips and defaults
+    // to 3 days. selectedReminderDays is read by saveSubscription() when persisting.
     private fun setupReminderDayChips() {
         val chips = mapOf(remind1Day to 1, remind3Days to 3, remind7Days to 7)
         for ((chip, days) in chips) {
@@ -222,6 +229,9 @@ class AddSubscriptionActivity : BaseActivity() {
         selectReminderChip(remind3Days) // default: 3 days
     }
 
+    // Populates the category dropdown with a fixed list of subscription-relevant
+    // categories. These are not Firestore categories -- subscriptions use their own
+    // freeform label (e.g. "Streaming", "Gaming") rather than the user's expense categories.
     private fun setupCategoryDropdown() {
         val categories = listOf(
             "Entertainment", "Streaming", "Music", "Gaming",
@@ -307,6 +317,10 @@ class AddSubscriptionActivity : BaseActivity() {
 
     // -- Save ------------------------------------------------------------------
 
+    // Reads all form fields, resolves the bank account ID from the nickname map,
+    // and delegates validation + persistence to SubscriptionViewModel.addSubscription().
+    // The viewModel posts SaveResult.Success or SaveResult.Error via LiveData;
+    // the observer in observeData() handles the outcome (finish or Toast).
     private fun saveSubscription() {
         val serviceName   = serviceNameEditText.text?.toString()?.trim() ?: ""
         val amountStr     = amountEditText.text?.toString()?.trim() ?: ""
@@ -316,6 +330,7 @@ class AddSubscriptionActivity : BaseActivity() {
         val note          = noteEditText.text?.toString()?.trim() ?: ""
 
         val amount        = amountStr.toDoubleOrNull() ?: 0.0
+        // Resolve the selected nickname back to a Firestore document ID
         val bankAccountId = accountMap[accountNick] ?: ""
 
         subscriptionVM.addSubscription(
@@ -379,6 +394,8 @@ class AddSubscriptionActivity : BaseActivity() {
 
     // -- Chip selection helpers ------------------------------------------------
 
+    // Highlights the selected billing cycle chip (green background, bold) and
+    // resets all others to the dark navy resting state.
     private fun selectBillingChip(selected: TextView) {
         for (chip in listOf(cycleWeekly, cycleMonthly, cycleYearly)) {
             if (chip == selected) {
@@ -393,6 +410,9 @@ class AddSubscriptionActivity : BaseActivity() {
         }
     }
 
+    // Highlights the selected reminder-days chip (green background, bold) and
+    // resets all others to the dark navy resting state. Same visual treatment
+    // as selectBillingChip() for consistency.
     private fun selectReminderChip(selected: TextView) {
         for (chip in listOf(remind1Day, remind3Days, remind7Days)) {
             if (chip == selected) {

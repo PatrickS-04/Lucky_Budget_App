@@ -161,6 +161,9 @@ class AddAccountActivity : AppCompatActivity() {
         backArrow        = findViewById(R.id.backArrow)
     }
 
+    // Maps each account-type button to its label string. Clicking highlights the
+    // selected tile (dark green) and resets all others to dark blue. performClick()
+    // on typeCheque seeds the default selection on screen open.
     private fun setupTypeSelection() {
         val tagMap = mapOf(typeCheque to "Cheque", typeSavings to "Savings", typeCredit to "Credit",
             typeCrypto to "Crypto", typeInvest to "Invest", typeWallet to "Wallet")
@@ -175,6 +178,8 @@ class AddAccountActivity : AppCompatActivity() {
         typeCheque.performClick()
     }
 
+    // Maps each bank button to its display name. Logic mirrors setupTypeSelection --
+    // performClick() on bankStandard seeds "Standard Bank" as the default.
     private fun setupBankSelection() {
         val bankMap = mapOf(bankStandard to "Standard Bank", bankFNB to "FNB", bankAbsa to "Absa",
             bankNedbank to "Nedbank", bankCapitec to "Capitec", bankInvestec to "Investec",
@@ -190,6 +195,9 @@ class AddAccountActivity : AppCompatActivity() {
         bankStandard.performClick()
     }
 
+    // Highlights the tapped colour swatch to full opacity and dims all others to 60%.
+    // The preview dot colour is updated immediately so the user sees the change
+    // on the card before saving.
     private fun setupColourSelection() {
         colourMap.forEach { (view, hex) ->
             view.setOnClickListener {
@@ -202,6 +210,8 @@ class AddAccountActivity : AppCompatActivity() {
         colourGreen.alpha = 1f
     }
 
+    // Attaches TextWatchers so the live preview card reflects the nickname and
+    // balance fields in real time as the user types.
     private fun setupPreviewListeners() {
         nicknameEditText.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}

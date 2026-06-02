@@ -213,6 +213,8 @@ class ManageSubscriptionsActivity : BaseActivity() {
 
     // -- UI update helpers -----------------------------------------------------
 
+    // Recomputes the summary card stats (active count, paused count, renewing soon)
+    // and the yearly-equivalent label every time the subscription list changes.
     private fun updateSummaryCard(list: List<Subscription>) {
         val activeList     = list.filter { it.status == "Active" }
         val pausedList     = list.filter { it.status == "Paused" }
@@ -247,6 +249,9 @@ class ManageSubscriptionsActivity : BaseActivity() {
         }
     }
 
+    // Applies the active chip filter to the full subscription list and
+    // submits the result to the adapter. Also toggles the empty-state
+    // label with a context-appropriate message for each filter.
     private fun applyFilter(list: List<Subscription>) {
         val filtered = when (currentFilter) {
             "Active"        -> list.filter { it.status == "Active" }
@@ -272,6 +277,9 @@ class ManageSubscriptionsActivity : BaseActivity() {
         }
     }
 
+    // Repaints all four filter chips so only the selected one is highlighted in green.
+    // All colours are specified as ARGB hex literals to avoid a resource lookup on
+    // every chip change.
     private fun updateChipSelection(selected: TextView) {
         val activeColour  = 0xFF4ADE80.toInt()
         val inactiveColor = 0xFF122033.toInt()

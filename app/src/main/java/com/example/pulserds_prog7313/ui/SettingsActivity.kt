@@ -60,7 +60,7 @@ class SettingsActivity : BaseActivity() {
         private const val KEY_DARK_MODE  = "dark_mode"
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // -- Helpers ---------------------------------------------------------------
 
     /** Updates the subtitle under "Currency" in the Preferences card. */
     private fun refreshCurrencyLabel() {
@@ -69,7 +69,7 @@ class SettingsActivity : BaseActivity() {
             "${currency.label} (${currency.code})"
     }
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // -- Lifecycle -------------------------------------------------------------
 
     override fun onResume() {
         super.onResume()
@@ -245,6 +245,11 @@ class SettingsActivity : BaseActivity() {
         setupBottomNav(R.id.navSettings)
     }
 
+    // Fetches all completed goals for the user and passes them to updateRewardsCard().
+    // Called from onCreate so the rewards card is populated on first render.
+    // getAllGoalsOnce() is a one-shot coroutine fetch (no LiveData), which is
+    // sufficient here because the rewards card is purely informational and does
+    // not need to update in real time while this screen is open.
     private fun loadCompletedGoals(userId: String) {
         lifecycleScope.launch {
             val completedGoals: List<SavingsGoal> = savingsGoalRepo
@@ -254,10 +259,15 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
+    // Updates the rewards card with the most recently completed goal.
+    // The layout uses a CardView -> ConstraintLayout -> [CardView (emoji), LinearLayout [name, detail]]
+    // hierarchy. Views are resolved by structural position rather than ID because the inner
+    // views are not given unique IDs in the XML, so direct view traversal is the only option.
     private fun updateRewardsCard(completedGoals: List<SavingsGoal>) {
         val rewardsCard = findViewById<androidx.cardview.widget.CardView>(R.id.rewardsCard) ?: return
         val goalCard = rewardsCard.findViewById<androidx.cardview.widget.CardView>(R.id.completedGoalCarCard) ?: return
 
+        // ConstraintLayout child 1 = the text column LinearLayout; child 0 = the emoji card
         val nameView = goalCard.getChildAt(0)?.let { cl ->
             (cl as? androidx.constraintlayout.widget.ConstraintLayout)
                 ?.getChildAt(1)
@@ -275,6 +285,7 @@ class SettingsActivity : BaseActivity() {
             nameView?.text   = "No completed goals yet"
             detailView?.text = "Keep saving - you're almost there!"
         } else {
+            // Sort by completedDate descending to show the most recently finished goal
             val latest = completedGoals.sortedByDescending { it.completedDate }.first()
             val emojiView = goalCard.getChildAt(0)?.let { cl ->
                 (cl as? androidx.constraintlayout.widget.ConstraintLayout)
@@ -289,6 +300,12 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
+    // Shows an inline dialog for changing the user's password.
+    // Firebase requires reauthentication (re-sign-in with current credentials)
+    // before a sensitive operation like updatePassword() is allowed. Without
+    // reauthenticate(), Firebase throws FirebaseAuthRecentLoginRequiredException
+    // for accounts that haven't signed in recently -- typically within the last
+    // 5 minutes for password changes.
     private fun showChangePasswordDialog() {
         val layout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
@@ -360,6 +377,12 @@ class SettingsActivity : BaseActivity() {
         currencyDialog = null
     }
 
+    // Shows a single-choice dialog listing the supported currencies.
+    // On selection the cached exchange rate is invalidated (keys removed) and
+    // CurrencyManager.refreshRateIfNeeded() fetches a fresh rate in the background.
+    // Clearing the cache is necessary because the stored rate is ZAR -> previous
+    // currency; keeping it would produce incorrect conversions for the new currency
+    // until the 1-hour TTL expired naturally.
     private fun showCurrencyDialog() {
         currencyDialog?.dismiss()
 
