@@ -25,6 +25,7 @@ The Lucky Budget helps users manage funds, expenses, goals, and subscriptions â€
 - [CI / CD](#-ci-/-cd)
 - [Database](#-database)
 - [Permissions](#-permissions)
+- [Youtube video](#-demo-link)
 - [References](#-references)
 - [Declaration of AI Usage](#-declaration-of-ai-usage)
 
@@ -43,7 +44,7 @@ The Lucky Budget helps users manage funds, expenses, goals, and subscriptions â€
 | **Savings Goals** | Create goals with target amounts and deadlines; track progress and mark complete |
 | **Subscriptions** | Track recurring subscriptions (e.g. Netflix, Spotify) with billing cycle, auto-pay, renewal dates, and reminders |
 | **Spending Insights** | **AI-powered analysis via Gemini 2.5 Flash** â€” spending summaries, overspending warnings, budget suggestions, and savings advice |
-| **Settings** | Toggle preferences (2FA, overspend alerts, subscription reminders, dark mode, **multi-currency**); manage profile and session |
+| **Settings** | Toggle preferences (overspend alerts, subscription reminders, **multi-currency**); manage profile and session |
 | **Manage Categories** | Create and manage custom expense categories |
 
 ---
