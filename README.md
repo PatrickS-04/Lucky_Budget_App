@@ -25,7 +25,7 @@ The Lucky Budget helps users manage funds, expenses, goals, and subscriptions â€
 - [CI / CD](#-ci-/-cd)
 - [Database](#-database)
 - [Permissions](#-permissions)
-- [Youtube video](#-demo-link)
+- [Youtube video](#-demo-video)
 - [References](#-references)
 - [Declaration of AI Usage](#-declaration-of-ai-usage)
 
