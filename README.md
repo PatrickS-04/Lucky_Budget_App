@@ -335,7 +335,7 @@ Pulser DS uses **Cloud Firestore** as its sole database. All data is stored per 
 
 ## 🎬 Demo Video
 
-▶️ https://youtu.be/pipU8XDkbBA
+▶️ [https://youtu.be/pipU8XDkbBA](https://youtu.be/7QyxXqyV3cc?si=D4BHjkXIcXGqBOXS)
 
 ---
 
